@@ -7,7 +7,6 @@ repositories name. It takes the same arguments as the post-update hook of git
 to be executable.
 """
 
-
 from hub import HubBot
 from sleekxmpp.exceptions import IqError
 from sleekxmpp.xmlstream import ET
@@ -68,14 +67,7 @@ class GitBot(HubBot):
     
     def sessionStart(self, event):
         super(GitBot, self).sessionStart(event)
-        try:
-            self.socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
-        except Exception as err:
-            warnings.warn(err)
-        try:
-            self.socket.setsockopt(socket.SOL_TCP, socket.TCP_CORK, 0)
-        except Exception as err:
-            warnings.warn(err)
+        # create the pubsub feed if neccessary
         iq = self.pubsub.get_nodes(self.FEED)
         items = iq['disco_items']['items']
         for server, node, _ in items:
@@ -84,21 +76,16 @@ class GitBot(HubBot):
         else:
             self.pubsub.create_node(self.FEED, self.PUBSUB)
 
+        # publish events for each ref which got updated
         try:
             for ref in self.refs:
                 self._submit(self.repo, ref)
             print("please be patient, but just kill me if I take longer than \
 five seconds")
         finally:
+            # see SleekXMPP issue #193
             self.auto_reconnect = False
             self.disconnect(reconnect=False, wait=False)
-
-    def poll(self):
-        read, _, _ = select.select([self.fifo], [], [], 0.5)
-        if len(read) > 0:
-            repository, ref, newref = self.fifo.readline().split()
-            
-        
 
 if __name__=="__main__":
     logging.basicConfig(level=logging.ERROR,
