@@ -12,3 +12,6 @@ it's fine.
 
 `hub.py` is in fact the core of the “modern” bots (i.e. all but `foobot.py`),
 which abstracts away some of the (very little) boilerplate all bots share.
+
+
+   [1]: https://github.com/fritzy/SleekXMPP
