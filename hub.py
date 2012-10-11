@@ -4,19 +4,19 @@ class HubBot(ClientXMPP):
     HUB = "hub.sotecware.net"
     SWITCH = "switch.hub.sotecware.net"
     FEED = "feed.hub.sotecware.net"
-    
+
     def __init__(self, localpart, resource, password):
         jid = "{0}@{1}".format(localpart, self.HUB)
         if resource:
             jid += "/" + resource
-        
-        ClientXMPP.__init__(self, jid, password)
+        super().__init__(jid, password)
 
         self.register_plugin("xep_0004")  # dataforms
         self.register_plugin("xep_0045")  # muc
         self.register_plugin("xep_0060")  # pubsub -- let the fun begin
 
         self.add_event_handler("session_start", self.sessionStart)
+        self.add_event_handler("session_end", self.sessionEnd)
         self.add_event_handler("groupchat_message", self.messageMUC)
         self.add_event_handler("message", self.message)
 
@@ -44,6 +44,9 @@ class HubBot(ClientXMPP):
 
         for switchTuple in self._switches:
             self._joinSwitch(switchTuple)
+
+    def sessionEnd(self, event):
+        pass
 
     def addSwitch(self, switch, nick, handler=None):
         if handler is not None:
