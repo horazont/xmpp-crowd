@@ -7,10 +7,10 @@ import foomodules.Misc as Misc
 import foomodules.InfoStore as InfoStore
 
 class FoorlConfig(object):
-    def __init__(self, xmpp, importPath, **kwargs):
+    def __init__(self, importPath, **kwargs):
         super().__init__(**kwargs)
-        self.xmpp = xmpp
         self.rooms = frozenset()
+        self.xmpp = None
         self.bindings = {}
         self.errorSink = None
         self.module = importlib.import_module(importPath)
@@ -20,23 +20,32 @@ class FoorlConfig(object):
         oldRooms = self.rooms
         imp.reload(self.module)
         self.errorSink = self.module.errorSink
-        self.muc = self.xmpp["xep_0045"]
+        if self.xmpp:
+            self.muc = self.xmpp["xep_0045"]
+        else:
+            self.muc = None
 
-        newRooms = frozenset(self.module.rooms)
-        self.rooms = newRooms
-        toPart = oldRooms - newRooms
-        for room, nick in toPart:
-            self.leaveRoom(room)
-        toJoin = newRooms - oldRooms
-        for room, nick in toJoin:
-            self.joinRoom(room, nick)
+        if self.xmpp:
+            newRooms = frozenset(self.module.rooms)
+            self.rooms = newRooms
+            toPart = oldRooms - newRooms
+            for room, nick in toPart:
+                self.leaveRoom(room)
+            toJoin = newRooms - oldRooms
+            for room, nick in toJoin:
+                self.joinRoom(room, nick)
 
         self.bindings = self.module.bindings
         self.hooks = self.module.hooks
         self.localpart = self.module.localpart
         self.resource = self.module.resource
         self.password = self.module.password
-        self.propagateXMPP()
+        if self.xmpp is not None:
+            self.propagateXMPP()
+
+    def session_start(self, xmpp):
+        self.xmpp = xmpp
+        self.reload()
 
     def propagateXMPP(self):
         for binding in self.bindings.values():

@@ -9,11 +9,12 @@ import foomodules
 
 class Foorl(HubBot):
     def __init__(self):
-        self.config = foomodules.FoorlConfig(self, "foorl_config")
+        self.config = foomodules.FoorlConfig("foorl_config")
         super(Foorl, self).__init__(self.config.localpart, self.config.resource, self.config.password)
 
     def sessionStart(self, event):
         super(Foorl, self).sessionStart(event)
+        self.config.session_start(self)
 
     def sessionEnd(self, event):
         for hook in self.config.hooks.get("session_end", []):
