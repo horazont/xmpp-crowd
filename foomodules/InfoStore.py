@@ -215,14 +215,20 @@ class RemoveCommand(ExistingCommandBase):
         self.store = store
         self.argparse.add_argument(
             "name",
+            nargs="+",
             help="Name of the information to amend."
         )
 
     def _call(self, msg, args, errorSink=None):
-        info = self._get_or_reply(msg, args.name)
-        if info is None:
-            return
-        self.store.delete_info(info)
+        unknown = set()
+        for name in args.name:
+            info = self.store.names.get(name, None)
+            if info is None:
+                unknown.add(name)
+                continue
+            self.store.delete_info(info)
+        if len(unknown) > 0:
+            self.reply(msg, "Could not remove the following (unknown) information: {0}".format(", ".join(unknown)))
 
 class RenameCommand(ExistingCommandBase):
     def __init__(self, store, command_name="mv", **kwargs):
