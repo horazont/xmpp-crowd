@@ -290,6 +290,17 @@ class ListCommand(Base.ArgparseCommand):
     def _call(self, msg, args, errorSink=None):
         self.choices[args.what](msg, args)
 
+class SaveCommand(Base.MessageHandler):
+    def __init__(self, store):
+        super().__init__()
+        self.store = store
+
+    def __call__(self, msg, arguments, errorSink=None):
+        if arguments.strip():
+            return
+        self.store.save()
+        self.reply(msg, "Successfully stored information.")
+
 class KeywordListener(Base.PrefixListener):
     def __init__(self, store, prefix="+", **kwargs):
         super().__init__(prefix, **kwargs)
