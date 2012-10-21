@@ -9,6 +9,7 @@ import foomodules.Base as Base
 import foomodules.URLLookup as URLLookup
 import foomodules.Misc as Misc
 import foomodules.InfoStore as InfoStore
+import foomodules.Timers as Timers
 
 class FoorlConfig(object):
     def __init__(self, importPath, **kwargs):
