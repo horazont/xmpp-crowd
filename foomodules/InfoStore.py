@@ -126,6 +126,20 @@ class Store(object):
                 del self.keywords[keyword]
         info.keywords -= set(keywords)
 
+    def rename_keyword(self, oldname, newname):
+        infoset = self.keywords[oldname]
+        del self.keywords[oldname]
+        for info in infoset:
+            info.keywords.remove(oldname)
+            info.keywords.add(newname)
+        self.keywords[newname] = infoset
+
+    def rename_info(self, oldname, newname):
+        info = self.names[oldname]
+        del self.names[oldname]
+        info.name = newname
+        self.names[newname] = info
+
 
 class StoreCommand(Base.ArgparseCommand):
     def __init__(self, store, command_name="store", **kwargs):
@@ -209,6 +223,38 @@ class RemoveCommand(ExistingCommandBase):
         if info is None:
             return
         self.store.delete_info(info)
+
+class RenameCommand(ExistingCommandBase):
+    def __init__(self, store, command_name="mv", **kwargs):
+        super().__init__(command_name, **kwargs)
+        self.store = store
+        self.argparse.add_argument(
+            "-t", "--tag", "-k", "--keyword",
+            dest="keyword",
+            action="store_true",
+            default=False,
+            help="Rename a keyword instead of an information. When doing this, the keyword will be completely renamed, i.e. information accessible by the old keyword will be accessible by the new keyword."
+        )
+        self.argparse.add_argument(
+            "oldname",
+            help="Current name of the information or tag to move"
+        )
+        self.argparse.add_argument(
+            "newname",
+            help="New name for the information or tag to move"
+        )
+
+    def _call(self, msg, args, errorSink=None):
+        if info.keyword:
+            try:
+                self.store.rename_keyword(args.oldname, args.newname)
+            except KeyError:
+                return
+        else:
+            try:
+                self.store.rename_info(args.oldname, args.newname)
+            except KeyError:
+                return
 
 class ListCommand(Base.ArgparseCommand):
     def __init__(self, store, command_name="list", **kwargs):
