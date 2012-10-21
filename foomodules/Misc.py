@@ -1,3 +1,6 @@
+import abc
+import logging
+
 import foomodules.Base as Base
 import foomodules.URLLookup as URLLookup
 
@@ -47,3 +50,38 @@ class NumericDocumentMatcher(Base.MessageHandler):
                     self.reply(msg, "<{0}>: sorry, couldn't look it up: {1}".format(document_url, str(err)))
                     pass
 
+
+class BroadcastMessage(Base.XMPPObject, metaclass=abc.ABCMeta):
+    def __init__(self, targets, mtype="chat", **kwargs):
+        super().__init__(**kwargs)
+        self.targets = targets
+        self.mtype = mtype
+
+    @abc.abstractmethod
+    def _get_message(self, target):
+        pass
+
+    def _send_message(self, target):
+        text = self._get_message(target)
+        logging.info("sending %s to %s with mtype %s", text, target, self.mtype)
+        self.xmpp.send_message(target, text, mtype=self.mtype)
+
+    def __call__(self):
+        for target in self.targets:
+            self._send_message(target)
+
+class BroadcastDynamicMessage(BroadcastMessage):
+    def __init__(self, targets, mgen, **kwargs):
+        super().__init__(targets, **kwargs)
+        self.mgen = mgen
+
+    def _get_message(self, target):
+        return self.mgen(target)
+
+class BroadcastStaticMessage(BroadcastMessage):
+    def __init__(self, targets, text, **kwargs):
+        super().__init__(targets, **kwargs)
+        self.text = text
+
+    def _get_message(self, target):
+        return self.text
