@@ -314,11 +314,15 @@ class KeywordListener(Base.PrefixListener):
             m = url_lookup.urlRE.match(contents)
             if m:
                 url = m.group(0)
-                iterable = iter(url_lookup.processURL(url))
                 try:
-                    first_line = next(iterable)
-                except StopIteration:
-                    return
+                    iterable = iter(url_lookup.processURL(url))
+                    try:
+                        first_line = next(iterable)
+                    except StopIteration:
+                        return
+                except URLLookup.URLLookupError as err:
+                    first_line = "sorry, I could not look that up: {0}".format(str(err))
+                    iterable = iter([])
                 self.reply(msg, "{0}: {1} – {2}".format(
                     info.name,
                     contents,
@@ -328,7 +332,7 @@ class KeywordListener(Base.PrefixListener):
                     self.reply(msg, line)
                 return
 
-        self.reply(msg, contents)
+        self.reply(msg, "{0}: {1}".format(info.name, contents))
 
     def _multi_match(self, matches, msg):
         self.reply(msg, "Found {0} possible matches".format(len(matches)))
