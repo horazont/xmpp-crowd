@@ -1,6 +1,9 @@
 import shlex
 import argparse
 
+class ArgumentHelpPrinted(Exception):
+    pass
+
 class MessageHandler(object):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -44,6 +47,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def print_help(self):
         h = self.format_help()
         self.reply(h)
+        raise ArgumentHelpPrinted()
 
     def error(self, message):
         raise ValueError(message)
@@ -63,6 +67,8 @@ class ArgparseCommand(MessageHandler):
         args = shlex.split(arguments)
         try:
             args = self.argparse.parse_args(lambda x: self.reply(msg, x, overrideMType="chat"), args)
+        except ArgumentHelpPrinted:
+            return
         except ValueError as err:
             self._error(msg, str(err))
             return
