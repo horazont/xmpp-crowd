@@ -15,7 +15,12 @@ class Store(object):
             url_lookup=None,
             min_keyword_length=3,
             min_name_length=3,
-            min_info_length=10):
+            min_info_length=10,
+            max_keyword_count=2048,
+            max_info_count=2048,
+            max_info_length=2048,
+            max_keyword_length=64,
+            max_name_length=64):
         self.keywords = {}
         self.names = {}
         self.url_lookup = url_lookup
@@ -23,23 +28,39 @@ class Store(object):
         self.min_name_length = int(min_name_length)
         self.min_keyword_length = int(min_keyword_length)
         self.min_info_length = int(min_info_length)
+        self.max_keyword_count = int(max_keyword_count)
+        self.max_info_count = int(max_info_count)
+        self.max_info_length = int(max_info_length)
+        self.max_name_length = int(max_name_length)
+        self.max_keyword_length = int(max_keyword_length)
 
         self.try_load()
 
     def _check_keywords(self, keywords):
-        if self.min_keyword_length <= 0:
+        if self.min_keyword_length <= 0 and self.max_keyword_length <= 0:
             return
         for kw in keywords:
             if len(kw) < self.min_keyword_length:
                 raise ValueError("Keywords have to have a minimum length of {0:d}".format(self.min_keyword_length))
+            if self.max_keyword_length > 0 and len(kw) > self.max_keyword_length:
+                raise ValueError("Keywords have to have a maximum length of {0:d}".format(self.max_keyword_length))
 
     def _check_name(self, name):
         if len(name) < self.min_name_length:
             raise ValueError("Names have to have a minimum length of {0:d}".format(self.min_name_length))
+        if self.max_name_length > 0 and len(name) > self.max_name_length:
+            raise ValueError("Names have to have a maximum length of {0:d}".format(self.max_name_length))
 
     def _check_contents(self, contents):
         if len(contents) < self.min_info_length:
             raise ValueError("Information have to have a minimum length of {0:d}".format(self.min_info_length))
+        if self.max_info_length > 0 and len(contents) > self.max_info_length:
+            raise ValueError("Information have to have a maximum length of {0:d}".format(self.min_info_length))
+
+    def _check_limits(self):
+        if (self.max_keyword_count > 0 and len(self.keywords) > self.max_keyword_count) or \
+           (self.max_info_count > 0 and len(self.names) > self.max_info_count):
+            raise ValueError("Sorry, I cannot memorize more. You must allow me to forget something else first.")
 
     def try_load(self):
         try:
@@ -57,6 +78,7 @@ class Store(object):
             pickle.dump((self.keywords, self.names), f)
 
     def store_info(self, name, contents, keywords=[]):
+        self._check_limits()
         self._check_name(name)
         self._check_contents(contents)
         self._check_keywords(keywords)
@@ -85,6 +107,9 @@ class Store(object):
         return matches
 
     def attach_keywords(self, info, keywords):
+        if not keywords:
+            return
+        self._check_limits()
         for keyword in keywords:
             self.keywords.setdefault(keyword, set()).add(info)
         info.keywords |= set(keywords)
