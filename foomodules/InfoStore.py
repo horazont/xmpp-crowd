@@ -278,14 +278,14 @@ class ListCommand(Base.ArgparseCommand):
         if len(keywords) == 0:
             self.reply(msg, "Sorry, I don't know any keywords. Teach me some with !amend or !store.")
             return
-        self.reply(msg, "I know something about these keywords: {0}".format(", ".join(keywords)))
+        self.reply(msg, "I know something about these keywords: {0}".format(", ".join(sorted(keywords))))
 
     def _info(self, msg, args):
         names = self.store.names.keys()
         if len(names) == 0:
             self.reply(msg, "Sorry, I don't know any names. Teach me some with !store.")
             return
-        self.reply(msg, "This are the information stored: {0}".format(", ".join(names)))
+        self.reply(msg, "Stored information: {0}".format(", ".join(sorted(names))))
 
     def _call(self, msg, args, errorSink=None):
         self.choices[args.what](msg, args)
@@ -321,7 +321,7 @@ class KeywordListener(Base.PrefixListener):
 
     def _multi_match(self, matches, msg):
         self.reply(msg, "Found {0} possible matches".format(len(matches)))
-        for match in matches:
+        for match in sorted(matches, key=lambda m: m.name):
             self.reply(msg, "{0}: {1}".format(match.name, match.contents))
 
     def _prefix_matched(self, msg, contents, errorSink=None):
