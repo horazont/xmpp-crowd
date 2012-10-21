@@ -90,3 +90,9 @@ class Uptime(Base.MessageHandler):
         output = output.decode().strip()
 
         self.reply(msg, output)
+
+class Reload(Base.MessageHandler):
+    def __call__(self, msg, arguments, errorSink=None):
+        if arguments.strip():
+            return
+        self.xmpp.config.reload()
