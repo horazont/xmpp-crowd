@@ -74,3 +74,21 @@ class ArgparseCommand(MessageHandler):
             return
         self._call(msg, args, errorSink=None)
 
+
+class XMPPObject(object):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.xmpp = None
+
+    def _xmpp_changed(self, old_value, new_value):
+        pass
+
+    @property
+    def XMPP(self):
+        return self.xmpp
+
+    @XMPP.setter
+    def XMPP(self, value):
+        old = self.xmpp
+        self.xmpp = value
+        self._xmpp_changed(old, value)

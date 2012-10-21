@@ -1,5 +1,9 @@
-import importlib, imp
-import sys, traceback
+import importlib
+import imp
+import sys
+import traceback
+import itertools
+
 import foomodules.Commands as Commands
 import foomodules.Base as Base
 import foomodules.URLLookup as URLLookup
@@ -14,6 +18,7 @@ class FoorlConfig(object):
         self.hooks = {}
         self.bindings = {}
         self.errorSink = None
+        self.generic = []
         self.module = importlib.import_module(importPath)
         self.reload()
 
@@ -43,6 +48,7 @@ class FoorlConfig(object):
         self.localpart = self.module.localpart
         self.resource = self.module.resource
         self.password = self.module.password
+        self.generic = self.module.generic
         if self.xmpp is not None:
             self.propagateXMPP()
         for hook in self.hooks.get("session_start", []):
@@ -53,7 +59,8 @@ class FoorlConfig(object):
         self.reload()
 
     def propagateXMPP(self):
-        for binding in self.bindings.values():
+        for binding in itertools.chain(self.bindings.values(), self.generic):
+            print("propagating to {0}".format(binding))
             binding.XMPP = self.xmpp
 
     def leaveRoom(self, room):
@@ -103,7 +110,6 @@ class ErrorLog(Base.MessageHandler):
         self.reply(origMsg, "{0}: {1}".format(type(err).__name__, err),
             overrideTo=self.to)
 
-
 class Binding(object):
     def __init__(self, fromJid, mtype="chat", **kwargs):
         super().__init__(**kwargs)
@@ -123,8 +129,7 @@ class Binding(object):
     def __hash__(self):
         return hash(self.fromJid) ^ hash(self.mtype)
 
-
-class Bind(object):
+class Bind(Base.XMPPObject):
     def __init__(self, *handlers, errorSink=None, ignoreSelf=True, **kwargs):
         super().__init__(**kwargs)
         self.handlers = handlers
@@ -133,15 +138,9 @@ class Bind(object):
         self.ignoreSelf = True
         self.ourJid = None
 
-    @property
-    def XMPP(self):
-        return self.xmpp
-
-    @XMPP.setter
-    def XMPP(self, value):
-        self.xmpp = value
+    def _xmpp_changed(self, old_value, new_value):
         for handler in self.handlers:
-            handler.XMPP = value
+            handler.XMPP = new_value
 
     def dispatch(self, msg):
         mtype = msg["type"]
@@ -158,24 +157,16 @@ class Bind(object):
             else:
                 raise
 
-
-
-class CommandListener(Base.PrefixListener):
+class CommandListener(Base.PrefixListener, Base.XMPPObject):
     def __init__(self, commands, prefix="", verbose=False, **kwargs):
         super().__init__(prefix, **kwargs)
         self.commands = commands
         self.xmpp = None
         self.verbose = verbose
 
-    @property
-    def XMPP(self):
-        return self.xmpp
-
-    @XMPP.setter
-    def XMPP(self, value):
-        self.xmpp = value
+    def _xmpp_changed(self, old_value, new_value):
         for handler in self.commands.values():
-            handler.XMPP = value
+            handler.XMPP = new_value
 
     def _prefix_matched(self, msg, contents, errorSink=None):
         command, sep, arguments = contents.partition(" ")
