@@ -115,7 +115,7 @@ class Store(object):
         info.keywords |= set(keywords)
 
     def remove_keywords(self, info, keywords):
-        for keyword in info.keywords:
+        for keyword in keywords:
             try:
                 infoset = self.keywords[keyword]
             except KeyError:
@@ -151,7 +151,7 @@ class StoreCommand(Base.ArgparseCommand):
             self.store.store_info(args.name, args.contents, keywords=(args.tags or []))
         except ValueError as err:
             self.reply(msg, "Sorry, {0}".format(err))
-        except KeyError:
+        except KeyError as err:
             self.reply(msg, "Sorry, that name is already assigned".format(err))
 
 class ExistingCommandBase(Base.ArgparseCommand):
@@ -159,7 +159,7 @@ class ExistingCommandBase(Base.ArgparseCommand):
         try:
             info = self.store.names[name]
         except KeyError:
-            self.reply("Unknown information: {0}".format(name))
+            self.reply(msg, "Unknown information: {0}".format(name))
             return None
         return info
 
