@@ -11,6 +11,7 @@ class FoorlConfig(object):
         super().__init__(**kwargs)
         self.rooms = frozenset()
         self.xmpp = None
+        self.hooks = {}
         self.bindings = {}
         self.errorSink = None
         self.module = importlib.import_module(importPath)
@@ -19,6 +20,8 @@ class FoorlConfig(object):
     def reload(self):
         oldRooms = self.rooms
         imp.reload(self.module)
+        for hook in self.hooks.get("session_end", []):
+            hook()
         self.errorSink = self.module.errorSink
         if self.xmpp:
             self.muc = self.xmpp["xep_0045"]
@@ -42,6 +45,8 @@ class FoorlConfig(object):
         self.password = self.module.password
         if self.xmpp is not None:
             self.propagateXMPP()
+        for hook in self.hooks.get("session_start", []):
+            hook()
 
     def session_start(self, xmpp):
         self.xmpp = xmpp
