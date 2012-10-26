@@ -4,10 +4,13 @@ import argparse
 class ArgumentHelpPrinted(Exception):
     pass
 
-class MessageHandler(object):
+class XMPPObject(object):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.xmpp = None
+
+    def _xmpp_changed(self, old_value, new_value):
+        pass
 
     @property
     def XMPP(self):
@@ -15,7 +18,15 @@ class MessageHandler(object):
 
     @XMPP.setter
     def XMPP(self, value):
+        old = self.xmpp
         self.xmpp = value
+        self._xmpp_changed(old, value)
+
+
+class MessageHandler(XMPPObject):
+    def __init__(self, prefixed_reply_format="{nick}: {message}", **kwargs):
+        super().__init__(**kwargs)
+        self._prefixed_reply_format = prefixed_reply_format
 
     def reply(self, origMsg, body, overrideMType=None, overrideTo=None):
         mtype = overrideMType or origMsg["type"]
@@ -74,21 +85,3 @@ class ArgparseCommand(MessageHandler):
             return
         self._call(msg, args, errorSink=None)
 
-
-class XMPPObject(object):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.xmpp = None
-
-    def _xmpp_changed(self, old_value, new_value):
-        pass
-
-    @property
-    def XMPP(self):
-        return self.xmpp
-
-    @XMPP.setter
-    def XMPP(self, value):
-        old = self.xmpp
-        self.xmpp = value
-        self._xmpp_changed(old, value)

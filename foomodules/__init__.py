@@ -158,7 +158,7 @@ class Bind(Base.XMPPObject):
             else:
                 raise
 
-class CommandListener(Base.PrefixListener, Base.XMPPObject):
+class CommandListener(Base.PrefixListener):
     def __init__(self, commands, prefix="", verbose=False, **kwargs):
         super().__init__(prefix, **kwargs)
         self.commands = commands
