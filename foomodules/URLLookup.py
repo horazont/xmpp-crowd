@@ -164,7 +164,7 @@ class HTMLDocument(HandlerBase):
     xhtmlMeta = "{{{0}}}meta".format(xhtmlNS)
 
     charsetRE = re.compile(
-            br"""charset\s*=\s*("([^"]+)"|'([^']+)'|([^"']\S+))""")
+            br"""charset\s*=\s*("([^"]+?)"|'([^']+?)'|([^"']+))""")
 
     def __init__(self,
             descriptionBlacklist=[],
