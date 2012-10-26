@@ -36,6 +36,16 @@ class MessageHandler(XMPPObject):
                 mto = origMsg["from"].bare
         self.xmpp.send_message(mtype=mtype, mbody=body, mto=mto)
 
+    def prefixed_reply(self, origMsg, body, overrideMType=None, **kwargs):
+        mtype = overrideMType or origMsg["type"]
+        if mtype == "groupchat":
+            body = self._prefixed_reply_format.format(
+                nick=origMsg["from"].resource,
+                message=body
+            )
+        self.reply(origMsg, body, overrideMType=mtype, **kwargs)
+
+
 class PrefixListener(MessageHandler):
     def __init__(self, prefix):
         super().__init__()
