@@ -18,12 +18,14 @@ class Popen(subprocess.Popen):
             raise subprocess.CalledProcessError(retval, " ".join(call))
         return result
 
-    def __init__(self, *args, sink_line_call=None, **kwargs):
+    def __init__(self, call, *args, sink_line_call=None, **kwargs):
         if sink_line_call is not None:
             kwargs["stdout"] = subprocess.PIPE
             kwargs["stderr"] = subprocess.PIPE
-        super().__init__(*args, **kwargs)
+        super().__init__(call, *args, **kwargs)
         self.sink_line_call = sink_line_call
+        if sink_line_call is not None:
+            sink_line_call("$ {cmd}".format(cmd=" ".join(call)).encode())
 
     def _submit_buffer(self, buf, force=False):
         if b"\n" not in buf:
