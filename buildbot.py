@@ -279,6 +279,7 @@ class DocBot(HubBot):
     NICK = "buildbot"
     PASSWORD = ""
     GIT_NODE = "git@"+HubBot.FEED
+    CONFIG_FILE = "buildbot_config.py"
 
     def __init__(self):
         super(DocBot, self).__init__(self.LOCALPART, "core", self.PASSWORD)
@@ -300,13 +301,14 @@ class DocBot(HubBot):
 
     def reloadConfig(self):
         namespace = {}
-        f = open("docbot_config.py", "r")
-        conf = f.read()
-        f.close()
+        with open(self.CONFIG_FILE, "r") as f:
+            conf = f.read()
+
         try:
             exec(conf, globals(), namespace)
         except Exception:
             return sys.exc_info()
+
         self.authorized = set(namespace.get("authorized", []))
         self.blacklist = set()
         self.projects = dict(namespace.get("projects", []))
@@ -315,7 +317,7 @@ class DocBot(HubBot):
         for project in self.projects.values():
             for reprobranch, build in project.triggers.items():
                 self.repobranch_map.setdefault(reprobranch, []).extend(build)
-        print(self.repobranch_map)
+
         return None
 
     def docsSwitch(self, msg):
