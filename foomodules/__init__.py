@@ -133,13 +133,15 @@ class Binding(object):
         return hash(self.fromJid) ^ hash(self.mtype)
 
 class Bind(Base.XMPPObject):
-    def __init__(self, *handlers, errorSink=None, ignoreSelf=True, **kwargs):
+    def __init__(self, *handlers, errorSink=None, ignoreSelf=True,
+            debug_memory_use=False, **kwargs):
         super().__init__(**kwargs)
         self.handlers = handlers
         self.errorSink = errorSink
         self.xmpp = None
-        self.ignoreSelf = True
+        self.ignoreSelf = ignoreSelf
         self.ourJid = None
+        self.debug_memory_use = debug_memory_use
 
     def _xmpp_changed(self, old_value, new_value):
         for handler in self.handlers:
@@ -149,6 +151,10 @@ class Bind(Base.XMPPObject):
         mtype = msg["type"]
         if self.ignoreSelf and msg["from"] == self.ourJid:
             return
+        if self.debug_memory_use:
+            print("MEMDEBUG: before dispatch")
+            import objgraph
+            objgraph.show_growth()
         try:
             for handler in self.handlers:
                 abort = handler(msg, errorSink=self.errorSink)
@@ -159,6 +165,11 @@ class Bind(Base.XMPPObject):
                 self.errorSink.submit(self.xmpp, err, msg)
             else:
                 raise
+        finally:
+            if self.debug_memory_use:
+                print("MEMDEBUG: after dispatch")
+                import objgraph
+                objgraph.show_growth()
 
 class CommandListener(Base.PrefixListener):
     def __init__(self, commands, prefix="", verbose=False, **kwargs):
