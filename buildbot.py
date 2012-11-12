@@ -132,6 +132,8 @@ class Pull(Execute):
             if stashed:
                 checked(["git", "stash", "pop"])
         super()._do_build(log_func)
+        output = subprocess.check_output(["git", "log", "--oneline", "HEAD^..HEAD"]).decode().strip()
+        log_func("{0} is now at {1}".format(self.name, output).encode())
 
     def __str__(self):
         return "pull {0}".format(self.name)
@@ -421,7 +423,7 @@ class DocBot(HubBot):
             self.send_message(
                 mto=self.switch,
                 mbody="",
-                msubject="docbot is idle",
+                msubject="idle",
                 mtype="groupchat"
             )
 
