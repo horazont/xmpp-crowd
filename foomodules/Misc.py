@@ -91,12 +91,17 @@ class SYNACK(Base.MessageHandler):
             timeout=10,
             timeout_message="handshake timed out",
             abort=True,
+            send_rst=True,
+            process_fin=True,
             **kwargs):
         super().__init__(**kwargs)
         self.timeout = float(timeout)
         self.timeout_message = timeout_message
         self.abort = abort
         self.pending_acks = {}
+        self.process_fin = process_fin
+        self.established = set()
+        self.send_rst = send_rst
 
     def _get_uid(self, jid):
         return "{0!r}.{1!s}".format(self, jid)
@@ -104,31 +109,68 @@ class SYNACK(Base.MessageHandler):
     def _syn(self, msg):
         jid = msg["from"]
         try:
-            uid = self.pending_acks[str(jid)]
+            uid, mode = self.pending_acks[str(jid)]
             self.xmpp.scheduler.remove(uid)
         except KeyError:
             uid = self._get_uid(jid)
-            self.pending_acks[str(jid)] = uid
+            mode = "syn"
+            self.pending_acks[str(jid)] = (uid, mode)
+
+        if mode == "fin":
+            self.reply(msg, "RST")
+            del self.established[str(jid)]
+            del self.pending_acks[str(jid)]
+            return
 
         self.xmpp.scheduler.add(
             uid,
             self.timeout,
-            lambda: self._timeout(msg)
+            lambda: self._timeout_syn(msg)
         )
         self.reply(msg, "SYN ACK")
 
     def _ack(self, msg):
         jid = msg["from"]
+        jidstr = str(jid)
         try:
-            uid = self.pending_acks[str(jid)]
+            uid, mode = self.pending_acks.pop(jidstr)
         except KeyError:
+            if not jidstr in self.established:
+                self.reply(msg, "RST")
             # no syn before
             return
 
-        self.xmpp.scheduler.remove(uid)
+        if mode == "rst":
+            self.xmpp.scheduler.remove(uid)
+            self.established.remove(jidstr)
+        elif mode == "syn":
+            self.xmpp.scheduler.remove(uid)
+            if self.process_fin:
+                self.established.add(jidstr)
 
-    def _timeout(self, msg):
+    def _fin(self, msg):
+        if not self.process_fin:
+            return
+        jid = msg["from"]
+        if not jid in self.established:
+            self.reply(msg, "RST")
+            return
+
+        uid = self._get_uid(jid)
+        self.pending_acks[str(jid)] = uid, "rst"
+        self.reply(msg, "FIN ACK")
+        self.xmpp.scheduler.add(
+            uid,
+            self.timeout,
+            lambda: self._timeout_fin(msg)
+        )
+
+    def _timeout_syn(self, msg):
         self.prefixed_reply(msg, self.timeout_message)
+        del self.pending_acks[str(msg["from"])]
+
+    def _timeout_fin(self, msg):
+        self.reply(msg, "FIN ACK")
 
     def __call__(self, msg, errorSink=None):
         body = msg["body"].strip().lower()
@@ -137,6 +179,9 @@ class SYNACK(Base.MessageHandler):
             return self.abort
         elif body == "ack":
             self._ack(msg)
+            return self.abort
+        elif body == "fin":
+            self._fin(msg)
             return self.abort
         return False
 
