@@ -1,135 +1,217 @@
 #!/usr/bin/python3
 from hub import HubBot
 import traceback
+import itertools
 import sys, os
 import select
 import threading
 import subprocess
+import tempfile
 
-class Branch(object):
-    def __init__(self, branchName, docOutputPath, makeCall, submodules=[],
-            sphinxOutDir="docs/sphinx/build/html",
-            configureCall=["cmake", "."]):
-        self.branchName = branchName
-        self.docOutputPath = docOutputPath
-        self.submodules = list(submodules)
-        self.sphinxOutDir = sphinxOutDir
-        self.makeCall = makeCall
-        self.configureCall = configureCall
-    
-    def _fetchSubmodules(self, check_call):
-        prevdir = os.getcwd()
-        for submodule in self.submodules:
-            os.chdir(os.path.join(prevdir, submodule))
-            try:
-                check_call(["git", "fetch", "origin"])
-            finally:
-                os.chdir(prevdir)
+class Popen(subprocess.Popen):
+    @classmethod
+    def checked(cls, call, *args, **kwargs):
+        proc = cls(call, *args, **kwargs)
+        result = proc.communicate()
+        retval = proc.wait()
+        if retval != 0:
+            raise subprocess.CalledProcessError(retval, " ".join(call))
+        return result
 
-    def buildDocs(self, check_call):
-        check_call(["git", "checkout", "origin/"+self.branchName])
-        check_call(["git", "submodule", "init"])
-        self._fetchSubmodules(check_call)
-        check_call(["git", "submodule", "update"])
-        try:
-            check_call(["rm", "-rf", self.sphinxOutDir])
-        except:
-            pass
-        if self.configureCall:
-            check_call(self.configureCall)
-        check_call(self.makeCall)
-        try:
-            check_call(["rm", "-rf", self.docOutputPath])
-        except:
-            pass
-        check_call(["cp", "-r", os.path.abspath(self.sphinxOutDir), self.docOutputPath])
-        
+    def __init__(self, *args, sink_line_call=None, **kwargs):
+        if sink_line_call is not None:
+            kwargs["stdout"] = subprocess.PIPE
+            kwargs["stderr"] = subprocess.PIPE
+        super().__init__(*args, **kwargs)
+        self.sink_line_call = sink_line_call
 
-class Project(object):
-    def __init__(self, *args, **kwargs):
-        super(Project, self).__init__()
-        self.branches = list(map(self.checkBranch, args))
-        try:
-            self.gitCheckoutPath = kwargs["checkoutPath"]
-            self.cloneSource = kwargs["cloneSource"]
-            self.triggers = kwargs.get("triggers", [])
-        except KeyError as err:
-            raise ValueError("Required parameter undefined: {0}".format(str(err)))
-
-    def checkBranch(self, branch):
-        if not isinstance(branch, Branch):
-            raise TypeError("{0} only accepts Branches as arguments. (Got {1!r})".format(type(self).__name__, branch))
-        return branch.branchName, branch
-
-    def _submitBuf(self, buf, logFunc, force=False):
-        if not b"\n" in buf:
+    def _submit_buffer(self, buf, force=False):
+        if b"\n" not in buf:
             if force:
-                logFunc(buf.decode().strip())
+                self.sink_line_call(buf)
                 return b""
             else:
                 return buf
 
         split = buf.split(b"\n")
         for line in split[:-1]:
-            line = line.decode().strip()
-            if line:
-                logFunc(line)
+            self.sink_line_call(buf)
         return split[-1]
 
-    def _loggedCheckCall(self, logFunc, call, *args, **kwargs):
-        proc = subprocess.Popen(call, *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs)
-        buffers = [b"", b""]
-        rList = [proc.stdout, proc.stderr]
-        while True:
-            rs, _, _ = select.select(rList, [], [])
-            for i, r in enumerate(reversed(rs)):
-                read = r.readline()
-                if len(read) == 0:
-                    del rList[len(rs)-(i+1)]
-                buffers[i] += read
-                buffers[i] = self._submitBuf(buffers[i], logFunc)
-            if len(rList) == 0:
-                break
-        for buf in buffers:
-            self._submitBuf(buf, logFunc, True)
-        retcode = proc.wait()
-        if retcode != 0:
-            raise subprocess.CalledProcessError("Process returned with error code {0}".format(retcode))
-        del proc
-
-    def rebuild(self, logFunc=None):
-        if logFunc is not None:
-            check_call = lambda *args, **kwargs: self._loggedCheckCall(logFunc, *args, **kwargs)
+    def communicate(self):
+        if self.sink_line_call is not None:
+            buffers = [b"", b""]
+            rlist = [self.stdout, self.stderr]
+            while True:
+                rs, _, _ = select.select(rlist, [], [])
+                for i, fd in enumerate(reversed(rs)):
+                    read = fd.readline()
+                    if len(read) == 0:
+                        del rlist[len(rs)-(i+1)]
+                        buf = buffers[len(rs)-(i+1)]
+                        if len(buf):
+                            self._submit_buffer(buf, True)
+                        del buffers[len(rs)-(i+1)]
+                        continue
+                    buffers[i] += read
+                    buffers[i] = self._submit_buffer(buffers[i])
+                if len(rlist) == 0:
+                    break
+            for buf in buffers:
+                self._submit_buffer(buf, True)
+            return None, None
         else:
-            check_call = subprocess.check_call
-        dir = os.getcwd()
-        try:
-            if not os.path.isdir(self.gitCheckoutPath):
-                os.makedirs(self.gitCheckoutPath)
-                os.chdir(self.gitCheckoutPath)
-                check_call(["git", "clone", "-q", self.cloneSource, "."])
-            else:
-                os.chdir(self.gitCheckoutPath)
-                check_call(["git", "fetch", "origin"])
-            
-            for branchName, branch in self.branches:
-                branch.buildDocs(check_call)
-        finally:
-            os.chdir(dir)
+            return super().communicate()
 
+class Build:
+    def __init__(self, name, *args,
+            branch="master",
+            submodules=[],
+            commands=["make"],
+            working_copy=None,
+            **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = name
+        self.branch = branch
+        self.submodules = submodules
+        self.commands = commands
+        self.working_copy = working_copy
+
+    def build_environment(self, log_func):
+        return self.project.build_environment(
+            log_func,
+            self.branch,
+            self.submodules,
+            working_copy=self.working_copy
+        )
+
+    def _do_build(self, env):
+        def checked(*args, **kwargs):
+            return Popen.checked(*args, sink_line_call=env.log_func, **kwargs)
+
+        for command in self.commands:
+            checked(command)
+
+    def build(self, log_func):
+        with self.build_environment(log_func) as env:
+            self._do_build(env)
+
+class BuildAndMove(Build):
+    def __init__(self, *args, move_to=None, move_from=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not move_to:
+            raise ValueError("Required parameter move_to missing or empty.")
+        self.move_to = move_to
+        self.move_from = move_from
+
+    def _do_build(self, env):
+        def checked(*args, **kwargs):
+            return Popen.checked(*args, sink_line_call=env.log_func, **kwargs)
+
+        super()._do_build(env)
+        if self.move_from is not None:
+            move_from = self.move_from.format(
+                builddir=env.tmp_dir
+            )
+        else:
+            move_from = env.tmp_dir
+        checked(["rm", "-rf", self.move_to])
+        checked(["mv", move_from, self.move_to])
+
+
+class BuildEnvironment:
+    def __init__(self, tmp_dir, repo_url, branch, submodules, log_func):
+        self.tmp_dir_context = None
+        self.tmp_dir = tmp_dir
+        self.repo_url = repo_url
+        self.branch = branch
+        self.submodules = submodules
+        self.log_func = log_func
+
+    def __enter__(self):
+        def checked(*args, **kwargs):
+            return Popen.checked(*args, sink_line_call=self.log_func, **kwargs)
+
+        if self.tmp_dir is None:
+            self.tmp_dir_context = tempfile.TemporaryDirectory()
+            self.tmp_dir = self.tmp_dir_context.name
+        try:
+            if not os.path.isdir(self.tmp_dir):
+                os.makedirs(self.tmp_dir)
+            os.chdir(self.tmp_dir)
+            if os.path.isdir(os.path.join(self.tmp_dir, ".git")):
+                checked(["git", "fetch", "origin"])
+            else:
+                checked(["git", "clone", self.repo_url, self.tmp_dir])
+
+            checked(["git", "checkout", self.branch])
+            checked(["git", "pull"])
+
+            for submodule in self.submodules:
+                checked(["git", "submodule", "init", submodule])
+                checked(["git", "submodule", "update", submodule])
+        except:
+            if self.tmp_dir_context is not None:
+                self.tmp_dir_context.cleanup()
+            self.tmp_dir_context = None
+            raise
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.tmp_dir_context is not None:
+            self.tmp_dir_context.cleanup()
+        return False
+
+
+class Project:
     @classmethod
     def declare(cls, name, *args, **kwargs):
-        return (name, cls(*args, **kwargs))
+        return (name, cls(name, *args, **kwargs))
+
+    def __init__(self, name, *builds,
+            repository_url=None, pubsub_name=None, working_copy=None,
+            **kwargs):
+        super().__init__(**kwargs)
+        if not repository_url:
+            raise ValueError("Required parameter repository_url missing or empty.")
+
+        self.name = name
+        self.repository_url = repository_url
+        self.pubsub_name = pubsub_name
+        self.working_copy = working_copy
+        self.builds = builds
+        for build in self.builds:
+            build.project = self
+
+        if pubsub_name is not None:
+            triggers = {}
+            for build in self.builds:
+                build_list = triggers.setdefault((self.pubsub_name, build.branch), [])
+                build_list.append(build)
+            self.triggers = triggers
+        else:
+            self.triggers = {}
+
+    def build_environment(self, log_func, branch, submodules,
+            working_copy=None):
+        return BuildEnvironment(
+            working_copy or self.working_copy,
+            self.repository_url,
+            branch,
+            submodules,
+            log_func
+        )
 
 class DocBot(HubBot):
     LOCALPART = "docbot"
+    NICK = "buildbot"
     PASSWORD = ""
     GIT_NODE = "git@"+HubBot.FEED
-    
+
     def __init__(self):
         super(DocBot, self).__init__(self.LOCALPART, "core", self.PASSWORD)
-        self.switch, self.nick = self.addSwitch("docs", "docbot", self.docsSwitch)
-        self.addSwitch("bots", "docbot")
+        self.switch, self.nick = self.addSwitch("docs", "buildbot", self.docsSwitch)
+        self.bots_switch, _ = self.addSwitch("bots", "buildbot")
         error = self.reloadConfig()
         if error:
             traceback.print_exception(*error)
@@ -157,11 +239,11 @@ class DocBot(HubBot):
         self.blacklist = set()
         self.projects = dict(namespace.get("projects", []))
 
-        self.repoBranchMap = {}
-        for name, project in self.projects.items():
-            project.name = name
-            for trigger in project.triggers:
-                self.repoBranchMap[trigger] = project
+        self.repobranch_map = {}
+        for project in self.projects.values():
+            for reprobranch, build in project.triggers.items():
+                self.repobranch_map.setdefault(reprobranch, []).extend(build)
+        print(self.repobranch_map)
         return None
 
     def docsSwitch(self, msg):
@@ -176,13 +258,14 @@ class DocBot(HubBot):
         if ref is None:
             print("Malformed git-post-update.")
 
-        triggerPtr = (repo, ref.split("/")[2])
+        repobranch = (repo, ref.split("/")[2])
         try:
-            project = self.repoBranchMap[triggerPtr]
+            builds = self.repobranch_map[repobranch]
         except KeyError:
-            print(triggerPtr)
+            print(repobranch)
             return
-        self.rebuild(project)
+        for build in builds:
+            self.rebuild(build)
 
     def formatException(self, exc_info):
         return "\n".join(traceback.format_exception(*sys.exc_info()))
@@ -226,20 +309,44 @@ class DocBot(HubBot):
         else:
             self.reply(msg, "Unknown command: {0}".format(cmd))
 
-    def rebuild(self, project):
-        topic = "Rebuilding docs for {0}".format(project.name)
+    def rebuild(self, build):
+        def log_func(msg):
+            self.send_message(
+                mto=self.switch,
+                mbody=msg,
+                mtype="groupchat"
+            )
+        def log_func_binary(buf):
+            msg = buf.decode().strip()
+            if msg:
+                log_func(msg)
+        project = build.project
+
+        topic = "Rebuilding {0} from project {1}".format(build.name, build.project.name)
         self.send_message(mto=self.switch, mbody="", msubject=topic, mtype="groupchat")
         try:
-            logFunc = lambda body: self.send_message(mto=self.switch, mbody=body, mtype="groupchat")
-            logFunc(topic)
-            project.rebuild(logFunc)
-            logFunc("Done!")
+            log_func(topic)
+            build.build(log_func_binary)
+            log_func("done.")
         except Exception as err:
-            self.send_message(mto=self.switch, mbody="jonas: Project {0} is broken, traceback follows".format(project.name), mtype="groupchat")
-            self.send_message(mto=self.switch, mbody=self.formatException(err), mtype="groupchat")
+            self.send_message(
+                mto=self.bots_switch,
+                mbody="jonas: Project {0}, target {1} is broken, traceback logged to docs".format(project.name, build.name),
+                mtype="groupchat"
+            )
+            self.send_message(
+                mto=self.switch,
+                mbody=self.formatException(err),
+                mtype="groupchat"
+            )
             print("Exception during docbuild logged to muc.")
         finally:
-            self.send_message(mto=self.switch, mbody="", msubject="idle", mtype="groupchat")
+            self.send_message(
+                mto=self.switch,
+                mbody="",
+                msubject="docbot is idle",
+                mtype="groupchat"
+            )
 
     def cmdRebuild(self, msg, projectName):
         project = self.projects.get(projectName, None)
@@ -267,4 +374,4 @@ class DocBot(HubBot):
 if __name__=="__main__":
     docbot = DocBot()
     docbot.run()
-    
+
