@@ -65,18 +65,79 @@ class Popen(subprocess.Popen):
         else:
             return super().communicate()
 
-class Build:
-    def __init__(self, name, *args,
+class WorkingDirectory:
+    def __init__(self, path):
+        self.path = path
+
+    def __enter__(self):
+        self.old_pwd = os.getcwd()
+        os.chdir(self.path)
+        return self.path
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        os.chdir(self.old_pwd)
+        del self.old_pwd
+        return False
+
+
+class Execute:
+    def __init__(self, name, *commands,
+            working_directory=None,
             branch="master",
+            **kwargs):
+        super().__init__(*kwargs)
+        self.name = name
+        self.branch = branch
+        self.working_directory = working_directory
+        self.commands = commands
+
+    def _do_build(self, log_func):
+        def checked(*args, **kwargs):
+            return Popen.checked(*args, sink_line_call=log_func, **kwargs)
+        for command in self.commands:
+            checked(command)
+
+    def build(self, log_func):
+        wd = self.working_directory or os.getcwd()
+        with WorkingDirectory(wd):
+            self._do_build(log_func)
+
+class Pull(Execute):
+    def __init__(self, name, repository_location, branch,
+            after_pull_commands=[],
+            remote_location=None):
+        super().__init__(name, *after_pull_commands,
+            working_directory=repository_location)
+        self.remote_location = remote_location
+        self.branch = branch
+
+    def _do_build(self, log_func):
+        def checked(*args, **kwargs):
+            return Popen.checked(*args, sink_line_call=log_func, **kwargs)
+        output = subprocess.check_output(["git", "stash"])
+        stashed = b"No local changes to save\n" != output
+        try:
+            call = ["git", "pull", "--rebase"]
+            if self.remote_location:
+                call.extend(self.remote_location)
+            checked(call)
+        except subprocess.CalledProcessError:
+            # pull failed, this is quite bad
+            log_func("pull failed, trying to restore previous state.".encode())
+            raise
+        finally:
+            if stashed:
+                checked(["git", "stash", "pop"])
+        super()._do_build(log_func)
+
+class Build(Execute):
+    def __init__(self, name, *args,
             submodules=[],
             commands=["make"],
             working_copy=None,
             **kwargs):
-        super().__init__(*args, **kwargs)
-        self.name = name
-        self.branch = branch
+        super().__init__(name, *commands, **kwargs)
         self.submodules = submodules
-        self.commands = commands
         self.working_copy = working_copy
 
     def build_environment(self, log_func):
