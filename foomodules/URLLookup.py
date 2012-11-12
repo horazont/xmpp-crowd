@@ -1,6 +1,7 @@
 # encoding=utf-8
 import re, functools, itertools, operator, time, math, os, socket
 import urllib.request, urllib.response, urllib.error, urllib.parse
+import heapq
 
 import lxml.etree as ET
 
@@ -300,9 +301,13 @@ class URLLookup(Base.MessageHandler):
             userAgent="undisclosed",
             maxBuffer=MAX_BUFFER,
             showRedirects=False,
+            cache_limit=32,
             **kwargs):
         super().__init__(**kwargs)
-        self.cache = {}
+        if cache_limit > 0:
+            self.cache = {}
+            self.cache_heap = []
+        self.cache_limit = cache_limit
         self.setAbort = setAbort
         self.denyPrivate = denyPrivate
         self.timeout = timeout
@@ -375,7 +380,7 @@ class URLLookup(Base.MessageHandler):
         self.bufferResponse(response, info)
         response.url = urllib.parse.urlparse(response.geturl())
 
-    def processURL(self, url):
+    def _process_uncached_url(self, url):
         request = urllib.request.Request(url, headers={
             "User-Agent": self.userAgent,
             "Accept": self.acceptHeader
@@ -413,6 +418,34 @@ class URLLookup(Base.MessageHandler):
                 yield line
         finally:
             response.close()
+            del response.buf
+            del response
+
+    def processURL(self, url, no_cache=False):
+        use_cache = not no_cache and self.cache_limit
+        if use_cache:
+            cache_url_parsed = list(urllib.parse.urlparse(url)[:5]) + [""]
+            cache_url = urllib.parse.urlunparse(cache_url_parsed)
+            try:
+                line_iter = iter(self.cache[cache_url])
+                first_line = next(line_iter)
+                yield first_line + " [C]"
+                for line in line_iter:
+                    yield line
+                return
+            except KeyError:
+                pass
+
+        lines = self._process_uncached_url(url)
+        if use_cache:
+            while len(self.cache) >= self.cache_limit:
+                cached_url = heapq.heappop(self.cache_heap)
+                del self.cache[cached_url]
+            heapq.heappush(self.cache_heap, (time.time(), cache_url))
+            lines = list(lines)
+            self.cache[cache_url] = lines
+        for line in lines:
+            yield line
 
     def __call__(self, msg, errorSink=None):
         contents = msg["body"]
