@@ -28,6 +28,8 @@ class FoorlConfig(object):
         imp.reload(self.module)
         for hook in self.hooks.get("session_end", []):
             hook()
+        for generic in self.generic:
+            generic.XMPP = None
         self.errorSink = self.module.errorSink
         if self.xmpp:
             self.muc = self.xmpp["xep_0045"]
