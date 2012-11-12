@@ -102,6 +102,9 @@ class Execute:
         with WorkingDirectory(wd):
             self._do_build(log_func)
 
+    def __str__(self):
+        return self.name
+
 class Pull(Execute):
     def __init__(self, name, repository_location, branch,
             after_pull_commands=[],
@@ -129,6 +132,9 @@ class Pull(Execute):
             if stashed:
                 checked(["git", "stash", "pop"])
         super()._do_build(log_func)
+
+    def __str__(self):
+        return "pull {0}".format(self.name)
 
 class Build(Execute):
     def __init__(self, name, *args,
@@ -158,6 +164,9 @@ class Build(Execute):
     def build(self, log_func):
         with self.build_environment(log_func) as env:
             self._do_build(env)
+
+    def __str__(self):
+        return "build {0}".format(self.name)
 
 class BuildAndMove(Build):
     def __init__(self, *args, move_to=None, move_from=None, **kwargs):
@@ -264,6 +273,9 @@ class Project:
             submodules,
             log_func
         )
+
+    def __str__(self):
+        return self.name
 
 class DocBot(HubBot):
     LOCALPART = "docbot"
@@ -385,7 +397,10 @@ class DocBot(HubBot):
                 log_func(msg)
         project = build.project
 
-        topic = "Rebuilding {0} from project {1}".format(build.name, build.project.name)
+        topic = "Running: {project!s} – {build!s}".format(
+            project=project,
+            build=build
+        )
         self.send_message(mto=self.switch, mbody="", msubject=topic, mtype="groupchat")
         try:
             log_func(topic)
