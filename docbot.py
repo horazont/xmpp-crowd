@@ -244,9 +244,6 @@ class Project:
             repository_url=None, pubsub_name=None, working_copy=None,
             **kwargs):
         super().__init__(**kwargs)
-        if not repository_url:
-            raise ValueError("Required parameter repository_url missing or empty.")
-
         self.name = name
         self.repository_url = repository_url
         self.pubsub_name = pubsub_name
