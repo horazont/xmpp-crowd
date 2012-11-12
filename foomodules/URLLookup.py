@@ -10,16 +10,18 @@ from subprocess import check_output
 
 from bs4 import BeautifulSoup
 
-
 import foomodules.Base as Base
 
 MAX_BUFFER = 1048576  # 1 MByte
 
-def readMax(fileLike, maxLength):
+def readMax(fileLike, maxLength, timeout=5, read_block_size=4096):
+    start_time = time.time()
     buf = b''
     try:
         while len(buf) < maxLength:
-            tmp = fileLike.read(maxLength - len(buf))
+            if time.time() - start_time >= timeout:
+                return buf
+            tmp = fileLike.read(min(read_block_size, maxLength - len(buf)))
             if len(tmp) == 0:
                 return buf
             buf += tmp
