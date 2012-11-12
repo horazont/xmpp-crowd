@@ -25,7 +25,9 @@ class RepeatingTimer(Timer):
         super()._xmpp_changed(old_value, new_value)
         if old_value is not None and self._loaded:
             old_value.scheduler.remove(self._uid)
-        self._load()
+            self._loaded = False
+        if new_value is not None:
+            self._load()
 
     def _load(self):
         delay = (self._calc_next_trigger() - datetime.utcnow()).total_seconds()
