@@ -1,5 +1,6 @@
 import shlex
 import pickle
+import sys
 
 import foomodules.Base as Base
 import foomodules.URLLookup as URLLookup
@@ -9,6 +10,12 @@ class Nugget(object):
         self.name = name
         self.contents = contents
         self.keywords = set(keywords)
+
+    def get_size(self):
+        return  sys.getsizeof(self.name) + \
+                sys.getsizeof(self.contents) + \
+                sys.getsizeof(self.keywords) + \
+                sys.getsizeof(self)
 
 class Store(object):
     def __init__(self, data_filename,
@@ -301,6 +308,24 @@ class SaveCommand(Base.MessageHandler):
         self.store.save()
         self.reply(msg, "Successfully stored information.")
 
+class StatsCommand(Base.MessageHandler):
+    def __init__(self, store):
+        super().__init__()
+        self.store = store
+
+    def __call__(self, msg, arguments, errorSink=None):
+        if arguments.strip():
+            return
+        names = sys.getsizeof(self.store.names) + sum(map(sys.getsizeof, self.store.names.keys()))
+        keywords = sys.getsizeof(self.store.keywords) + sum(map(sys.getsizeof, self.store.keywords.keys()))
+        objects = sum(map(Nugget.get_size, self.store.names.values()))
+
+        self.reply(msg, "infostore statistics: keyword dict {keywords}, name dict {names}, objects {objects}".format(
+            keywords=URLLookup.formatBytes(keywords),
+            names=URLLookup.formatBytes(names),
+            objects=URLLookup.formatBytes(objects)
+        ))
+
 class KeywordListener(Base.PrefixListener):
     def __init__(self, store, prefix="+", **kwargs):
         super().__init__(prefix, **kwargs)
@@ -362,5 +387,3 @@ class KeywordListener(Base.PrefixListener):
             return
         else:
             self._multi_match(matches, msg)
-
-
