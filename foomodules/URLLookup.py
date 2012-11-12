@@ -142,7 +142,7 @@ class PlainText(HandlerBase):
         self.defaultResponseFormats = defaultResponseFormats
         self.errorResponseFormats = errorResponseFormats
 
-    def processResponse(self, response):
+    def processResponse(self, response, no_description=False):
         if len(response.buf) < self.maxLength:
             try:
                 text, encoding = guessEncoding(response.buf, response.encoding)
@@ -220,7 +220,7 @@ class HTMLDocument(HandlerBase):
 
         return title, descr
 
-    def processResponse(self, response):
+    def processResponse(self, response, no_description=False):
         bufferLen = len(response.buf)
 
         if response.encoding is None:
@@ -256,10 +256,15 @@ class HTMLDocument(HandlerBase):
             tree = ET.ElementTree(ET.XML(response.buf))
             title, description = self._xhtml(tree)
 
+        if title is None:
+            title = "⟨unknown title⟩"
         title = normalize(title, eraseNewlines=True)
-        description = normalize(description, eraseNewlines=True)
+        if description is None:
+            description = ""
+        else:
+            description = normalize(description, eraseNewlines=True)
 
-        if response.url.hostname in self.descriptionBlacklist:
+        if no_description or response.url.hostname in self.descriptionBlacklist:
             description = ""
 
         return iter(self.formatResponses(self.responseFormats,
@@ -276,7 +281,7 @@ class UnixFile(HandlerBase):
         ], **kwargs)
         self.workingData = workingData
 
-    def processResponse(self, response):
+    def processResponse(self, response, no_description=True):
         out = open(self.workingData, "wb")
         out.write(response.buf)
         out.close()
@@ -304,6 +309,7 @@ class URLLookup(Base.MessageHandler):
             maxBuffer=MAX_BUFFER,
             showRedirects=False,
             cache_limit=32,
+            no_description_keyword=None,
             **kwargs):
         super().__init__(**kwargs)
         if cache_limit > 0:
@@ -314,6 +320,7 @@ class URLLookup(Base.MessageHandler):
         self.denyPrivate = denyPrivate
         self.timeout = timeout
         self.noBotKeyword = noBotKeyword
+        self.no_description_keyword = no_description_keyword
         self.handlers = handlers
         self.responseFormats = responseFormats
         self.userAgent = userAgent
@@ -382,7 +389,7 @@ class URLLookup(Base.MessageHandler):
         self.bufferResponse(response, info)
         response.url = urllib.parse.urlparse(response.geturl())
 
-    def _process_uncached_url(self, url):
+    def _process_uncached_url(self, url, no_description=False):
         request = urllib.request.Request(url, headers={
             "User-Agent": self.userAgent,
             "Accept": self.acceptHeader
@@ -410,7 +417,7 @@ class URLLookup(Base.MessageHandler):
             else:
                 sizeFormatted = "unknown size"
 
-            responseIter = iter(response.handler.processResponse(response))
+            responseIter = iter(response.handler.processResponse(response, no_description=no_description))
             firstLine = next(responseIter)
             for line in self.responseFormats:
                 yield line.format(time=timeTaken,
@@ -423,7 +430,7 @@ class URLLookup(Base.MessageHandler):
             del response.buf
             del response
 
-    def processURL(self, url, no_cache=False):
+    def processURL(self, url, no_cache=False, no_description=False):
         use_cache = not no_cache and self.cache_limit
         if use_cache:
             cache_url_parsed = list(urllib.parse.urlparse(url)[:5]) + [""]
@@ -438,10 +445,10 @@ class URLLookup(Base.MessageHandler):
             except KeyError:
                 pass
 
-        lines = self._process_uncached_url(url)
+        lines = self._process_uncached_url(url, no_description=no_description)
         if use_cache:
             while len(self.cache) >= self.cache_limit:
-                cached_url = heapq.heappop(self.cache_heap)
+                timestamp, cached_url = heapq.heappop(self.cache_heap)
                 del self.cache[cached_url]
             heapq.heappush(self.cache_heap, (time.time(), cache_url))
             lines = list(lines)
@@ -453,12 +460,13 @@ class URLLookup(Base.MessageHandler):
         contents = msg["body"]
         if self.noBotKeyword and contents.startswith(self.noBotKeyword):
             return
+        no_description = self.no_description_keyword is not None and contents.startswith(self.no_description_keyword)
 
         matchFound = False
         for match in self.urlRE.finditer(contents):
             matchFound = True
             try:
-                for line in self.processURL(match.group(0)):
+                for line in self.processURL(match.group(0), no_description=no_description):
                     self.reply(msg, line)
             except URLLookupError as err:
                 self.reply(msg, "Could not open URL: {0!s}".format(err))
