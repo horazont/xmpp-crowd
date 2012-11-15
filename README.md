@@ -14,4 +14,17 @@ it's fine.
 which abstracts away some of the (very little) boilerplate all bots share.
 
 
+`buildbot.py`
+-------------
+
+Thats a really cool guy who does what you'd suspect from reading his name.
+He'll listen for events on a pubsub node and trigger shell commands or whatever
+when certain events come in. It's built to work together with ``gitbot.py``,
+which will push the proper events if installed in a git repositories
+``post-update`` hook. It should be easy to customize both to work with ``hg``
+or similar.
+
+``buildbot`` is highly configurable. See the ``buildbot_config.py`` for a
+nicely commented example.
+
    [1]: https://github.com/fritzy/SleekXMPP
