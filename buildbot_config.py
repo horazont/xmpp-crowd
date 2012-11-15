@@ -78,4 +78,22 @@ projects = [
         # see above
         pubsub_name="zombofant.net"
     ),
+    Project.declare(
+        "xmpp-crowd",
+        Pull(
+            "running bot instances",
+            "/home/horazont/xmpp-crowd",
+            branch="master",
+            remote_location=("origin", "master")
+        ),
+        Respawn(
+            "bots",
+            xmpp,
+            branch="master",
+            forwards=[
+                Respawn.Forward("foorl@hub.sotecware.net")
+            ]
+        ),
+        pubsub_name="xmpp-crowd"
+    )
 ]
