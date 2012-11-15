@@ -276,15 +276,15 @@ class Project:
     def __str__(self):
         return self.name
 
-class DocBot(HubBot):
-    LOCALPART = "docbot"
+class BuildBot(HubBot):
+    LOCALPART = "buildbot"
     NICK = "buildbot"
     PASSWORD = ""
     GIT_NODE = "git@"+HubBot.FEED
     CONFIG_FILE = "buildbot_config.py"
 
     def __init__(self):
-        super(DocBot, self).__init__(self.LOCALPART, "core", self.PASSWORD)
+        super().__init__(self.LOCALPART, "core", self.PASSWORD)
         self.switch, self.nick = self.addSwitch("docs", "buildbot", self.docsSwitch)
         self.bots_switch, _ = self.addSwitch("bots", "buildbot")
         error = self.reloadConfig()
@@ -295,7 +295,7 @@ class DocBot(HubBot):
         self.add_event_handler("pubsub_publish", self.pubsubPublish)
 
     def sessionStart(self, event):
-        super(DocBot, self).sessionStart(event)
+        super().sessionStart(event)
         iq = self.pubsub.get_subscriptions(self.FEED, self.GIT_NODE)
         if len(iq["pubsub"]["subscriptions"]) == 0:
             self.pubsub.subscribe(self.FEED, self.GIT_NODE, bare=True)
@@ -451,6 +451,6 @@ class DocBot(HubBot):
     }
 
 if __name__=="__main__":
-    docbot = DocBot()
-    docbot.run()
+    buildbot = BuildBot()
+    buildbot.run()
 
