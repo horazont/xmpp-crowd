@@ -2,7 +2,8 @@
 from hub import HubBot
 import traceback
 import itertools
-import sys, os
+import sys
+import os
 import select
 import threading
 import subprocess
@@ -84,15 +85,62 @@ class WorkingDirectory:
         del self.old_pwd
         return False
 
+class Target:
+    def __init__(self, name, branch):
+        super().__init__()
+        self.name = name
+        self.branch = branch
 
-class Execute:
+    def __str__(self):
+        return self.name
+
+class Respawn(Target):
+    class Forward:
+        def __init__(self, to_jid, msg="respawn", mtype="chat", **kwargs):
+            super().__init__(**kwargs)
+            self.to_jid = to_jid
+            self.msg = msg
+            self.mtype = mtype
+
+        def do_forward(self, xmpp):
+            xmpp.send_message(
+                mto=self.to_jid,
+                mbody=self.msg,
+                mtype=self.mtype
+            )
+
+    def __init__(self, name, xmpp,
+            branch="master",
+            forwards=[],
+            **kwargs):
+        super().__init__(name, branch, **kwargs)
+        self.xmpp = xmpp
+        self.forwards = forwards
+
+    def build(self, log_func):
+        xmpp = self.xmpp
+        for forward in self.forwards:
+            log_func("Sending respawn command to {0}".format(forward.to_jid).encode())
+            forward.do_forward(xmpp)
+
+        log_func("Respawning self".encode())
+        xmpp.disconnect(reconnect=False, wait=True)
+        try:
+            os.execv(sys.argv[0], sys.argv)
+        except:
+            print("during execv")
+            traceback.print_exc()
+            raise
+
+    def __str__(self):
+        return "respawn {}".format(self.name)
+
+class Execute(Target):
     def __init__(self, name, *commands,
             working_directory=None,
             branch="master",
             **kwargs):
-        super().__init__(*kwargs)
-        self.name = name
-        self.branch = branch
+        super().__init__(name, branch, **kwargs)
         self.working_directory = working_directory
         self.commands = commands
 
@@ -106,9 +154,6 @@ class Execute:
         wd = self.working_directory or os.getcwd()
         with WorkingDirectory(wd):
             self._do_build(log_func)
-
-    def __str__(self):
-        return self.name
 
 class Pull(Execute):
     def __init__(self, name, repository_location, branch,
