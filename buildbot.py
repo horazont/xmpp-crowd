@@ -285,7 +285,7 @@ class BuildBot(HubBot):
 
     def __init__(self):
         super().__init__(self.LOCALPART, "core", self.PASSWORD)
-        self.switch, self.nick = self.addSwitch("docs", "buildbot", self.docsSwitch)
+        self.switch, self.nick = self.addSwitch("build", "buildbot", self.build_switch)
         self.bots_switch, _ = self.addSwitch("bots", "buildbot")
         error = self.reloadConfig()
         if error:
@@ -322,7 +322,7 @@ class BuildBot(HubBot):
 
         return None
 
-    def docsSwitch(self, msg):
+    def build_switch(self, msg):
         pass
 
     def pubsubPublish(self, msg):
