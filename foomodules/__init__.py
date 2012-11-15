@@ -132,6 +132,9 @@ class Binding(object):
     def __hash__(self):
         return hash(self.fromJid) ^ hash(self.mtype)
 
+    def __str__(self):
+        return "{0}#{1}".format(self.fromJid, self.mtype)
+
 class Bind(Base.XMPPObject):
     def __init__(self, *handlers, errorSink=None, ignoreSelf=True,
             debug_memory_use=False, **kwargs):
