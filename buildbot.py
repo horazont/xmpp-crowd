@@ -332,6 +332,7 @@ class BuildBot(HubBot):
     PASSWORD = ""
     GIT_NODE = "git@"+HubBot.FEED
     CONFIG_FILE = "buildbot_config.py"
+    IDLE_MESSAGE = "buildbot waiting for instructions"
 
     def __init__(self):
         super().__init__(self.LOCALPART, "core", self.PASSWORD)
@@ -349,7 +350,11 @@ class BuildBot(HubBot):
         iq = self.pubsub.get_subscriptions(self.FEED, self.GIT_NODE)
         if len(iq["pubsub"]["subscriptions"]) == 0:
             self.pubsub.subscribe(self.FEED, self.GIT_NODE, bare=True)
-        self.send_message(mto=self.switch, mbody="", msubject="idle", mtype="groupchat")
+        self.send_message(mto=self.switch,
+            mbody="",
+            msubject=self.IDLE_MESSAGE,
+            mtype="groupchat"
+        )
 
     def reloadConfig(self):
         namespace = {}
@@ -415,7 +420,7 @@ class BuildBot(HubBot):
             self.send_message(
                 mto=self.switch,
                 mbody="",
-                msubject="idle",
+                msubject=self.IDLE_MESSAGE,
                 mtype="groupchat"
             )
 
