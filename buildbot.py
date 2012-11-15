@@ -177,10 +177,9 @@ class Pull(Execute):
         except subprocess.CalledProcessError:
             # pull failed, this is quite bad
             log_func("pull failed, trying to restore previous state.".encode())
-            raise
-        finally:
             if stashed:
-                checked(["git", "stash", "pop"])
+                log_func("NOTE: There is a stash which needs to be un-stashed!".encode())
+            raise
         super()._do_build(log_func)
         output = subprocess.check_output(["git", "log", "--oneline", "HEAD^..HEAD"]).decode().strip()
         log_func("{0} is now at {1}".format(self.name, output).encode())
