@@ -311,8 +311,10 @@ class BuildBot(HubBot):
         with open(self.CONFIG_FILE, "r") as f:
             conf = f.read()
 
+        global_namespace = dict(globals())
+        global_namespace["xmpp"] = self
         try:
-            exec(conf, globals(), namespace)
+            exec(conf, global_namespace, namespace)
         except Exception:
             return sys.exc_info()
 
