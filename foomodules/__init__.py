@@ -3,6 +3,7 @@ import imp
 import sys
 import traceback
 import itertools
+import logging
 
 import foomodules.Commands as Commands
 import foomodules.Base as Base
@@ -10,6 +11,8 @@ import foomodules.URLLookup as URLLookup
 import foomodules.Misc as Misc
 import foomodules.InfoStore as InfoStore
 import foomodules.Timers as Timers
+
+logger = logging.getLogger(__name__)
 
 class FoorlConfig(object):
     def __init__(self, importPath, **kwargs):
@@ -63,7 +66,6 @@ class FoorlConfig(object):
 
     def propagateXMPP(self):
         for binding in itertools.chain(self.bindings.values(), self.generic):
-            print("propagating to {0}".format(binding))
             binding.XMPP = self.xmpp
 
     def leaveRoom(self, room):
@@ -86,6 +88,7 @@ class FoorlConfig(object):
                 try:
                     binding = self.bindings[key]
                 except KeyError:
+                    logger.info("Dropping message from %s -- no matching binding", str(msg["from"]))
                     return
 
         if mtype == "groupchat":
@@ -194,6 +197,7 @@ class CommandListener(Base.PrefixListener):
             if self.verbose:
                 self.reply(msg, "I don't know what {0} should mean."\
                         .format(command))
+            logger.info("Received unknown command %r from %s", command, str(msg["from"]))
             return
 
         handler(msg, arguments, errorSink=errorSink)
