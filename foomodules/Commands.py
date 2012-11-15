@@ -2,7 +2,8 @@ import foomodules.Base as Base
 
 import random
 import subprocess
-
+import sys
+import os
 
 class Say(Base.MessageHandler):
     def __init__(self, variableTo=False, **kwargs):
@@ -107,3 +108,19 @@ class REPL(Base.MessageHandler):
         namespace["xmpp"] = self.XMPP
         self.reply(msg, "Dropping into repl shell -- don't expect any further interaction until termination of shell access")
         code.InteractiveConsole(namespace).interact("REPL shell as requested")
+
+
+class Respawn(Base.MessageHandler):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.argv = list(sys.argv)
+        self.cwd = os.getcwd()
+
+    def __call__(self, msg, arguments, errorSink=None):
+        if arguments.strip():
+            return
+        print("disconnecting for respawn")
+        self.XMPP.disconnect(reconnect=False, wait=True)
+        print("preparing and running execv")
+        os.chdir(self.cwd)
+        os.execv(self.argv[0], self.argv)
