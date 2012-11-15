@@ -42,21 +42,26 @@ class Popen(subprocess.Popen):
 
     def communicate(self):
         if self.sink_line_call is not None:
-            buffers = [b"", b""]
-            rlist = [self.stdout, self.stderr]
+            rlist = set([self.stdout, self.stderr])
+
+            buffers = {
+                self.stdout: b"",
+                self.stderr: b""
+            }
             while True:
                 rs, _, _ = select.select(rlist, [], [])
-                for i, fd in enumerate(reversed(rs)):
+                for fd in rs:
+                    fno = fd.fileno()
                     read = fd.readline()
                     if len(read) == 0:
-                        del rlist[len(rs)-(i+1)]
-                        buf = buffers[len(rs)-(i+1)]
+                        rlist.remove(fd)
+                        buf = buffers[fd]
                         if len(buf):
                             self._submit_buffer(buf, True)
-                        del buffers[len(rs)-(i+1)]
+                        del buffers[fd]
                         continue
-                    buffers[i] += read
-                    buffers[i] = self._submit_buffer(buffers[i])
+                    buffers[fd] += read
+                    buffers[fd] = self._submit_buffer(buffers[fd])
                 if len(rlist) == 0:
                     break
             for buf in buffers:
