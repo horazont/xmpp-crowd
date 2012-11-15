@@ -400,9 +400,9 @@ class BuildBot(HubBot):
             for build in builds:
                 self.rebuild(build)
         except Exception as err:
-            hint = "Project {0}, target {1} is broken, traceback logged to docs".format(
+            hint = "Project {0}, target {1!s} is broken, traceback logged to docs".format(
                 build.project.name,
-                build.name
+                build
             )
             self.send_message(
                 mto=self.bots_switch,
