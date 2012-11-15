@@ -81,16 +81,29 @@ projects = [
     Project.declare(
         "xmpp-crowd",
         Pull(
+            # again a simple pull operation. In my case, this makes heavy use
+            # of the internals which try to keep the repository in a sane state
+            # even if local changes have been applied (be it as commits or as
+            # working tree changes). Pull will stash the current state (if any)
+            # and do a git pull --rebase. If that fails, I'll shout at you in
+            # some channel and leave the repository in undefined state.
             "running bot instances",
             "/home/horazont/xmpp-crowd",
             branch="master",
             remote_location=("origin", "master")
         ),
+        # note that this will _not_ be executed if Pull fails. Commands are
+        # executed in order and only if all previous commands succeeded
         Respawn(
             "bots",
-            xmpp,
+            xmpp,  # xmpp is a global variable which refers to the xmpp
+                   # connection. It's defined upon loading buildbot_config.py
             branch="master",
             forwards=[
+                # other optional keyword arguments are msg, which contains the
+                # message to be sent to the jid (defaults to "respawn") and
+                # mtype, which must be a valid XMPP message type (defaults to
+                # "chat")
                 Respawn.Forward("foorl@hub.sotecware.net")
             ]
         ),
