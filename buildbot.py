@@ -347,8 +347,32 @@ class BuildBot(HubBot):
         except KeyError:
             print(repobranch)
             return
-        for build in builds:
-            self.rebuild(build)
+        try:
+            for build in builds:
+                self.rebuild(build)
+        except Exception as err:
+            hint = "Project {0}, target {1} is broken, traceback logged to docs".format(
+                build.project.name,
+                build.name
+            )
+            self.send_message(
+                mto=self.bots_switch,
+                mbody="jonas: {0}".format(hint),
+                mtype="groupchat"
+            )
+            self.send_message(
+                mto=self.switch,
+                mbody=self.formatException(err),
+                mtype="groupchat"
+            )
+            print(hint)
+        finally:
+            self.send_message(
+                mto=self.switch,
+                mbody="",
+                msubject="idle",
+                mtype="groupchat"
+            )
 
     def formatException(self, exc_info):
         return "\n".join(traceback.format_exception(*sys.exc_info()))
@@ -410,29 +434,9 @@ class BuildBot(HubBot):
             build=build
         )
         self.send_message(mto=self.switch, mbody="", msubject=topic, mtype="groupchat")
-        try:
-            log_func(topic)
-            build.build(log_func_binary)
-            log_func("done.")
-        except Exception as err:
-            self.send_message(
-                mto=self.bots_switch,
-                mbody="jonas: Project {0}, target {1} is broken, traceback logged to docs".format(project.name, build.name),
-                mtype="groupchat"
-            )
-            self.send_message(
-                mto=self.switch,
-                mbody=self.formatException(err),
-                mtype="groupchat"
-            )
-            print("Exception during docbuild logged to muc.")
-        finally:
-            self.send_message(
-                mto=self.switch,
-                mbody="",
-                msubject="idle",
-                mtype="groupchat"
-            )
+        log_func(topic)
+        build.build(log_func_binary)
+        log_func("done.")
 
     def cmdRebuild(self, msg, projectName):
         project = self.projects.get(projectName, None)
