@@ -34,17 +34,18 @@ class NumericDocumentMatcher(Base.MessageHandler):
     @staticmethod
     def _complete_docex(docex):
         if len(docex) == 2:
-            return docex[0], docex[1], lambda x: x
+            return docex[0], docex[1], lambda x, y: x, y
         else:
             return docex
 
     def __call__(self, msg, errorSink=None):
         contents = msg["body"]
 
-        for regex, document_format in self.document_regexes:
+        for regex, document_format, converter in self.document_regexes:
             for match in regex.finditer(contents):
                 groups = match.groups()
                 groupdict = match.groupdict()
+                groups, groupdict = converter(groups, groupdict)
                 document_url = document_format.format(*groups, **groupdict)
 
                 try:
