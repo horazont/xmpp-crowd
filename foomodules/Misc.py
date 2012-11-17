@@ -34,7 +34,7 @@ class NumericDocumentMatcher(Base.MessageHandler):
     @staticmethod
     def _complete_docex(docex):
         if len(docex) == 2:
-            return docex[0], docex[1], lambda x, y: x, y
+            return docex[0], docex[1], lambda x, y: (x, y)
         else:
             return docex
 
