@@ -28,8 +28,15 @@ class IgnoreList(Base.MessageHandler):
 class NumericDocumentMatcher(Base.MessageHandler):
     def __init__(self, document_regexes, url_lookup, **kwargs):
         super().__init__(**kwargs)
-        self.document_regexes = document_regexes
+        self.document_regexes = list(map(self._complete_docex, document_regexes))
         self.url_lookup = url_lookup
+
+    @staticmethod
+    def _complete_docex(docex):
+        if len(docex) == 2:
+            return docex[0], docex[1], lambda x: x
+        else:
+            return docex
 
     def __call__(self, msg, errorSink=None):
         contents = msg["body"]
