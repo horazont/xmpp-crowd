@@ -513,6 +513,11 @@ class BuildBot(HubBot):
     }
 
 if __name__=="__main__":
+    try:
+        import setproctitle
+        setproctitle.setproctitle("constructor")
+    except ImportError:
+        pass
     buildbot = BuildBot()
     buildbot.run()
 

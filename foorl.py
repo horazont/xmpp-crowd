@@ -3,8 +3,9 @@ from hub import HubBot
 from sleekxmpp.exceptions import IqError
 from sleekxmpp.xmlstream import ET
 
-import subprocess, re, logging
-
+import subprocess
+import re
+import logging
 import foomodules
 
 class Foorl(HubBot):
@@ -34,6 +35,11 @@ class Foorl(HubBot):
         self.config.dispatch(msg)
 
 if __name__=="__main__":
+    try:
+        import setproctitle
+        setproctitle.setproctitle("foorl")
+    except ImportError:
+        pass
     logging.basicConfig(level=logging.INFO,
                         format='%(levelname)-8s %(message)s')
 
