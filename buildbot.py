@@ -204,7 +204,7 @@ class Pull(Execute):
             remote_location=None,
             mode=Merge):
         super().__init__(name, *after_pull_commands,
-            working_directory=repository_location, **kwargs)
+            working_directory=repository_location)
         self.remote_location = remote_location
         self.branch = branch
         self.mode = mode
