@@ -362,7 +362,7 @@ class BuildBot(HubBot):
     PASSWORD = ""
     GIT_NODE = "git@"+HubBot.FEED
     CONFIG_FILE = "buildbot_config.py"
-    IDLE_MESSAGE = "buildbot waiting for instructions"
+    IDLE_MESSAGE = "constructor waiting for instructions"
 
     def __init__(self):
         super().__init__(self.LOCALPART, "core", self.PASSWORD)
