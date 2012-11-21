@@ -328,8 +328,8 @@ class Project:
         return self.name
 
 class BuildBot(HubBot):
-    LOCALPART = "buildbot"
-    NICK = "buildbot"
+    LOCALPART = "constructor"
+    NICK = "constructor"
     PASSWORD = ""
     GIT_NODE = "git@"+HubBot.FEED
     CONFIG_FILE = "buildbot_config.py"
@@ -337,8 +337,8 @@ class BuildBot(HubBot):
 
     def __init__(self):
         super().__init__(self.LOCALPART, "core", self.PASSWORD)
-        self.switch, self.nick = self.addSwitch("build", "buildbot", self.build_switch)
-        self.bots_switch, _ = self.addSwitch("bots", "buildbot")
+        self.switch, self.nick = self.addSwitch("build", self.NICK, self.build_switch)
+        self.bots_switch, _ = self.addSwitch("bots", self.NICK)
         error = self.reloadConfig()
         if error:
             traceback.print_exception(*error)
