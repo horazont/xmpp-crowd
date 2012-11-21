@@ -156,32 +156,61 @@ class Execute(Target):
             self._do_build(log_func)
 
 class Pull(Execute):
+    class Mode:
+        def __init__(self, remote_location, log_func):
+            self.remote_location = remote_location
+            self.log_func = log_func
+
+        def checked(self, *args, **kwargs):
+            return Popen.checked(*args, sink_line_call=self.log_func, **kwargs)
+
+    class Rebase(Mode):
+        def run(self):
+            log_func, checked = self.log_func, self.checked
+
+            output = subprocess.check_output(["git", "stash"])
+            stashed = b"No local changes to save\n" != output
+            try:
+                call = ["git", "pull", "--rebase"]
+                if self.remote_location:
+                    call.extend(self.remote_location)
+                checked(call)
+            except subprocess.CalledProcessError:
+                # pull failed, this is quite bad
+                log_func("pull failed, trying to restore previous state.".encode())
+                if stashed:
+                    log_func("NOTE: There is a stash which needs to be un-stashed!".encode())
+                raise
+            if stashed:
+                checked(["git", "stash", "pop"])
+
+
+    class Merge(Mode):
+        def run(self):
+            log_func, checked = self.log_func, self.checked
+
+            try:
+                call = ["git", "pull"]
+                if self.remote_location:
+                    call.extend(self.remote_location)
+                checked(call)
+            except subprocess.CalledProcessError:
+                # pull failed
+                log_func("pull failed, repository remains unchanged")
+                raise
+
     def __init__(self, name, repository_location, branch,
             after_pull_commands=[],
-            remote_location=None):
+            remote_location=None,
+            mode=Merge):
         super().__init__(name, *after_pull_commands,
-            working_directory=repository_location)
+            working_directory=repository_location, **kwargs)
         self.remote_location = remote_location
         self.branch = branch
+        self.mode = mode
 
     def _do_build(self, log_func):
-        def checked(*args, **kwargs):
-            return Popen.checked(*args, sink_line_call=log_func, **kwargs)
-        output = subprocess.check_output(["git", "stash"])
-        stashed = b"No local changes to save\n" != output
-        try:
-            call = ["git", "pull", "--rebase"]
-            if self.remote_location:
-                call.extend(self.remote_location)
-            checked(call)
-        except subprocess.CalledProcessError:
-            # pull failed, this is quite bad
-            log_func("pull failed, trying to restore previous state.".encode())
-            if stashed:
-                log_func("NOTE: There is a stash which needs to be un-stashed!".encode())
-            raise
-        if stashed:
-            checked(["git", "stash", "pop"])
+        self.mode(self.remote_location, log_func).run()
         super()._do_build(log_func)
         output = subprocess.check_output(["git", "log", "--oneline", "HEAD^..HEAD"]).decode().strip()
         log_func("{0} is now at {1}".format(self.name, output).encode())
