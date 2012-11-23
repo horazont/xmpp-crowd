@@ -1,5 +1,8 @@
 from sleekxmpp import ClientXMPP
 
+import logging
+logger = logging.getLogger(__name__)
+
 class HubBot(ClientXMPP):
     HUB = "hub.sotecware.net"
     SWITCH = "switch.hub.sotecware.net"
@@ -32,7 +35,7 @@ class HubBot(ClientXMPP):
         return "{0}@{1}".format(switch, self.SWITCH)
 
     def _joinSwitch(self, switchTuple, wait=False):
-        print("joining {0} as {1}".format(*switchTuple))
+        logger.debug("joining %s as %s", *switchTuple)
         self.muc.joinMUC(*switchTuple, wait=wait)
 
     def sessionStart(self, event):
