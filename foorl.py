@@ -9,8 +9,11 @@ import logging
 import foomodules
 
 class Foorl(HubBot):
-    def __init__(self):
-        self.config = foomodules.FoorlConfig("foorl_config")
+    def __init__(self, config_module_name, config_module_path=None):
+        self.config = foomodules.FoorlConfig(
+            config_module_name,
+            import_path=config_module_path
+        )
         super(Foorl, self).__init__(self.config.localpart, self.config.resource, self.config.password)
 
     def sessionStart(self, event):
@@ -43,5 +46,24 @@ if __name__=="__main__":
     logging.basicConfig(level=logging.INFO,
                         format='%(levelname)-8s %(message)s')
 
-    bot = Foorl()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--config-path",
+        dest="config_module_path",
+        help="Path to the config module. If unset, only the usual python path \
+            is searched",
+        default=None,
+    )
+    parser.add_argument(
+        "--config-module",
+        dest="config_module_name",
+        default="foorl_config",
+        help="Name of the python module containing the foorl configuration."
+    )
+
+    args = parser.parse_args()
+    del parser
+
+    bot = Foorl(args.config_module_name, args.config_module_path)
     bot.run()

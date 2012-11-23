@@ -4,6 +4,7 @@ import sys
 import traceback
 import itertools
 import logging
+import os
 
 import foomodules.Commands as Commands
 import foomodules.Base as Base
@@ -15,7 +16,7 @@ import foomodules.Timers as Timers
 logger = logging.getLogger(__name__)
 
 class FoorlConfig(object):
-    def __init__(self, importPath, **kwargs):
+    def __init__(self, import_name, import_path=None, **kwargs):
         super().__init__(**kwargs)
         self.rooms = frozenset()
         self.xmpp = None
@@ -23,7 +24,11 @@ class FoorlConfig(object):
         self.bindings = {}
         self.errorSink = None
         self.generic = []
-        self.module = importlib.import_module(importPath)
+        if import_path:
+            import_path = os.path.abspath(import_path)
+            logging.debug("Adding path %s to python path for config import", import_path)
+            sys.path.insert(0, import_path)
+        self.module = importlib.import_module(import_name)
         self.reload()
 
     def reload(self):
