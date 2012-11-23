@@ -8,6 +8,9 @@ import select
 import threading
 import subprocess
 import tempfile
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Popen(subprocess.Popen):
     @classmethod
@@ -117,13 +120,8 @@ class Respawn(Target):
         self.xmpp = xmpp
         self.forwards = forwards
 
-    def build(self, log_func):
-        xmpp = self.xmpp
-        for forward in self.forwards:
-            log_func("Sending respawn command to {0}".format(forward.to_jid).encode())
-            forward.do_forward(xmpp)
-
-        log_func("Respawning self".encode())
+    @staticmethod
+    def exec_respawn(xmpp):
         xmpp.disconnect(reconnect=False, wait=True)
         try:
             os.execv(sys.argv[0], sys.argv)
@@ -131,6 +129,15 @@ class Respawn(Target):
             print("during execv")
             traceback.print_exc()
             raise
+
+    def build(self, log_func):
+        xmpp = self.xmpp
+        for forward in self.forwards:
+            log_func("Sending respawn command to {0}".format(forward.to_jid).encode())
+            forward.do_forward(xmpp)
+
+        log_func("Respawning self".encode())
+        self.exec_respawn(xmpp)
 
     def __str__(self):
         return "respawn {}".format(self.name)
