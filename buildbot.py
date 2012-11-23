@@ -364,21 +364,35 @@ class Project:
         return self.name
 
 class BuildBot(HubBot):
-    LOCALPART = "constructor"
-    NICK = "constructor"
-    PASSWORD = ""
     GIT_NODE = "git@"+HubBot.FEED
-    CONFIG_FILE = "buildbot_config.py"
     IDLE_MESSAGE = "constructor waiting for instructions"
 
-    def __init__(self):
-        super().__init__(self.LOCALPART, "core", self.PASSWORD)
-        self.switch, self.nick = self.addSwitch("build", self.NICK, self.build_switch)
-        self.bots_switch, _ = self.addSwitch("bots", self.NICK)
+    config_credentials = {}
+
+    nickname = "foo"
+
+    def __init__(self, config_path):
+        self._initial_cwd = os.getcwd()
+        self._config_path = config_path
+        self.initialized = False
+
         error = self.reloadConfig()
         if error:
             traceback.print_exception(*error)
             sys.exit(1)
+        self.initialized = True
+
+        credentials = self.config_credentials
+        super().__init__(
+            credentials["localpart"],
+            credentials["resource"],
+            credentials["password"]
+        )
+        del credentials["password"]
+
+        nickname = credentials["nickname"]
+        self.switch, self.nick = self.addSwitch("build", nickname, self.build_switch)
+        self.bots_switch, _ = self.addSwitch("bots", nickname)
 
         self.add_event_handler("pubsub_publish", self.pubsubPublish)
 
@@ -395,7 +409,7 @@ class BuildBot(HubBot):
 
     def reloadConfig(self):
         namespace = {}
-        with open(self.CONFIG_FILE, "r") as f:
+        with open(self._config_path, "r") as f:
             conf = f.read()
 
         global_namespace = dict(globals())
@@ -404,6 +418,29 @@ class BuildBot(HubBot):
             exec(conf, global_namespace, namespace)
         except Exception:
             return sys.exc_info()
+
+        new_credentials = namespace.get("credentials", {})
+        if "localpart" not in new_credentials or "password" not in new_credentials:
+            raise ValueError("Both localpart and password must be present in credentials.")
+
+        if "nickname" not in new_credentials:
+            new_credentials["nickname"] = new_credentials["localpart"]
+
+        if "resource" not in new_credentials:
+            new_credentials["resource"] = "core"
+
+        # don't respawn on new password -- it'll get updated on next connect
+        # anyways
+        cmp_creds_new = dict(new_credentials)
+        del cmp_creds_new["password"]
+        cmp_creds_old = dict(self.config_credentials)
+
+        if  cmp_creds_new != cmp_creds_old and self.initialized:
+            logger.info("Respawning due to major config change")
+            os.chdir(self._initial_cwd)
+            Respawn.exec_respawn(self)
+
+        self.config_credentials = new_credentials
 
         self.authorized = set(namespace.get("authorized", []))
         self.blacklist = set()
@@ -554,6 +591,19 @@ if __name__=="__main__":
         setproctitle.setproctitle("constructor")
     except ImportError:
         pass
-    buildbot = BuildBot()
+
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-c", "--config-file",
+        default="buildbot_config.py",
+        help="Path to the config file to use.",
+        dest="config_file"
+    )
+
+    args = parser.parse_args()
+    del parser
+
+    buildbot = BuildBot(args.config_file)
     buildbot.run()
 
