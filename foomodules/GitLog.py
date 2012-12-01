@@ -55,11 +55,12 @@ class GitLog(Base.XMPPObject):
 
         repobranch = (repo, ref.split("/")[2])
 
-        try:
-            hook = self.hooks[repobranch]
-        except KeyError:
-            return
-        hook(item, *repobranch)
+        for key in (repobranch, None):
+            try:
+                hook = self.hooks[key]
+            except KeyError:
+                continue
+            hook(item, *repobranch)
 
 class CommitNotify(Base.XMPPObject):
     HEADLINE_NODE = "{{{0}}}headline".format(xmlns)
