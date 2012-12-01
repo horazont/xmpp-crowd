@@ -119,11 +119,13 @@ class Respawn(Target):
         super().__init__(name, branch, **kwargs)
         self.xmpp = xmpp
         self.forwards = forwards
+        self.cwd = os.getcwd()
 
     @staticmethod
     def exec_respawn(xmpp):
         xmpp.disconnect(reconnect=False, wait=True)
         try:
+            os.chdir(self.cwd)
             os.execv(sys.argv[0], sys.argv)
         except:
             print("during execv")
