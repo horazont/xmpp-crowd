@@ -94,7 +94,7 @@ class FoorlConfig(object):
                 try:
                     binding = self.bindings[key]
                 except KeyError:
-                    logger.info("Dropping message from %s -- no matching binding", str(msg["from"]))
+                    logger.info("Dropping message from %s -- no matching binding", msg["from"])
                     return
 
         if mtype == "groupchat":
