@@ -1,5 +1,8 @@
 import shlex
 import argparse
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ArgumentHelpPrinted(Exception):
     pass
@@ -34,6 +37,7 @@ class MessageHandler(XMPPObject):
         if mtype == "groupchat":
             if not overrideTo:
                 mto = origMsg["from"].bare
+        logger.debug("sending to %s as %s: %r", mto, mtype, mbody)
         self.xmpp.send_message(mtype=mtype, mbody=body, mto=mto)
 
     def prefixed_reply(self, origMsg, body, overrideMType=None, **kwargs):
