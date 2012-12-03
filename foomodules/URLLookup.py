@@ -72,7 +72,7 @@ def normalize(s, eraseNewlines=True):
         s = s[:match.start()] + " " + s[match.end():]
     return s
 
-control_character_filter = lambda x: 0 <= ord(x) < 32 and x != "\x0A" and x != "\x0D"
+control_character_filter = lambda x: ord(x) >= 32 or x == "\x0A" or x == "\x0D"
 def cleanup_string(s):
     return "".join(filter(control_character_filter, s))
 
