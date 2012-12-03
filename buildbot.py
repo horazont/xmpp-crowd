@@ -98,6 +98,8 @@ class Target:
         return self.name
 
 class Respawn(Target):
+    initial_cwd = os.getcwd()
+
     class Forward:
         def __init__(self, to_jid, msg="respawn", mtype="chat", **kwargs):
             super().__init__(**kwargs)
@@ -121,11 +123,11 @@ class Respawn(Target):
         self.forwards = forwards
         self.cwd = os.getcwd()
 
-    @staticmethod
-    def exec_respawn(xmpp):
+    @classmethod
+    def exec_respawn(cls, xmpp):
         xmpp.disconnect(reconnect=False, wait=True)
         try:
-            os.chdir(self.cwd)
+            os.chdir(cls.initial_cwd)
             os.execv(sys.argv[0], sys.argv)
         except:
             print("during execv")
@@ -374,7 +376,6 @@ class BuildBot(HubBot):
     nickname = "foo"
 
     def __init__(self, config_path):
-        self._initial_cwd = os.getcwd()
         self._config_path = config_path
         self.initialized = False
 
@@ -439,7 +440,6 @@ class BuildBot(HubBot):
 
         if  cmp_creds_new != cmp_creds_old and self.initialized:
             logger.info("Respawning due to major config change")
-            os.chdir(self._initial_cwd)
             Respawn.exec_respawn(self)
 
         self.config_credentials = new_credentials
