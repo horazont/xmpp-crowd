@@ -72,6 +72,10 @@ def normalize(s, eraseNewlines=True):
         s = s[:match.start()] + " " + s[match.end():]
     return s
 
+control_character_filter = lambda x: 0 <= x < 32 and x != 10 and x != 13
+def cleanup_string(s):
+    return str(filter(control_character_filter, s))
+
 
 @functools.total_ordering
 class Accept(object):
@@ -258,11 +262,13 @@ class HTMLDocument(HandlerBase):
 
         if title is None:
             title = "⟨unknown title⟩"
-        title = normalize(title, eraseNewlines=True)
+        title = cleanup_string(normalize(title, eraseNewlines=True))
         if description is None:
             description = ""
         else:
-            description = normalize(description, eraseNewlines=True)
+            # actually, amazon sometimes sends 0x1a characters, which is quite
+            # odd and leads to not-wellformed kicks
+            description = cleanup_string(normalize(description, eraseNewlines=True))
 
         if no_description or response.url.hostname in self.descriptionBlacklist:
             description = ""
