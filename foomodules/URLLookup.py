@@ -74,7 +74,7 @@ def normalize(s, eraseNewlines=True):
 
 control_character_filter = lambda x: 0 <= x < 32 and x != 10 and x != 13
 def cleanup_string(s):
-    return str(filter(control_character_filter, s))
+    return "".join(filter(control_character_filter, s))
 
 
 @functools.total_ordering
