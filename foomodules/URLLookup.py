@@ -179,6 +179,8 @@ class HTMLDocument(HandlerBase):
                 "html document: {title}",
                 "{description}"
             ],
+            description_limit=None,
+            description_ellipsis="[…]",
             **kwargs):
         super().__init__([
             Accept("text/html", 1.0),
@@ -186,6 +188,8 @@ class HTMLDocument(HandlerBase):
         ], **kwargs)
         self.responseFormats = responseFormats
         self.descriptionBlacklist = frozenset(descriptionBlacklist)
+        self.description_limit = description_limit
+        self.description_ellipsis = description_ellipsis
 
     def _heuristic(self, contents):
         titleMatch = self.titleRE.search(contents)
@@ -272,6 +276,12 @@ class HTMLDocument(HandlerBase):
 
         if no_description or response.url.hostname in self.descriptionBlacklist:
             description = ""
+        if self.description_limit is not None and \
+                len(description) > self.description_limit:
+            if self.description_limit > 3:
+                description = description[:self.description_limit-3]+self.description_ellipsis
+            else:
+                description = ""
 
         return iter(self.formatResponses(self.responseFormats,
                 title=title or "Untitled Document",
