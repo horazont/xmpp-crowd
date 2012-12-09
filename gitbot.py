@@ -20,7 +20,7 @@ class GitBot(HubBot):
     PUBSUB = "git@"+HubBot.FEED
 
     xmlns = "http://hub.sotecware.net/xmpp/git-post-update"
-    
+
     def __init__(self, repo, repoPath, refs):
         super(GitBot, self).__init__(self.LOCALPART, None, self.PASSWORD)
         self.repo = repo
@@ -34,6 +34,10 @@ class GitBot(HubBot):
         ref = ET.SubElement(tree, "{{{0}}}ref".format(self.xmlns))
         ref.text = refPath
         newRef = ET.SubElement(tree, "{{{0}}}new-ref".format(self.xmlns))
+        newRef.set(
+            "sha",
+            subprocess.check_output(["cat", refPath]).decode().strip()
+        )
         self._refToETree(newRef, refPath)
         self.pubsub.publish(self.FEED, self.PUBSUB,
             payload=tree,
@@ -64,7 +68,7 @@ class GitBot(HubBot):
             message.text = output[i+1]
         except IndexError:
             pass
-    
+
     def sessionStart(self, event):
         super(GitBot, self).sessionStart(event)
         # create the pubsub feed if neccessary

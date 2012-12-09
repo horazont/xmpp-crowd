@@ -67,7 +67,7 @@ class CommitNotify(Base.XMPPObject):
     AUTHOR_NODE = "{{{0}}}author".format(xmlns)
     NEW_REF_NODE = "{{{0}}}new-ref".format(xmlns)
 
-    DEFAULT_FORMAT = "{repo}/{branch} is now at {headline}"
+    DEFAULT_FORMAT = "{repo}/{branch} is now at {shortsha}: {headline}"
 
     def __init__(self, to_jids=[], fmt=DEFAULT_FORMAT, **kwargs):
         super().__init__(**kwargs)
@@ -77,11 +77,14 @@ class CommitNotify(Base.XMPPObject):
     def __call__(self, item, repo, branch):
         new_ref = item.find(self.NEW_REF_NODE)
 
+        sha = new_ref.get("sha")
         msg = self.fmt.format(
             repo=repo,
             branch=branch,
             headline=new_ref.findtext(self.HEADLINE_NODE),
-            author=new_ref.findtext(self.AUTHOR_NODE) or "unknown author(!)"
+            author=new_ref.findtext(self.AUTHOR_NODE) or "unknown author(!)",
+            sha=sha
+            shortsha=sha[:8]
         )
 
         for jid in self.to_jids:
