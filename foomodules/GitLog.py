@@ -83,7 +83,7 @@ class CommitNotify(Base.XMPPObject):
             branch=branch,
             headline=new_ref.findtext(self.HEADLINE_NODE),
             author=new_ref.findtext(self.AUTHOR_NODE) or "unknown author(!)",
-            sha=sha
+            sha=sha,
             shortsha=sha[:8]
         )
 
