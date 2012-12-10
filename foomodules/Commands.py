@@ -208,6 +208,9 @@ class Peek(Base.ArgparseCommand):
 
         if reply is None:
             reply = "hexdump: {0}".format(binascii.b2a_hex(buf).decode("ascii"))
+        else:
+            reply = "{host}:{port} says: {0}".format(reply, host=args.host,
+                port=args.port)
 
         self.reply(msg, reply)
 
