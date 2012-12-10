@@ -159,11 +159,13 @@ class Peek(Base.ArgparseCommand):
         while b"\n" not in buf and len(buf) < self.maxlen:
             try:
                 buf += sock.recv(1024)
+                print("recv returned ok")
             except socket.error as err:
                 if err.errno == errno.EAGAIN:
+                    print("EAGAIN")
                     break
                 raise
-        return buf
+        return buf.split(b"\n", 1)[0]
 
     def _call(self, msg, args, errorSink=None):
         fam = socket.AF_INET6 if args.ipv6 else socket.AF_INET
