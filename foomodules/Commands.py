@@ -178,7 +178,7 @@ class Peek(Base.ArgparseCommand):
             sock.close()
 
         try:
-            reply = buf.decode("utf-8")
+            reply = buf.decode("utf-8").strip()
         except UnicodeDecodeError as err:
             reply = b2a_hex(buf)
 
