@@ -192,4 +192,3 @@ class SYNACK(Base.MessageHandler):
             self._fin(msg)
             return self.abort
         return False
-

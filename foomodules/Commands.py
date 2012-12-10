@@ -4,6 +4,8 @@ import random
 import subprocess
 import sys
 import os
+import socket
+import argparse
 
 class Say(Base.MessageHandler):
     def __init__(self, variableTo=False, **kwargs):
@@ -124,3 +126,54 @@ class Respawn(Base.MessageHandler):
         print("preparing and running execv")
         os.chdir(self.cwd)
         os.execv(self.argv[0], self.argv)
+
+
+class Peek(Base.ArgparseCommand):
+    def __init__(self, timeout=3, command_name="peek", maxlen=256, **kwargs):
+        super().__init__(command_name, **kwargs)
+        self.timeout = timeout
+        self.maxlen = maxlen
+        self.argparse.add_argument(
+            "-u", "--udp",
+            action="store_true",
+            dest="udp",
+            default=False
+        )
+        self.argparse.add_argument(
+            "-6", "--ipv6",
+            action="store_true",
+            dest="ipv6",
+            default=False
+        )
+        self.argparse.add_argument(
+            "host"
+        )
+        self.argparse.add_argument(
+            "port",
+            type=int
+        )
+
+    def recvline(self, sock):
+        buf = b""
+        while b"\n" not in buf and len(buf) < self.maxlen:
+            buf += sock.read(1024)
+        return buf
+
+    def _call(self, msg, args, errorSink=None):
+        fam = socket.AF_INET6 if args.ipv6 else socket.AF_INET
+        typ = socket.SOCK_DGRAM if args.udp else socket.SOCK_STREAM
+        sock = socket.socket(fam, typ, 0)
+        sock.connect((args.host, args.port))
+        try:
+            sock.settimeout(self.timeout)
+            sock.setblocking(False)
+            buf = self.recvline(sock)
+        finally:
+            sock.close()
+
+        try:
+            reply = buf.decode("utf-8")
+        except UnicodeDecodeError as err:
+            reply = b2a_hex(buf)
+
+        self.reply(msg, reply)
