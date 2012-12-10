@@ -1,5 +1,3 @@
-import foomodules.Base as Base
-
 import binascii
 import errno
 import random
@@ -8,6 +6,9 @@ import sys
 import os
 import socket
 import argparse
+
+import foomodules.Base as Base
+import foomodules.utils as utils
 
 class Say(Base.MessageHandler):
     def __init__(self, variableTo=False, **kwargs):
