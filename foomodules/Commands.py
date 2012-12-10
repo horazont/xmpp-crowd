@@ -172,7 +172,7 @@ class Peek(Base.ArgparseCommand):
         try:
             sock.connect((args.host, args.port))
         except socket.error as err:
-            self.reply("connect error: {0!s}".format(err))
+            self.reply(msg, "connect error: {0!s}".format(err))
             return
         try:
             sock.settimeout(self.timeout)
