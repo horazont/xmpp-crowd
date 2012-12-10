@@ -169,7 +169,11 @@ class Peek(Base.ArgparseCommand):
         fam = socket.AF_INET6 if args.ipv6 else socket.AF_INET
         typ = socket.SOCK_DGRAM if args.udp else socket.SOCK_STREAM
         sock = socket.socket(fam, typ, 0)
-        sock.connect((args.host, args.port))
+        try:
+            sock.connect((args.host, args.port))
+        except socket.error as err:
+            self.reply("connect error: {0!s}".format(err))
+            return
         try:
             sock.settimeout(self.timeout)
             sock.setblocking(True)
