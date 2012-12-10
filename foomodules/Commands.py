@@ -178,12 +178,17 @@ class Peek(Base.ArgparseCommand):
             return
         try:
             sock.settimeout(self.timeout)
-            buf = self.recvline(sock)
+            try:
+                buf = self.recvline(sock)
+            except socket.timeout as err:
+                self.reply(msg, "error: didn't receive any data in time")
+                return
         finally:
             sock.close()
 
         if not buf:
-            self.reply(msg, "error: didn't receive any data in time")
+            self.reply(msg, "error: nothing received before first newline")
+            return
 
         try:
             reply = buf.decode("utf-8").strip()
