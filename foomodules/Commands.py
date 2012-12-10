@@ -209,7 +209,7 @@ class Peek(Base.ArgparseCommand):
 
 
 class Ping(Base.ArgparseCommand):
-    packetline = re.compile("([0-9]+) packets transmitted, ([0-9]+) received, ([0-9]+)% packet loss, time ([0-9]+)ms")
+    packetline = re.compile("([0-9]+) packets transmitted, ([0-9]+) received, ([0-9]+)% packet loss(.*), time ([0-9]+)ms")
     rttline = re.compile("rtt min/avg/max/mdev = (([0-9.]+/){3}([0-9.]+)) ms")
 
     def __init__(self, count=4, interval=0.5, command_name="ping", **kwargs):
