@@ -11,6 +11,7 @@ from subprocess import check_output
 from bs4 import BeautifulSoup
 
 import foomodules.Base as Base
+import foomodules.utils as utils
 
 MAX_BUFFER = 1048576  # 1 MByte
 
@@ -71,11 +72,6 @@ def normalize(s, eraseNewlines=True):
     for match in matches:
         s = s[:match.start()] + " " + s[match.end():]
     return s
-
-control_character_filter = lambda x: ord(x) >= 32 or x == "\x0A" or x == "\x0D"
-def cleanup_string(s):
-    return "".join(filter(control_character_filter, s))
-
 
 @functools.total_ordering
 class Accept(object):
@@ -266,13 +262,13 @@ class HTMLDocument(HandlerBase):
 
         if title is None:
             title = "⟨unknown title⟩"
-        title = cleanup_string(normalize(title, eraseNewlines=True))
+        title = utils.cleanup_string(normalize(title, eraseNewlines=True))
         if description is None:
             description = ""
         else:
             # actually, amazon sometimes sends 0x1a characters, which is quite
             # odd and leads to not-wellformed kicks
-            description = cleanup_string(normalize(description, eraseNewlines=True))
+            description = utils.cleanup_string(normalize(description, eraseNewlines=True))
 
         if no_description or response.url.hostname in self.descriptionBlacklist:
             description = ""

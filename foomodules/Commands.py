@@ -1,5 +1,6 @@
 import foomodules.Base as Base
 
+import binascii
 import errno
 import random
 import subprocess
@@ -192,7 +193,12 @@ class Peek(Base.ArgparseCommand):
 
         try:
             reply = buf.decode("utf-8").strip()
+            if utils.evil_string(reply):
+                reply = None
         except UnicodeDecodeError as err:
-            reply = b2a_hex(buf)
+            reply = None
+
+        if reply is None:
+            reply = "hexdump: {0}".format(binascii.b2a_hex(reply))
 
         self.reply(msg, reply)
