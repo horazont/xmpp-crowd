@@ -265,9 +265,8 @@ class Ping(Base.ArgparseCommand):
             else:
                 packetinfo = packetinfo.groups()
                 rttinfo = rttinfo.group(1).split("/")
-                self.reply(
-                    msg,
-                    "{host}: {sent}/{recv} pckts., {loss}% loss, rtt ↓/-/↑/↕ = {rttmin}/{rttavg}/{rttmax}/{rttmdev}, time {time}ms".format(
+                try:
+                    message = "{host}: {sent}/{recv} pckts., {loss}% loss, rtt ↓/-/↑/↕ = {rttmin}/{rttavg}/{rttmax}/{rttmdev}, time {time}ms".format(
                         host=args.host,
                         sent=int(packetinfo[0]),
                         recv=int(packetinfo[1]),
@@ -278,5 +277,12 @@ class Ping(Base.ArgparseCommand):
                         rttmdev=rttinfo[3],
                         time=int(packetinfo[3])
                     )
+                except ValueError:
+                    self.reply(msg, "malformatted ping output, dumping to stdout")
+                    print(out.decode())
+                    return
+                self.reply(
+                    msg,
+                    message
                 )
 
