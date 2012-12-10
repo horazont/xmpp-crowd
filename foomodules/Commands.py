@@ -232,7 +232,7 @@ class Ping(Base.ArgparseCommand):
         )
         out, err = proc.communicate()
         if proc.wait() != 0:
-            self.reply(msg, "error: {0}".format(err.decode.strip()))
+            self.reply(msg, "error: {0}".format(err.decode().strip()))
         else:
             for line in out.decode().strip().split("\n"):
                 self.reply(msg, line)
