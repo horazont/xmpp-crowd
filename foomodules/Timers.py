@@ -84,7 +84,7 @@ class RateLimitService(EveryInterval):
             for k, v in self.limit_dict.items())
 
     def check_and_count(self, msg):
-        rate_limit_key = str(msg["from"]), mtype
+        rate_limit_key = str(msg["from"]), msg["type"]
         try:
             value = self.rate_limit_map[rate_limit_key]
             if value > self.cmds_per_minute:
