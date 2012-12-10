@@ -156,7 +156,7 @@ class Peek(Base.ArgparseCommand):
     def recvline(self, sock):
         buf = b""
         while b"\n" not in buf and len(buf) < self.maxlen:
-            buf += sock.read(1024)
+            buf += sock.recv(1024)
         return buf
 
     def _call(self, msg, args, errorSink=None):
