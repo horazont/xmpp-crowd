@@ -172,7 +172,7 @@ class Peek(Base.ArgparseCommand):
         sock.connect((args.host, args.port))
         try:
             sock.settimeout(self.timeout)
-            sock.setblocking(False)
+            sock.setblocking(True)
             buf = self.recvline(sock)
         finally:
             sock.close()
