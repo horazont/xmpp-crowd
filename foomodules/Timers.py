@@ -55,3 +55,11 @@ class EachDay(RepeatingTimer):
         if hms >= self._at:
             date += timedelta(days=1)
         return datetime(date.year, date.month, date.day, *self._at)
+
+class EveryInterval(RepeatingTimer):
+    def __init__(self, interval, **kwargs):
+        self.interval = interval
+        super().__init__(**kwargs)
+
+    def _calc_next_trigger(self):
+        return datetime.utcnow() + timedelta(seconds=self.seconds)
