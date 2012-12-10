@@ -206,10 +206,8 @@ class Peek(Base.ArgparseCommand):
 
 
 class Ping(Base.ArgparseCommand):
-    def __init__(self, timeout=3, command_name="ping", maxlen=256, **kwargs):
+    def __init__(self, count=4, interval=0.5, command_name="ping", **kwargs):
         super().__init__(command_name, **kwargs)
-        self.timeout = timeout
-        self.maxlen = maxlen
         self.argparse.add_argument(
             "-6", "--ipv6",
             action="store_true",
@@ -219,17 +217,23 @@ class Ping(Base.ArgparseCommand):
         self.argparse.add_argument(
             "host"
         )
+        self.pingargs = [
+            "-q",
+            "-c{0:d}".format(count),
+            "-i{0:f}".format(interval)
+        ]
 
     def _call(self, msg, args, errorSink=None):
+        pingcmd = "ping6" if args.ipv6 else "ping"
         proc = subprocess.Popen(
-            ["ping", "-qc4", args.host],
+            [pingcmd] + self.pingargs + [args.host],
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE
         )
         out, err = proc.communicate()
         if proc.wait() != 0:
-            self.reply("error: {0}".format(err.decode.strip()))
+            self.reply(msg, "error: {0}".format(err.decode.strip()))
         else:
             for line in out.decode().strip().split("\n"):
-                self.reply(line)
+                self.reply(msg, line)
 
