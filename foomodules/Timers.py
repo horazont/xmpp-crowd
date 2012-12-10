@@ -66,12 +66,19 @@ class EveryInterval(RepeatingTimer):
 
 
 class RateLimitService(EveryInterval):
+    warning_messages = [
+        "Hey, I need a break please",
+        "Sorry, I'm busy with guessing your root password",
+        "It's so noisy in here, I could not properly understand you. Maybe wait until there's less stuff going on?",
+        "Meh, I'm already running metasploit on your host, cannot do so many things at one time"
+    ]
+
     def __init__(self, cmds_per_minute,
-            warning_message="Hey, I need a break, please.",
+            warning_messages=None,
             **kwargs):
         self.cmds_per_minute = cmds_per_minute
         self.limit_dict = {}
-        self.warning_message = warning_message
+        self.warning_messages = warning_messages or self.warning_messages
         kwargs.pop("do", None)
         super().__init__(10, do=[self._decrease])
 
@@ -82,6 +89,10 @@ class RateLimitService(EveryInterval):
         self.limit_dict = dict(
             (k, max(0, v-int(math.ceil(self.cmds_per_minute/6))))
             for k, v in self.limit_dict.items())
+
+    @property
+    def warning_message(self):
+        return random.choice(self.warning_messages)
 
     def check_and_count(self, msg):
         rate_limit_key = str(msg["from"]), msg["type"]
