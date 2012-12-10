@@ -200,6 +200,6 @@ class Peek(Base.ArgparseCommand):
             reply = None
 
         if reply is None:
-            reply = "hexdump: {0}".format(binascii.b2a_hex(reply))
+            reply = "hexdump: {0}".format(binascii.b2a_hex(buf))
 
         self.reply(msg, reply)
