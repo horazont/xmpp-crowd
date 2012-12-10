@@ -157,8 +157,6 @@ class Bind(Base.MessageHandler):
         self.debug_memory_use = debug_memory_use
 
     def _xmpp_changed(self, old_value, new_value):
-        if self.decrease_timer is not None:
-            self.decrease_timer.XMPP = new_value
         for handler in self.handlers:
             handler.XMPP = new_value
 
