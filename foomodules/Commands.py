@@ -160,8 +160,10 @@ class Peek(Base.ArgparseCommand):
         buf = b""
         while b"\n" not in buf and len(buf) < self.maxlen:
             try:
-                buf += sock.recv(1024)
-                print("recv returned ok")
+                data = sock.recv(1024)
+                if len(data) == 0:
+                    break  # this should not happen in non-blocking mode, but...
+                buf += data
             except socket.error as err:
                 if err.errno == errno.EAGAIN:
                     print("EAGAIN")
