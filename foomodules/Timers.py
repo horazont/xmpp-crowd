@@ -58,7 +58,7 @@ class EachDay(RepeatingTimer):
 
 class EveryInterval(RepeatingTimer):
     def __init__(self, interval, **kwargs):
-        self.interval = interval
+        self.seconds = interval
         super().__init__(**kwargs)
 
     def _calc_next_trigger(self):
