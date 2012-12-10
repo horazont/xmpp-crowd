@@ -1,5 +1,6 @@
 import foomodules.Base as Base
 
+import errno
 import random
 import subprocess
 import sys
@@ -159,7 +160,7 @@ class Peek(Base.ArgparseCommand):
             try:
                 buf += sock.recv(1024)
             except socket.error as err:
-                if err.errno == 11:
+                if err.errno == errno.EAGAIN:
                     break
                 raise
         return buf
