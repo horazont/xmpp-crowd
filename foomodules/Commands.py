@@ -181,6 +181,9 @@ class Peek(Base.ArgparseCommand):
         finally:
             sock.close()
 
+        if not buf:
+            self.reply(msg, "error: didn't receive any data in time")
+
         try:
             reply = buf.decode("utf-8").strip()
         except UnicodeDecodeError as err:
