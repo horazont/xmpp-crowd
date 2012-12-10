@@ -203,3 +203,33 @@ class Peek(Base.ArgparseCommand):
             reply = "hexdump: {0}".format(binascii.b2a_hex(buf).decode("ascii"))
 
         self.reply(msg, reply)
+
+
+class Ping(Base.ArgparseCommand):
+    def __init__(self, timeout=3, command_name="ping", maxlen=256, **kwargs):
+        super().__init__(command_name, **kwargs)
+        self.timeout = timeout
+        self.maxlen = maxlen
+        self.argparse.add_argument(
+            "-6", "--ipv6",
+            action="store_true",
+            dest="ipv6",
+            default=False
+        )
+        self.argparse.add_argument(
+            "host"
+        )
+
+    def _call(self, msg, args, errorSink=None):
+        proc = subprocess.Popen(
+            ["ping", "-qc4", args.host],
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE
+        )
+        out, err = proc.communicate()
+        if proc.wait() != 0:
+            self.reply("error: {0}".format(err.decode.strip()))
+        else:
+            for line in out.decode().strip().split("\n"):
+                self.reply(line)
+
