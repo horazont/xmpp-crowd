@@ -176,7 +176,6 @@ class Peek(Base.ArgparseCommand):
             return
         try:
             sock.settimeout(self.timeout)
-            sock.setblocking(True)
             buf = self.recvline(sock)
         finally:
             sock.close()
