@@ -4,6 +4,7 @@ import random
 import subprocess
 import sys
 import os
+import re
 import socket
 import argparse
 
