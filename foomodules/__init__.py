@@ -185,13 +185,12 @@ class Bind(Base.MessageHandler):
                 objgraph.show_growth()
 
 class CommandListener(Base.PrefixListener):
-    def __init__(self, commands, prefix="", verbose=False, rate_limiter=None,
+    def __init__(self, commands, prefix="", verbose=False,
             **kwargs):
         super().__init__(prefix, **kwargs)
         self.commands = commands
         self.xmpp = None
         self.verbose = verbose
-        self.rate_limiter = None
 
     def _xmpp_changed(self, old_value, new_value):
         for handler in self.commands.values():
