@@ -257,8 +257,8 @@ class Ping(Base.ArgparseCommand):
                 self.reply(msg, "error: {0}".format(message))
         else:
             lines = out.decode().strip().split("\n")
-            packetinfo = self.packetline.match(lines[2])
-            rttinfo = self.rttline.match(lines[3])
+            packetinfo = self.packetline.match(lines[3])
+            rttinfo = self.rttline.match(lines[4])
             if not packetinfo or not rttinfo:
                 self.reply(msg, "unknown error, unable to parse ping output, dumping to stdout")
                 print(out.decode())
