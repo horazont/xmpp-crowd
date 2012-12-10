@@ -145,7 +145,7 @@ class Binding(object):
     def __str__(self):
         return "{0}#{1}".format(self.fromJid, self.mtype)
 
-class Bind(Base.XMPPObject):
+class Bind(Base.MessageHandler):
     def __init__(self, *handlers, errorSink=None, ignoreSelf=True,
             debug_memory_use=False, cmds_per_minute=60, **kwargs):
         super().__init__(**kwargs)
