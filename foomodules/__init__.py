@@ -175,7 +175,7 @@ class Bind(Base.XMPPObject):
     def _decrease(self):
         self.rate_limit_map = dict(
             (k, max(0, v-int(math.ceil(self.cmds_per_minute/6))))
-            for k, v in self.rate_limit_map)
+            for k, v in self.rate_limit_map.items())
 
     def dispatch(self, msg):
         mtype = msg["type"]
