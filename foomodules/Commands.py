@@ -141,20 +141,24 @@ class Peek(Base.ArgparseCommand):
             "-u", "--udp",
             action="store_true",
             dest="udp",
-            default=False
+            default=False,
+            help="Use UDP instead of TCP",
         )
         self.argparse.add_argument(
             "-6", "--ipv6",
             action="store_true",
             dest="ipv6",
-            default=False
+            default=False,
+            help="Use IPv6 sockets to connect to target"
         )
         self.argparse.add_argument(
-            "host"
+            "host",
+            help="Host or IP to connect to"
         )
         self.argparse.add_argument(
             "port",
-            type=int
+            type=int,
+            help="TCP/UDP port to connect to"
         )
 
     def recvline(self, sock):
