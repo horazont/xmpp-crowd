@@ -235,5 +235,7 @@ class Ping(Base.ArgparseCommand):
             self.reply(msg, "error: {0}".format(err.decode().strip()))
         else:
             for line in out.decode().strip().split("\n"):
+                if line.startswith("PING"):
+                    continue
                 self.reply(msg, line)
 
