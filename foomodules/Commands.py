@@ -208,6 +208,9 @@ class Peek(Base.ArgparseCommand):
 
 
 class Ping(Base.ArgparseCommand):
+    packetline = re.compile("([0-9]+) packets transmitted, ([0-9]+) received, ([0-9]+)% packet loss, time ([0-9]+)ms")
+    rttinfo = re.compile("rtt min/avg/max/mdev = ([0-9.]+/){3}([0-9.]+) ms")
+
     def __init__(self, count=4, interval=0.5, command_name="ping", **kwargs):
         super().__init__(command_name, **kwargs)
         self.argparse.add_argument(
@@ -252,8 +255,27 @@ class Ping(Base.ArgparseCommand):
             else:
                 self.reply(msg, "error: {0}".format(message))
         else:
-            for line in out.decode().strip().split("\n"):
-                if line.startswith("PING"):
-                    continue
-                self.reply(msg, line)
+            lines = out.decode().strip().split("\n")
+            packetinfo = self.packetline.match(lines[2])
+            rttinfo = self.rttline.match(lines[3])
+            if not packetinfo or not rttinfo:
+                self.reply(msg, "unknown error, unable to parse ping output, dumping to stdout")
+                print(out.decode())
+            else:
+                packetinfo = packetinfo.groups()
+                rttinfo = rttinfo.group(1).split("/")
+                self.reply(
+                    msg,
+                    "{host}: {sent}/{recv} pckts., {loss}% loss, rtt ↓/-/↑/↕ = {rttmin}/{rttavg}/{rttmax}/{rttmdev}, time {time}ms".format(
+                        host=args.host,
+                        sent=int(packetinfo[0]),
+                        recv=int(packetinfo[1]),
+                        loss=int(packetinfo[2]),
+                        rttmin=rttinfo[0],
+                        rttavg=rttinfo[1],
+                        rttmax=rttinfo[2],
+                        rttmdev=rttinfo[3],
+                        time=int(packetinfo[3])
+                    )
+                )
 
