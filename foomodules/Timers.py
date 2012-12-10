@@ -70,7 +70,9 @@ class RateLimitService(EveryInterval):
         "Hey, I need a break please",
         "Sorry, I'm busy with guessing your root password",
         "It's so noisy in here, I could not properly understand you. Maybe wait until there's less stuff going on?",
-        "Meh, I'm already running metasploit on your host, cannot do so many things at one time"
+        "Meh, I'm already running metasploit on your host, cannot do so many things at one time",
+        "Please give me a break, I'm trying to factorize your SSH key in the other thread",
+        "Please slow down a bit, I'm trying to factorize your GPG key in a forked instance",
     ]
 
     def __init__(self, cmds_per_minute,
