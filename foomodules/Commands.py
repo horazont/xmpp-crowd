@@ -270,12 +270,12 @@ class Ping(Base.ArgparseCommand):
                         host=args.host,
                         sent=int(packetinfo[0]),
                         recv=int(packetinfo[1]),
-                        loss=int(packetinfo[2]),
+                        loss=int(packetinfo[4]),
                         rttmin=rttinfo[0],
                         rttavg=rttinfo[1],
                         rttmax=rttinfo[2],
                         rttmdev=rttinfo[3],
-                        time=int(packetinfo[3])
+                        time=int(packetinfo[5])
                     )
                 except ValueError:
                     self.reply(msg, "malformatted ping output, dumping to stdout")
