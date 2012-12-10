@@ -214,21 +214,33 @@ class Ping(Base.ArgparseCommand):
             "-6", "--ipv6",
             action="store_true",
             dest="ipv6",
-            default=False
+            default=False,
+            help="Use ping6 instead of ping"
         )
         self.argparse.add_argument(
-            "host"
+            "--alot",
+            action="store_true",
+            dest="alot",
+            help="Send more pings"
+        )
+        self.argparse.add_argument(
+            "host",
+            help="Host which is to be pinged"
         )
         self.pingargs = [
             "-q",
-            "-c{0:d}".format(count),
             "-i{0:f}".format(interval)
         ]
 
     def _call(self, msg, args, errorSink=None):
-        pingcmd = "ping6" if args.ipv6 else "ping"
+        pingcmd = ["ping6" if args.ipv6 else "ping"]
+        if args.alot:
+            count = 20
+        else:
+            count = 5
+        pingcmd.append("-c{0:d}".format(count))
         proc = subprocess.Popen(
-            [pingcmd] + self.pingargs + [args.host],
+            pingcmd + self.pingargs + [args.host],
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE
         )
