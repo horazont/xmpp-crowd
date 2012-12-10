@@ -246,7 +246,11 @@ class Ping(Base.ArgparseCommand):
         )
         out, err = proc.communicate()
         if proc.wait() != 0:
-            self.reply(msg, "error: {0}".format(err.decode().strip()))
+            message = err.decode().strip()
+            if not message:
+                self.reply(msg, "unknown error, timeout/blocked?")
+            else:
+                self.reply(msg, "error: {0}".format(message))
         else:
             for line in out.decode().strip().split("\n"):
                 if line.startswith("PING"):
