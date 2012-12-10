@@ -51,12 +51,20 @@ class MessageHandler(XMPPObject):
 
 
 class PrefixListener(MessageHandler):
-    def __init__(self, prefix):
+    def __init__(self, prefix, rate_limiter=None):
         super().__init__()
         self.prefix = prefix
+        self.rate_limiter = rate_limiter
 
     def _prefix_matched(self, msg, contents, errorSink=None):
         pass
+
+    def check_count_and_reply(self, msg):
+        if self.rate_limiter:
+            if not self.rate_limiter.check_and_count(msg):
+                self.reply(msg, self.rate_limiter.warning_message)
+                return False
+        return True
 
     def __call__(self, msg, errorSink=None):
         contents = msg["body"]

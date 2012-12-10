@@ -147,7 +147,7 @@ class Binding(object):
 
 class Bind(Base.MessageHandler):
     def __init__(self, *handlers, errorSink=None, ignoreSelf=True,
-            debug_memory_use=False, cmds_per_minute=60, **kwargs):
+            debug_memory_use=False, **kwargs):
         super().__init__(**kwargs)
         self.handlers = handlers
         self.errorSink = errorSink
@@ -155,27 +155,12 @@ class Bind(Base.MessageHandler):
         self.ignoreSelf = ignoreSelf
         self.ourJid = None
         self.debug_memory_use = debug_memory_use
-        self.cmds_per_minute = cmds_per_minute
-        if cmds_per_minute is not None:
-            self.decrease_timer = Timers.EveryInterval(
-                interval=10,
-                do=[self._decrease]
-            )
-            self.rate_limit_map = {}
-        else:
-            self.decrease_timer = None
-            self.rate_limit_map = None
 
     def _xmpp_changed(self, old_value, new_value):
         if self.decrease_timer is not None:
             self.decrease_timer.XMPP = new_value
         for handler in self.handlers:
             handler.XMPP = new_value
-
-    def _decrease(self):
-        self.rate_limit_map = dict(
-            (k, max(0, v-int(math.ceil(self.cmds_per_minute/6))))
-            for k, v in self.rate_limit_map.items())
 
     def dispatch(self, msg):
         mtype = msg["type"]
@@ -185,17 +170,6 @@ class Bind(Base.MessageHandler):
             print("MEMDEBUG: before dispatch")
             import objgraph
             objgraph.show_growth()
-        if self.rate_limit_map is not None:
-            rate_limit_key = str(msg["from"]), mtype
-            try:
-                value = self.rate_limit_map[rate_limit_key]
-                if value > self.cmds_per_minute:
-                    self.reply(msg, "Hey, I need a pause, please.")
-                    return
-                else:
-                    self.rate_limit_map[rate_limit_key] += 1
-            except KeyError:
-                self.rate_limit_map[rate_limit_key] = 1
         try:
             for handler in self.handlers:
                 abort = handler(msg, errorSink=self.errorSink)
@@ -213,11 +187,13 @@ class Bind(Base.MessageHandler):
                 objgraph.show_growth()
 
 class CommandListener(Base.PrefixListener):
-    def __init__(self, commands, prefix="", verbose=False, **kwargs):
+    def __init__(self, commands, prefix="", verbose=False, rate_limiter=None,
+            **kwargs):
         super().__init__(prefix, **kwargs)
         self.commands = commands
         self.xmpp = None
         self.verbose = verbose
+        self.rate_limiter = None
 
     def _xmpp_changed(self, old_value, new_value):
         for handler in self.commands.values():
@@ -235,5 +211,7 @@ class CommandListener(Base.PrefixListener):
             logger.info("Received unknown command %r from %s", command, str(msg["from"]))
             return
 
+        if not self.check_count_and_reply(msg):
+            return
         handler(msg, arguments, errorSink=errorSink)
 

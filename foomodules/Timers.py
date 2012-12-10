@@ -63,3 +63,34 @@ class EveryInterval(RepeatingTimer):
 
     def _calc_next_trigger(self):
         return datetime.utcnow() + timedelta(seconds=self.seconds)
+
+
+class RateLimitService(EveryInterval):
+    def __init__(self, cmds_per_minute,
+            warning_message="Hey, I need a break, please.",
+            **kwargs):
+        self.cmds_per_minute = cmds_per_minute
+        self.limit_dict = {}
+        self.warning_message = warning_message
+        kwargs.pop("do", None)
+        super().__init__(10, do=[self._decrease])
+
+    def _xmpp_changed(self, old_value, new_value):
+        self.limit_dict = {}
+
+    def _decrease(self):
+        self.limit_dict = dict(
+            (k, max(0, v-int(math.ceil(self.cmds_per_minute/6))))
+            for k, v in self.limit_dict.items())
+
+    def check_and_count(self, msg):
+        rate_limit_key = str(msg["from"]), mtype
+        try:
+            value = self.rate_limit_map[rate_limit_key]
+            if value > self.cmds_per_minute:
+                return False
+            else:
+                self.rate_limit_map[rate_limit_key] += 1
+        except KeyError:
+            self.rate_limit_map[rate_limit_key] = 1
+        return True

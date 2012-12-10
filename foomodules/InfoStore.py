@@ -365,6 +365,9 @@ class KeywordListener(Base.PrefixListener):
             self.reply(msg, "{0}: {1}".format(match.name, match.contents))
 
     def _prefix_matched(self, msg, contents, errorSink=None):
+        if not self.check_count_and_reply(msg):
+            return
+
         keywords = [kw for kw in (kw.strip() for kw in shlex.split(contents)) if kw]
         if len(keywords) == 1:
             # also try a search for a name
