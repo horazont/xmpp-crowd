@@ -14,6 +14,7 @@ import foomodules.Misc as Misc
 import foomodules.InfoStore as InfoStore
 import foomodules.Timers as Timers
 import foomodules.GitLog as GitLog
+import foomodules.SympyInterface as SympyInterface
 
 logger = logging.getLogger(__name__)
 
