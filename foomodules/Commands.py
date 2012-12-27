@@ -298,6 +298,9 @@ class Roll(Base.MessageHandler):
     rollex_all = re.compile("^(({0}\s+)*{0})(\s+(each\s+)?\w+\s+([0-9]+))?\s*$".format(rollex_base), re.I)
     rollex = re.compile(rollex_base, re.I)
 
+    def _too_much(self, msg):
+        self.reply(msg, "yeah, right, I'll go and rob a die factory")
+
     def __call__(self, msg, arguments, errorSink=None):
         matched = self.rollex_all.match(arguments)
         if not matched:
@@ -315,6 +318,9 @@ class Roll(Base.MessageHandler):
                 return
             if dice <= 1:
                 self.reply(msg, "thats not a reasonable dice: {}".format(dice))
+                return
+            if count > 1000 or len(results) > 1000:
+                self._too_much(msg)
                 return
             results.extend(random.randint(1, dice) for i in range(count))
 
