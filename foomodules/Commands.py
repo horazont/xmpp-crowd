@@ -293,3 +293,44 @@ class Ping(Base.ArgparseCommand):
                     message
                 )
 
+class Roll(Base.MessageHandler):
+    rollex_base = "([0-9]*)[dW]([0-9]+)"
+    rollex_all = re.compile("^(({0}\s+)*{0})(\s+(each\s+)?\w+\s+([0-9]+))?\s*$".format(rollex_base), re.I)
+    rollex = re.compile(rollex_base, re.I)
+
+    def __call__(self, msg, arguments, errorSink=None):
+        matched = self.rollex_all.match(arguments)
+        if not matched:
+            self.reply(msg, "usage: XdY rolls a dY X times")
+            return
+
+        results = []
+        die = matched.group(1)
+        for match in self.rollex.finditer(die):
+            count, dice = match.groups()
+            count = int(count) if count else 1
+            dice = int(dice)
+            if count < 1:
+                self.reply(msg, "thats not a reasonable count: {}".format(count))
+                return
+            if dice <= 1:
+                self.reply(msg, "thats not a reasonable dice: {}".format(dice))
+                return
+            results.extend(random.randint(1, dice) for i in range(count))
+
+        against = matched.group(9)
+        each = matched.group(8)
+        suffix = ""
+        print(repr(against))
+        if against:
+            against = int(against)
+            if against >= sum(results):
+                suffix = ": passed"
+            else:
+                suffix = ": failed"
+
+        self.reply(msg, "results: {}, sum = {}{}".format(
+            " ".join("{}".format(result) for result in results),
+            sum(results),
+            suffix
+        ))
