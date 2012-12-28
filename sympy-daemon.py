@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     sock = socket.fromfd(args.fd, socket.AF_UNIX, socket.SOCK_STREAM)
 
-    one = sympify("1")
+    one = sympy.sympify("1")
     u.i = sympy.sqrt(-1)
     try:
         while True:
