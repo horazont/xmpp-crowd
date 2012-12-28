@@ -35,7 +35,10 @@ if __name__ == "__main__":
             SympyComm.send_error(sock, "could not sympify expression: {}".format(str(err)).encode("utf-8"))
             continue
 
-        result = expr / unit
+        try:
+            result = expr / unit
+        except Exception as err:
+            SympyComm.send_error(sock, b"during evaluation: "+str(err).encode("utf-8"))
         try:
             SympyComm.send_result(sock, str(float(result / unit)).encode("ascii"))
         except ValueError as err:
