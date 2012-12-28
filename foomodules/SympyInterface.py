@@ -44,13 +44,18 @@ class Daemon(Base.XMPPObject):
         if self.sock is None:
             raise ValueError("Not connected to a child. This should not happen")
 
-        SympyComm.send_calc(self.sock, unit, expr)
-        self.sock.settimeout(3)
         try:
-            return SympyComm.recv_result(self.sock)
-        except socket.timeout:
-            self._respawn_child()
-            return False, "server side error: computation timed out"
+            SympyComm.send_calc(self.sock, unit, expr)
+            self.sock.settimeout(3)
+            try:
+                return SympyComm.recv_result(self.sock)
+            except socket.timeout:
+                self._respawn_child()
+                return False, "server side error: computation timed out"
+        except socket.error as err:
+            if err.errno == errno.EPIPE:
+                self._kill_child()
+                return False, "server side error: broken pipe"
 
 class Calc(Base.MessageHandler):
     unit_regex = re.compile("^\s*(as|in)\s+(\S+)(.*)$")
