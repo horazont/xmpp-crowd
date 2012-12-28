@@ -40,11 +40,11 @@ if __name__ == "__main__":
             result = expr
             if unit != one:
                 try:
-                    result = expr / unit
+                    uresult = expr / unit
                 except Exception as err:
                     SympyComm.send_error(sock, b"during evaluation: "+str(err).encode("utf-8"))
             try:
-                SympyComm.send_result(sock, str(float(result / unit)).encode("ascii"))
+                SympyComm.send_result(sock, str(float(uresult)).encode("ascii"))
             except ValueError as err:
                 SympyComm.send_result(sock, str(result).encode("ascii"))
             except Exception as err:
