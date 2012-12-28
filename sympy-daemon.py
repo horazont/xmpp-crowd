@@ -38,6 +38,7 @@ if __name__ == "__main__":
                 continue
 
             result = expr
+            uresult = result
             if unit != one:
                 try:
                     uresult = expr / unit
