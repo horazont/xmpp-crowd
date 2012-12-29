@@ -340,3 +340,62 @@ class Roll(Base.MessageHandler):
             sum(results),
             suffix
         ))
+
+class Dig(Base.ArgparseCommand):
+    def __init__(self, command_name="dig", **kwargs):
+        super().__init__(command_name, **kwargs)
+        self.argparse.add_argument(
+            "-s", "--server", "--at",
+            default=None,
+            help="Server to ask for the record",
+            dest="at"
+        )
+        self.argparse.add_argument(
+            "kind",
+            metavar="RECTYPE",
+            nargs="?",
+            default=None,
+            type=lambda x: x.upper(),
+            choices=["SRV", "A", "AAAA", "CNAME", "MX"],
+            help="Record kind to ask for"
+        )
+        self.argparse.add_argument(
+            "name",
+            metavar="NAME",
+            help="Record name to look up"
+        )
+
+    def _call(self, msg, args, errorSink=None):
+        userargs = [args.name]
+        kindstr = ""
+        if args.kind is not None:
+            kindstr = " ({})".format(args.kind)
+            userargs.insert(0, args.kind)
+        atstr = ""
+        if args.at is not None:
+            atstr = "@"+args.at
+            userargs.append(atstr)
+
+        call = ["dig", "+time=2", "+short"] + userargs
+
+        proc = subprocess.Popen(
+            call,
+            stdout=subprocess.PIPE
+        )
+        stdout, _ = proc.communicate()
+        if proc.wait() != 0:
+            self.reply(msg, stdout.decode().strip(";").strip())
+            return
+
+        results = list(filter(bool, stdout.decode().strip().split("\n")))
+
+        if results:
+            resultstr = ", ".join(results)
+        else:
+            resultstr = "no records"
+        self.reply(msg, "{host}{at}{kind}: {results}".format(
+            host=args.name,
+            at=atstr,
+            kind=kindstr,
+            results=resultstr
+        ))
