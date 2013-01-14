@@ -310,6 +310,9 @@ class Roll(Base.MessageHandler):
         results = []
         die = matched.group(1)
         for match in self.rollex.finditer(die):
+            if len(results) > 4000:
+                self._too_much()
+                return
             count, dice = match.groups()
             count = int(count) if count else 1
             dice = int(dice)
