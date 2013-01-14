@@ -394,7 +394,8 @@ class BuildBot(HubBot):
         del credentials["password"]
 
         nickname = credentials["nickname"]
-        self.switch, self.nick = self.addSwitch("build", nickname, self.build_switch)
+        self.notification_to = credentials["notify"]
+        self.switch, self.nick = self.addSwitch(credentials["channel"], nickname, self.build_switch)
         self.bots_switch, _ = self.addSwitch("bots", nickname)
 
         self.add_event_handler("pubsub_publish", self.pubsubPublish)
@@ -483,7 +484,7 @@ class BuildBot(HubBot):
             )
             self.send_message(
                 mto=self.bots_switch,
-                mbody="jonas: {0}".format(hint),
+                mbody="{1}: {0}".format(hint, self.notification_to),
                 mtype="groupchat"
             )
             self.send_message(
