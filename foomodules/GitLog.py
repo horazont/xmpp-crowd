@@ -80,7 +80,7 @@ class CommitNotify(Base.XMPPObject):
         author = new_ref.findtext(self.AUTHOR_NODE)
         if author is not None:
             try:
-                words = author.split("<", 1)[0].split(" ")
+                words = author.split("<", 1)[0].strip().split(" ")
             except (ValueError, IndexError) as err:
                 shortauthor = "noshort"
             else:
