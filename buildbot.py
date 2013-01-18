@@ -552,7 +552,9 @@ class BuildBot(HubBot):
                 mtype="groupchat"
             )
         def log_func_binary(buf):
-            msg = buf.decode().strip()
+            if not isinstance(buf, str):
+                buf = buf.decode()
+            msg = buf.strip()
             if msg:
                 log_func(msg)
         project = build.project
