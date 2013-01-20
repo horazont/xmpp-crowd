@@ -109,12 +109,12 @@ class DVBBot(HubBot):
 
     def handle_presence(self, pres):
         if pres["from"].bare == self.LCD:
-            if pres["show"] == "away":
-                print("lcd went away")
-                self._lcd_away = True
-            else:
+            if pres["type"] == "available":
                 print("lcd available")
                 self._lcd_away = False
+            else:
+                print("lcd went {}".format(pres["type"])
+                self._lcd_away = True
 
     def sessionStart(self, event):
         super(DVBBot, self).sessionStart(event)
