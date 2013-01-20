@@ -5,7 +5,7 @@ import urllib.request
 import re
 import lcdencode
 import binascii
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import lxml.etree as ET
 
@@ -101,7 +101,7 @@ class DVBBot(HubBot):
         return self._hexBuffer(buf)
 
     def _infoBuffer(self):
-        now = datetime.utcnow()
+        now = datetime.utcnow() + timedelta(seconds=60*60)
         date = now.strftime("%a, %d. %b, %H:%M")
         return self._hexBuffer("{0:20s}".format(date))
 
