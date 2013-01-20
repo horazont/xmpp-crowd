@@ -1,34 +1,85 @@
 #!/usr/bin/python3
 from hub import HubBot
-import ast, urllib.request, re
+import ast
+import urllib.request
+import re
+import lcdencode
+import binascii
 from datetime import datetime
 
+import lxml.etree as ET
+
 class DVBBot(HubBot):
-    LOCALPART = "dvbbot"
-    PASSWORD = ""
-    STOP = "" # your value here
-    DEPARTURE_URL = "http://widgets.vvo-online.de/abfahrtsmonitor/Abfahrten.do?ort=Dresden&hst={0}".format(STOP)
-
+    DEPARTURE_URL = "http://widgets.vvo-online.de/abfahrtsmonitor/Abfahrten.do?ort=Dresden&hst={}"
+    WEATHER_URL = "http://api.met.no/weatherapi/locationforecast/1.8/?lat={lat}&lon={lon}"
+    LCD = "lcd@hub.sotecware.net"
     BRACES_RE = re.compile("\(.*?\)")
+    USER_AGENT = "InfoLCD/1.0"
+    ACCEPT_HEADER = "application/xml"
 
-    LCD_CODING = {
-        228: 0b11100001,
-        246: 0b11101111,
-        252: 0b11110101,
-        223: 0b11100010
-    }
-    
-    def __init__(self):
-        super(DVBBot, self).__init__(self.LOCALPART, "core", self.PASSWORD)
-        self.switch, self.nick = self.addSwitch("bots", "dvbbot")
-        self.buffers = None
-        self.currBuffer = -1
+    def __init__(self, config_path):
+        self._config_path = config_path
+        self.initialized = False
+
+        error = self.reloadConfig()
+        if error:
+            traceback.print_exception(*error)
+            sys.exit(1)
+        self.initialized = True
+
+        credentials = self.config_credentials
+        super().__init__(
+            credentials["localpart"],
+            credentials.get("resource", "core"),
+            credentials["password"]
+        )
+        del credentials["password"]
+
+        nickname = credentials["nickname"]
+        self.bots_switch, self.nick = self.addSwitch("bots", nickname)
+
+    def reloadConfig(self):
+        namespace = {}
+        with open(self._config_path, "r") as f:
+            conf = f.read()
+
+        global_namespace = dict(globals())
+        global_namespace["xmpp"] = self
+        try:
+            exec(conf, global_namespace, namespace)
+        except Exception:
+            return sys.exc_info()
+
+        new_credentials = namespace.get("credentials", {})
+        self.config_credentials = new_credentials
+        self.departure_url = self.DEPARTURE_URL.format(namespace["stop_name"])
+        lon, lat = namespace["geo"]
+        self.weather_url = self.WEATHER_URL.format(lat=lat, lon=lon)
+
+        return None
+
+    def _httpRequest(self, url, lastModified=None):
+        headers = {
+            "User-Agent": self.USER_AGENT,
+            "Accept": self.ACCEPT_HEADER
+        }
+        request = urllib.request.Request(url, headers=headers)
+        response = urllib.request.urlopen(url, timeout=3)
+        return response
 
     def _getNextDepartures(self):
-        f = urllib.request.urlopen(self.DEPARTURE_URL)
+        f = self._httpRequest(self.departure_url)
         contents = f.read().decode()
         f.close()
         return ast.literal_eval(contents)
+
+    def _getWeather(self):
+        f = self._httpRequest(self.weather_url)
+        contents = f.read().decode()
+        f.close()
+
+        doc = ET.fromstring(contents)
+        print(doc)
 
     def _stripDest(self, dest):
         m = self.BRACES_RE.search(dest)
@@ -36,11 +87,9 @@ class DVBBot(HubBot):
             dest = dest[:m.start()] + dest[m.end():]
         return dest[:14]
 
-    def _lcdOrd(self, v):
-        return self.LCD_CODING.get(v, v)
-
     def _hexBuffer(self, buf):
-        return "".join("{0:02x}".format(self._lcdOrd(ord(c))) for c in buf)
+        buf = binascii.b2a_hex(buf.encode("hd44780a00")).decode("ascii")
+        return buf
 
     def _dataToBuffer(self, data):
         assert len(data) <= 4
@@ -53,45 +102,26 @@ class DVBBot(HubBot):
 
     def _infoBuffer(self):
         now = datetime.utcnow()
-        date = now.strftime("%a, %d. %b %Y")
-        time = now.strftime("%H:%M")
-        return self._hexBuffer("{0:20s}{1:20s}".format(date, time))
+        date = now.strftime("%a, %d. %b, %H:%M")
+        return self._hexBuffer("{0:20s}".format(date))
 
     def sessionStart(self, event):
         super(DVBBot, self).sessionStart(event)
         self.scheduler.add(
             "update",
-            60.0,
+            30.0,
             self.update,
             repeat=True
         )
         self.update()
-        self.scheduler.add(
-            "flip",
-            10.0,
-            self.flip,
-            repeat=True
-        )
 
-    def flip(self):
-        buffers, currBuffer = self.buffers, self.currBuffer + 1
-        if buffers is None:
-            self.writeLCD("clear")
-            self.writeLCD("echo No data available.")
-            return
-
-        if len(buffers) <= currBuffer:
-            buf = self._infoBuffer()
-            currBuffer = -1
-        else:
-            buf = buffers[currBuffer]
-
-        self.writeLCD("clear")
-        self.writeLCD("hex "+buf)
-        self.currBuffer = currBuffer
+    def send_pages(self, pages):
+        for i, page in enumerate(pages):
+            self.writeLCD("update page {} {}".format(i, page))
+        self.writeLCD("update page {} {}".format(i+1, self._infoBuffer()))
 
     def writeLCD(self, raw):
-        self.send_message(mto="lcd@hub.sotecware.net", mbody=raw, mtype="chat")
+        self.send_message(mto=self.LCD, mbody=raw, mtype="chat")
 
     def messageMUC(self, msg):
         if msg["mucnick"] == self.nick:
@@ -101,6 +131,11 @@ class DVBBot(HubBot):
             self.reply(msg, "pong")
             return
 
+    def message(self, msg):
+        if str(msg["from"].bare) != self.LCD:
+            return
+        print(msg["body"])
+
     def update(self):
         data = self._getNextDepartures()[:8]  # we can take a max of 8 entries
         buffers = []
@@ -108,12 +143,24 @@ class DVBBot(HubBot):
             buffers.append(self._dataToBuffer(data[:4]))
             data = data[4:]
         self.buffers = buffers
-        
+        self.send_pages(buffers)
+
 
     COMMANDS = {
     }
 
 if __name__=="__main__":
-    docbot = DVBBot()
-    docbot.run()
-    
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-c", "--config-file",
+        default="dvbbot_config.py",
+        help="Path to the config file to use.",
+        dest="config_file"
+    )
+
+    args = parser.parse_args()
+    del parser
+
+    bot = DVBBot(args.config_file)
+    bot.run()
