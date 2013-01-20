@@ -113,7 +113,7 @@ class DVBBot(HubBot):
                 print("lcd available")
                 self._lcd_away = False
             else:
-                print("lcd went {}".format(pres["type"])
+                print("lcd went {}".format(pres["type"]))
                 self._lcd_away = True
 
     def sessionStart(self, event):
