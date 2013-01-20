@@ -37,6 +37,7 @@ class DVBBot(HubBot):
 
         nickname = credentials["nickname"]
         self.bots_switch, self.nick = self.addSwitch("bots", nickname)
+        self.add_event_handler("presence", self.handle_presence)
 
     def reloadConfig(self):
         namespace = {}
@@ -55,6 +56,7 @@ class DVBBot(HubBot):
         self.departure_url = self.DEPARTURE_URL.format(namespace["stop_name"])
         lon, lat = namespace["geo"]
         self.weather_url = self.WEATHER_URL.format(lat=lat, lon=lon)
+        self._lcd_away = False
 
         return None
 
@@ -105,6 +107,15 @@ class DVBBot(HubBot):
         date = now.strftime("%a, %d. %b, %H:%M")
         return self._hexBuffer("{0:20s}".format(date))
 
+    def handle_presence(self, pres):
+        if pres["from"].bare == self.LCD:
+            if pres["show"] == "away":
+                print("lcd went away")
+                self._lcd_away = True
+            else:
+                print("lcd available")
+                self._lcd_away = False
+
     def sessionStart(self, event):
         super(DVBBot, self).sessionStart(event)
         self.scheduler.add(
@@ -116,6 +127,8 @@ class DVBBot(HubBot):
         self.update()
 
     def send_pages(self, pages):
+        if self._lcd_away:
+            return
         for i, page in enumerate(pages):
             self.writeLCD("update page {} {}".format(i, page))
         self.writeLCD("update page {} {}".format(i+1, self._infoBuffer()))
@@ -134,7 +147,12 @@ class DVBBot(HubBot):
     def message(self, msg):
         if str(msg["from"].bare) != self.LCD:
             return
-        print(msg["body"])
+
+        #~ self.send_message(
+            #~ mto=self.switch,
+            #~ mbody=msg["body"],
+            #~ mtype="groupchat"
+        #~ )
 
     def update(self):
         data = self._getNextDepartures()[:8]  # we can take a max of 8 entries
