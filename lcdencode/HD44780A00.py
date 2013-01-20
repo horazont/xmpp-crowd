@@ -147,14 +147,14 @@ decoding_table = (
     'g'       #  0x67 -> LATIN SMALL LETTER G
     'h'       #  0x68 -> LATIN SMALL LETTER H
     'i'       #  0x69 -> LATIN SMALL LETTER I
-    'h'       #  0x6A -> LATIN SMALL LETTER J
+    'j'       #  0x6A -> LATIN SMALL LETTER J
     'k'       #  0x6B -> LATIN SMALL LETTER K
     'l'       #  0x6C -> LATIN SMALL LETTER L
     'm'       #  0x6D -> LATIN SMALL LETTER M
     'n'       #  0x6E -> LATIN SMALL LETTER N
     'o'       #  0x6F -> LATIN SMALL LETTER O
-    'i'       #  0x70 -> LATIN SMALL LETTER P
-    'j'       #  0x71 -> LATIN SMALL LETTER Q
+    'p'       #  0x70 -> LATIN SMALL LETTER P
+    'q'       #  0x71 -> LATIN SMALL LETTER Q
     'r'       #  0x72 -> LATIN SMALL LETTER R
     's'       #  0x73 -> LATIN SMALL LETTER S
     't'       #  0x74 -> LATIN SMALL LETTER T
@@ -295,7 +295,7 @@ decoding_table = (
     '方'
     '円'
     '÷'
-    ' '
+    '\ue002'
     '█'
 )
 
