@@ -5,9 +5,23 @@ import urllib.request
 import re
 import lcdencode
 import binascii
+import sys
 from datetime import datetime, timedelta
+from wsgiref.handlers import format_date_time
+from calendar import timegm
+import email.utils as eutils
 
 import lxml.etree as ET
+
+def to_timestamp(datetime):
+    return timegm(datetime.utctimetuple())
+
+def parse_http_date(httpdate):
+    return datetime(*eutils.parsedate(httpdate)[:6])
+
+def trunc_to_hour(dt):
+    return datetime(dt.year, dt.month, dt.day, dt.hour)
+
 
 class DVBBot(HubBot):
     DEPARTURE_URL = "http://widgets.vvo-online.de/abfahrtsmonitor/Abfahrten.do?ort=Dresden&hst={}"
@@ -56,15 +70,21 @@ class DVBBot(HubBot):
         self.departure_url = self.DEPARTURE_URL.format(namespace["stop_name"])
         lon, lat = namespace["geo"]
         self.weather_url = self.WEATHER_URL.format(lat=lat, lon=lon)
+        self._weather_document = None
+        self._weather_last_modified = None
+        self._weather = None
+        #sys.exit(1)
         self._lcd_away = False
 
         return None
 
-    def _httpRequest(self, url, lastModified=None):
+    def _httpRequest(self, url, last_modified=None):
         headers = {
             "User-Agent": self.USER_AGENT,
             "Accept": self.ACCEPT_HEADER
         }
+        if last_modified is not None:
+            headers["If-Modified-Since"] = format_date_time(to_timestamp(last_modified))
         request = urllib.request.Request(url, headers=headers)
         response = urllib.request.urlopen(url, timeout=3)
         return response
@@ -75,13 +95,69 @@ class DVBBot(HubBot):
         f.close()
         return ast.literal_eval(contents)
 
-    def _getWeather(self):
-        f = self._httpRequest(self.weather_url)
-        contents = f.read().decode()
-        f.close()
+    def _update_weather_cache(self):
+        try:
+            f = self._httpRequest(self.weather_url, last_modified=self._weather_last_modified)
+            contents = f.read().decode()
+            f.close()
+            self._weather_last_modified = parse_http_date(f.info()["Last-Modified"])
+            self._weather_document = ET.fromstring(contents)
+        except urllib.error.HTTPError as err:
+            if err.code == 304:
+                raise
 
-        doc = ET.fromstring(contents)
-        print(doc)
+    def _get_weather_cached(self):
+        if self._weather_document is None:
+            self._update_weather_cache()
+        return self._weather_document
+
+    def _forecast_by_date(self, tree, dt):
+        todate = trunc_to_hour(dt).isoformat()
+        fromdate = trunc_to_hour(dt - timedelta(seconds=3600*6+1)).isoformat()
+        return tree.xpath("//time[@from='{}Z' and @from=@to]/location".format(todate)).pop(),\
+               tree.xpath("//time[@from='{}Z' and @to='{}Z']/location".format(fromdate, todate)).pop()
+
+    def _parse_forecast(self, locnodes):
+        point, integrated = locnodes
+        temp = float(point.find("temperature").get("value"))
+        precipitation = float(integrated.find("precipitation").get("value"))
+        kind = integrated.find("symbol").get("id").lower()
+
+        return temp, precipitation, kind
+
+    def _reparse_weather(self, doc):
+        tree = ET.ElementTree(doc)
+        now = datetime.utcnow()
+        try:
+            forecast = self._forecast_by_date(tree, now)
+        except IndexError:
+            now = now + timedelta(seconds=3601)
+            forecast = self._forecast_by_date(tree, now)
+
+        weather = [self._parse_forecast(forecast)]
+        for offs in [6, 9]:
+            forecast = self._forecast_by_date(tree, now + timedelta(seconds=offs*3600+1))
+            weather.append(self._parse_forecast(forecast))
+
+        return weather
+
+    def _get_weather_buffer(self):
+        doc = self._get_weather_cached()
+        if doc is not None:
+            self._weather = self._reparse_weather(doc)
+
+        if self._weather is None:
+            buf = "{:20s}no weather data".format("")
+        else:
+            temp_format = "{:+5.1f}  "
+            kind_format = "{:5s}  "
+            weather = self._weather
+            temps = [node[0] for node in weather]
+            kinds = [node[2] for node in weather]
+            buf = "{:5s}  {:5s}  {:5s} ".format("now", "+6h", "+9h")
+            buf += (temp_format*3)[:-1].format(*temps)
+            buf += (kind_format*3)[:-1].format(*kinds)
+        return buf
 
     def _stripDest(self, dest):
         m = self.BRACES_RE.search(dest)
@@ -105,7 +181,7 @@ class DVBBot(HubBot):
     def _infoBuffer(self):
         now = datetime.utcnow() + timedelta(seconds=60*60)
         date = now.strftime("%a, %d. %b, %H:%M")
-        return self._hexBuffer("{0:20s}".format(date))
+        return self._hexBuffer("{0:20s}".format(date) + self._get_weather_buffer())
 
     def handle_presence(self, pres):
         if pres["from"].bare == self.LCD:
@@ -125,6 +201,12 @@ class DVBBot(HubBot):
             "update",
             30.0,
             self.update,
+            repeat=True
+        )
+        self.scheduler.add(
+            "update-weather",
+            600.0,
+            self._update_weather_cache,
             repeat=True
         )
         self.update()
@@ -148,14 +230,12 @@ class DVBBot(HubBot):
             return
 
     def message(self, msg):
-        if str(msg["from"].bare) != self.LCD:
-            return
-
-        #~ self.send_message(
-            #~ mto=self.switch,
-            #~ mbody=msg["body"],
-            #~ mtype="groupchat"
-        #~ )
+        if str(msg["from"].bare) == self.LCD:
+            self.send_message(
+                mto=self.switch,
+                mbody="lcd said: {}".format(msg["body"]),
+                mtype="groupchat"
+            )
 
     def update(self):
         if self._lcd_away:
