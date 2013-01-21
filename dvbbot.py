@@ -111,7 +111,10 @@ class DVBBot(HubBot):
         if pres["from"].bare == self.LCD:
             if pres["type"] == "available":
                 print("lcd available")
+                was_away = self._lcd_away
                 self._lcd_away = False
+                if was_away:
+                    self.update()
             else:
                 print("lcd went {}".format(pres["type"]))
                 self._lcd_away = True
@@ -155,6 +158,9 @@ class DVBBot(HubBot):
         #~ )
 
     def update(self):
+        if self._lcd_away:
+            # no need to update while LCD is away
+            return
         data = self._getNextDepartures()[:8]  # we can take a max of 8 entries
         buffers = []
         while len(data) > 0:
