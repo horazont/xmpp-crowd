@@ -8,6 +8,7 @@ import lxml.etree as ET
 from fnmatch import fnmatch
 from subprocess import check_output
 
+import html.parser
 from bs4 import BeautifulSoup
 
 import foomodules.Base as Base
