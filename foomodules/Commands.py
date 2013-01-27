@@ -300,7 +300,7 @@ class Roll(Base.MessageHandler):
     rollex = re.compile(rollex_base, re.I)
 
     def _too_much(self, msg):
-        self.reply(msg, "yeah, right, I'll go and rob a dice factory")
+        self.reply(msg, "yeah, right, I'll go and rob a die factory")
 
     def __call__(self, msg, arguments, errorSink=None):
         matched = self.rollex_all.match(arguments)
