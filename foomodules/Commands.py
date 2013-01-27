@@ -321,7 +321,7 @@ class Roll(Base.MessageHandler):
                 self.reply(msg, "thats not a reasonable count: {}".format(count))
                 return
             if dice <= 1:
-                self.reply(msg, "thats not a reasonable dice: {}".format(dice))
+                self.reply(msg, "thats not a reasonable die: {}".format(dice))
                 return
             if count > 1000 or len(results) > 1000:
                 self._too_much(msg)
