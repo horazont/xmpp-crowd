@@ -66,6 +66,7 @@ class Fnord(Base.MessageHandler):
         "Fnord ist das pelzige Gefühl auf deinen Zähnen am nächsten Tag",
         "Fnord ist die Angst und ist die Erleichterung und ist die Angst",
         "Fnord schläft nie",
+        "Fnord ist xand.",
     ]
 
     def __call__(self, msg, arguments, errorSink=None):
