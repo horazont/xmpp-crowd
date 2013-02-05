@@ -382,6 +382,9 @@ class URLLookup(Base.MessageHandler):
             else:
                 encoding = None
             mimeType = mimeType.strip()
+        except AttributeError:
+            mimeType = "unknown/unknown"
+            encoding = None
         except KeyError:
             mimeType = "unknown/unknown"
             encoding = None
