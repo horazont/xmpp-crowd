@@ -488,4 +488,3 @@ class URLLookup(Base.MessageHandler):
                 self.reply(msg, "Could not open URL: {0!s}".format(err))
 
         return matchFound and self.setAbort
-
