@@ -33,7 +33,7 @@ def readMax(fileLike, maxLength, timeout=5, read_block_size=4096):
 
 
 def formatBytes(byteCount):
-    suffixes = ["", "ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi", "Yi"]
+    suffixes = ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi", "Yi"]
     print(byteCount)
     dimension = min(int(math.log(byteCount, 1024)), len(suffixes)-1)
     suffix = suffixes[dimension]+"B"
