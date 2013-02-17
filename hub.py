@@ -38,9 +38,13 @@ class HubBot(ClientXMPP):
         logger.debug("joining %s as %s", *switchTuple)
         self.muc.joinMUC(*switchTuple, wait=wait)
 
+    def recieved_roster(self, roster):
+        pass
+
     def sessionStart(self, event):
         self.send_presence()
-        self.get_roster()
+        roster = self.get_roster(block=True)
+        self.recieved_roster(roster)
 
         self.muc = self.plugin["xep_0045"]
         self.pubsub = self.plugin["xep_0060"]
