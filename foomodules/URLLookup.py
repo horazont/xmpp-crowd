@@ -236,6 +236,10 @@ class HTMLDocument(HandlerBase):
                 encoding = groups[1] or groups[2] or groups[3]
                 response.encoding = encoding.decode("ascii")
 
+        if response.encoding == "utf-8lias":
+            # hi dilbert.com
+            response.encodin = "utf-8"
+
         if bufferLen < response.contentLength:
             try:
                 contents, _ = guessEncoding(response.buf, response.encoding)
