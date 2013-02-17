@@ -238,7 +238,7 @@ class HTMLDocument(HandlerBase):
 
         if response.encoding == "utf-8lias":
             # hi dilbert.com
-            response.encodin = "utf-8"
+            response.encoding = "utf-8"
 
         if bufferLen < response.contentLength:
             try:
