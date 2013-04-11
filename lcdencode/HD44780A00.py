@@ -19,7 +19,8 @@ class Codec(codecs.Codec):
         return codecs.charmap_encode(self.pre_encode(input),errors,encoding_map)
 
     def decode(self,input,errors='strict'):
-        return self.post_decode(codecs.charmap_decode(input,errors,decoding_table))
+        output = self.post_decode(codecs.charmap_decode(input,errors,decoding_table)[0])
+        return output, len(output)
 
 class StreamWriter(Codec,codecs.StreamWriter):
     pass
