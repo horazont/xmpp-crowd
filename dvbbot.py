@@ -31,6 +31,11 @@ class DVBBot(HubBot):
     USER_AGENT = "InfoLCD/1.0"
     ACCEPT_HEADER = "application/xml"
 
+    longwordmap = {
+        "partlycloud": "ptcld",
+        "lightrain": "lrain"
+        }
+
     def __init__(self, config_path):
         self._config_path = config_path
         self.initialized = False
@@ -154,9 +159,12 @@ class DVBBot(HubBot):
             weather = self._weather
             temps = [node[0] for node in weather]
             kinds = [node[2] for node in weather]
+
+            kind_names = [kind if len(kind) <= 5 else self.longwordmap.get(kind, kind[:5])
+                          for kind in kinds]
             buf = "{:5s}  {:5s}  {:5s} ".format("now", "+6h", "+9h")
             buf += (temp_format*3)[:-1].format(*temps)
-            buf += (kind_format*3)[:-1].format(*kinds)
+            buf += (kind_format*3)[:-1].format(*kind_names)
         return buf
 
     def _stripDest(self, dest):
@@ -219,6 +227,10 @@ class DVBBot(HubBot):
         self.writeLCD("update page {} {}".format(i+1, self._infoBuffer()))
 
     def writeLCD(self, raw):
+        # print(raw)
+        # if raw.startswith("update page "):
+        #     print(raw.split(" ")[3])
+        #     print("page contents: \n{}".format(binascii.a2b_hex(raw.split(" ")[3].strip().encode("ascii")).decode("hd44780a00")))
         self.send_message(mto=self.LCD, mbody=raw, mtype="chat")
 
     def messageMUC(self, msg):
