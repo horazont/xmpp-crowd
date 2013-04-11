@@ -232,7 +232,7 @@ class DVBBot(HubBot):
     def message(self, msg):
         if str(msg["from"].bare) == self.LCD:
             self.send_message(
-                mto=self.switch,
+                mto=self.bots_switch,
                 mbody="lcd said: {}".format(msg["body"]),
                 mtype="groupchat"
             )
