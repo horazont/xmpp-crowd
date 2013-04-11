@@ -179,7 +179,7 @@ class DVBBot(HubBot):
         return self._hexBuffer(buf)
 
     def _infoBuffer(self):
-        now = datetime.utcnow() + timedelta(seconds=60*60)
+        now = datetime.utcnow() + timedelta(seconds=120*60)
         date = now.strftime("%a, %d. %b, %H:%M")
         return self._hexBuffer("{0:20s}".format(date) + self._get_weather_buffer())
 
