@@ -80,7 +80,7 @@ class HubBot(ClientXMPP):
         if msg["type"] == "groupchat":
             self.send_message(mtype="groupchat", mto=msg["from"].bare, mbody=body)
         else:
-            self.send_message(mto=msg["from"], mbody=body)
+            self.send_message(mto=msg["from"], mbody=body, mtype="chat")
 
     def run(self):
         self.connect()
