@@ -251,7 +251,7 @@ class DVBBot(HubBot):
             self.reply(orig_msg, "No weather data available.")
             return
 
-        fmt = "{time}: {temp:+5.1f} °C, {prec:.1f} mm, {kind}"
+        fmt = "{time}: {temp:+.1f} °C, {prec:.1f} mm, {kind}"
         reply = []
         for time, (temp, prec, kind) in zip(self._times, self._weather):
             reply.append(fmt.format(time=time, temp=temp, prec=prec, kind=kind))
