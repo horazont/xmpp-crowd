@@ -150,7 +150,7 @@ class DVBBot(HubBot):
         doc = self._get_weather_cached()
         if doc is not None:
             self._weather = self._reparse_weather(doc)
-            self._times = ("now", "+6h", "+9h")
+        self._times = ("now", "+6h", "+9h")
 
         if self._weather is None:
             buf = "{:20s}no weather data".format("")
@@ -163,7 +163,7 @@ class DVBBot(HubBot):
 
             kind_names = [kind if len(kind) <= 5 else self.longwordmap.get(kind, kind[:5])
                           for kind in kinds]
-            buf = "{:5s}  {:5s}  {:5s} ".format(self._times)
+            buf = "{:5s}  {:5s}  {:5s} ".format(*self._times)
             buf += (temp_format*3)[:-1].format(*temps)
             buf += (kind_format*3)[:-1].format(*kind_names)
         return buf
