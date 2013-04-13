@@ -33,7 +33,8 @@ class DVBBot(HubBot):
 
     longwordmap = {
         "partlycloud": "ptcld",
-        "lightrain": "lrain"
+        "lightrain": "lrain",
+        "lightrainsun": "lrmix"
         }
 
     def __init__(self, config_path):
