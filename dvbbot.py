@@ -12,6 +12,7 @@ from calendar import timegm
 import email.utils as eutils
 
 import lxml.etree as ET
+from sleekxmpp.exceptions import IqError, IqTimeout
 
 def to_timestamp(datetime):
     return timegm(datetime.utctimetuple())
@@ -26,10 +27,13 @@ def trunc_to_hour(dt):
 class DVBBot(HubBot):
     DEPARTURE_URL = "http://widgets.vvo-online.de/abfahrtsmonitor/Abfahrten.do?ort=Dresden&hst={}"
     WEATHER_URL = "http://api.met.no/weatherapi/locationforecast/1.8/?lat={lat}&lon={lon}"
-    LCD = "lcd@hub.sotecware.net"
+    LCD = "lcd@hub.sotecware.net/fritzbox-home"
     BRACES_RE = re.compile("\(.*?\)")
     USER_AGENT = "InfoLCD/1.0"
     ACCEPT_HEADER = "application/xml"
+
+    SENSOR_NS = "http://xmpp.sotecware.net/xmlns/sensor"
+    SENSOR_FILE = "/tmp/sensor0"
 
     longwordmap = {
         "partlycloud": "ptcld",
@@ -79,6 +83,7 @@ class DVBBot(HubBot):
         self._weather_document = None
         self._weather_last_modified = None
         self._weather = None
+        self._sensor = None
         #sys.exit(1)
         self._lcd_away = False
 
@@ -197,6 +202,29 @@ class DVBBot(HubBot):
         date = now.strftime("%a, %d. %b, %H:%M")
         return self._hexBuffer("{0:20s}".format(date) + self._get_weather_buffer())
 
+    def _read_sensors(self):
+        iq = self.make_iq_get(queryxmlns=self.SENSOR_NS, ito=self.LCD)
+        try:
+            result = iq.send(block=True, timeout=10)
+        except IqTimeout:
+            return
+        except IqError:
+            self._sensor = None
+        else:
+            query = result.xml.find("{{{}}}query".format(self.SENSOR_NS))
+
+            if query:
+                sensor_tag = "{{{}}}sensor".format(self.SENSOR_NS)
+                for child in query:
+                    if child.tag != sensor_tag:
+                        continue
+                    if child.get("available") != "false":
+                        self._sensor = int(child.get("value")) / 16.0
+
+        if self._sensor is not None:
+            with open(self.SENSOR_FILE, "w") as f:
+                f.write("{:.2f}".format(self._sensor))
+
     def handle_presence(self, pres):
         if pres["from"].bare == self.LCD:
             if pres["type"] == "available":
@@ -216,13 +244,19 @@ class DVBBot(HubBot):
             30.0,
             self.update,
             repeat=True
-        )
+            )
         self.scheduler.add(
             "update-weather",
             600.0,
             self._update_weather_cache,
             repeat=True
-        )
+            )
+        self.scheduler.add(
+            "update-sensors",
+            5.0,
+            self._read_sensors,
+            repeat=True
+            )
         self.update()
 
     def send_pages(self, pages):
@@ -280,6 +314,9 @@ class DVBBot(HubBot):
         elif cmd == "debug":
             for buf in self.buffers:
                 self.reply(msg, self._unhexBuffer(buf))
+        elif cmd == "get_sensor":
+            self.reply(msg, str(self._sensor))
+
         # self.reply(msg, str(msg["body"]))
 
 
