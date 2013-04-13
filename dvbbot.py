@@ -178,6 +178,10 @@ class DVBBot(HubBot):
         buf = binascii.b2a_hex(buf.encode("hd44780a00")).decode("ascii")
         return buf
 
+    def _unhexBuffer(self, buf):
+        buf = binascii.a2b_hex(buf.encode("ascii")).decode("hd44780a00")
+        return buf
+
     def _dataToBuffer(self, data):
         assert len(data) <= 4
         buf = ""
@@ -272,6 +276,9 @@ class DVBBot(HubBot):
         if cmd == "get_weather":
             self.get_weather(msg)
             return
+        elif cmd == "debug":
+            for buf in self.buffers:
+                self.reply(msg, self._unhexBuffer(buf))
         # self.reply(msg, str(msg["body"]))
 
 
