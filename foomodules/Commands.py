@@ -60,7 +60,7 @@ class Fnord(Base.MessageHandler):
         "Fnord ist was du denkst wenn du nicht weisst was du denkst",
         "Fnord ist die Farbe die nur der Blinde sieht",
         "Fnord ist Morgens spät und Abends früh",
-        "Fnord ist wo die Busse sich verstecken in der Nacht",
+        "Fnord ist, wo sich die Busse in der Nacht verstecken",
         "Fnord ist der Raum zwischen den Pixeln auf deinem Bildschirm",
         "Fnord ist das Pfeifen in deinem Ohr",
         "Fnord ist das pelzige Gefühl auf deinen Zähnen am nächsten Tag",
