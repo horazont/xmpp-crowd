@@ -6,6 +6,7 @@ import re
 import lcdencode
 import binascii
 import sys
+import socket
 import os
 from datetime import datetime, timedelta
 from wsgiref.handlers import format_date_time
