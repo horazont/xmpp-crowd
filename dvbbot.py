@@ -224,7 +224,9 @@ class DVBBot(HubBot):
                 for child in query:
                     if child.tag != sensor_tag:
                         continue
-                    sensors.setdefault(child.get("serial"), []).append(int(child.get("value")) / 16.0)
+                    value = int(child.get("value")) / 16.0
+                    if -40 <= value <= 135:
+                        sensors.setdefault(child.get("serial"), []).append(value)
                 self._sensors = sensors
 
     def _write_sensors(self):
