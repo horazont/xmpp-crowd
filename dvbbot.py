@@ -209,7 +209,7 @@ class DVBBot(HubBot):
         try:
             result = iq.send(block=True, timeout=10)
         except IqTimeout:
-            return
+            self._sensor = None
         except IqError:
             self._sensor = None
         else:
@@ -238,6 +238,7 @@ class DVBBot(HubBot):
             else:
                 print("lcd went {}".format(pres["type"]))
                 self._lcd_away = True
+                self._sensor = None
 
     def sessionStart(self, event):
         super(DVBBot, self).sessionStart(event)
