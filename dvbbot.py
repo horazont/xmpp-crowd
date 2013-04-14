@@ -235,7 +235,7 @@ class DVBBot(HubBot):
         for k, v in sensors.items():
             filename = os.path.join(self.SENSOR_DIR, self.SENSOR_FILE.format(k))
             value = sum(v) / len(v)
-            print("{} {}".format(k, value))
+            print("{} {} {}".format(k, value, v))
             with open(filename, "w") as f:
                 f.write("{:.2f}".format(value))
         self._sensors = {}
@@ -338,6 +338,8 @@ class DVBBot(HubBot):
                 self.reply(msg, self._unhexBuffer(buf))
         elif cmd == "get_sensor":
             self.reply(msg, str(self._sensors))
+        elif cmd == "writeback":
+            self._write_sensors()
 
         # self.reply(msg, str(msg["body"]))
 
