@@ -116,6 +116,8 @@ class DVBBot(HubBot):
         except urllib.error.HTTPError as err:
             if err.code == 304:
                 raise
+        except socket.error:
+            pass
 
     def _get_weather_cached(self):
         if self._weather_document is None:
