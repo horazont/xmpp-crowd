@@ -274,7 +274,7 @@ class DVBBot(HubBot):
             )
         self.scheduler.add(
             "update-output",
-            60*4,
+            60*2,
             self._write_sensors,
             repeat=True
             )
