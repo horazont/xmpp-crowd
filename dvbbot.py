@@ -34,7 +34,7 @@ class DVBBot(HubBot):
     ACCEPT_HEADER = "application/xml"
 
     SENSOR_NS = "http://xmpp.sotecware.net/xmlns/sensor"
-    SENSOR_FILE = "/run/sensors/sensor0"
+    SENSOR_FILE = "/run/sensors/sensor{}"
 
     longwordmap = {
         "partlycloud": "ptcld",
@@ -84,7 +84,7 @@ class DVBBot(HubBot):
         self._weather_document = None
         self._weather_last_modified = None
         self._weather = None
-        self._sensor = None
+        self._sensors = {}
         #sys.exit(1)
         self._lcd_away = False
 
@@ -210,23 +210,25 @@ class DVBBot(HubBot):
         try:
             result = iq.send(block=True, timeout=10)
         except IqTimeout:
-            self._sensor = None
+            self._sensors = {}
         except IqError:
-            self._sensor = None
+            self._sensors = {}
         else:
             query = result.xml.find("{{{}}}query".format(self.SENSOR_NS))
 
             if query:
+                sensors = {}
                 sensor_tag = "{{{}}}sensor".format(self.SENSOR_NS)
                 for child in query:
                     if child.tag != sensor_tag:
                         continue
-                    if child.get("available") != "false":
-                        self._sensor = int(child.get("value")) / 16.0
+                    sensors[child.get("serial")] = int(child.get("value")) / 16.0
+                self._sensors = sensors
+                print(self._sensors)
 
-        if self._sensor is not None:
-            with open(self.SENSOR_FILE, "w") as f:
-                f.write("{:.2f}".format(self._sensor))
+        for k, v in self._sensors.items():
+            with open(self.SENSOR_FILE.format(k), "w") as f:
+                f.write("{:.2f}".format(v))
 
     def handle_presence(self, pres):
         if pres["from"].bare == self.LCD:
@@ -239,7 +241,7 @@ class DVBBot(HubBot):
             else:
                 print("lcd went {}".format(pres["type"]))
                 self._lcd_away = True
-                self._sensor = None
+                self._sensors = {}
 
     def sessionStart(self, event):
         super(DVBBot, self).sessionStart(event)
@@ -319,7 +321,7 @@ class DVBBot(HubBot):
             for buf in self.buffers:
                 self.reply(msg, self._unhexBuffer(buf))
         elif cmd == "get_sensor":
-            self.reply(msg, str(self._sensor))
+            self.reply(msg, str(self._sensors))
 
         # self.reply(msg, str(msg["body"]))
 
