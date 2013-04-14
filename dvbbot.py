@@ -225,7 +225,6 @@ class DVBBot(HubBot):
                         continue
                     sensors.setdefault(child.get("serial"), []).append(int(child.get("value")) / 16.0)
                 self._sensors = sensors
-                print(self._sensors)
 
     def _write_sensors(self):
         sensors = dict(self._sensors)
@@ -234,8 +233,10 @@ class DVBBot(HubBot):
                 os.unlink(file)
         for k, v in sensors.items():
             filename = os.path.join(self.SENSOR_DIR, self.SENSOR_FILE.format(k))
+            value = sum(v) / len(v)
+            print("{} {}".format(k, value))
             with open(filename, "w") as f:
-                f.write("{:.2f}".format(sum(v) / len(v)))
+                f.write("{:.2f}".format(value))
         self._sensors = {}
 
     def handle_presence(self, pres):
