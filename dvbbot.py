@@ -34,7 +34,8 @@ class DVBBot(HubBot):
     ACCEPT_HEADER = "application/xml"
 
     SENSOR_NS = "http://xmpp.sotecware.net/xmlns/sensor"
-    SENSOR_FILE = "/run/sensors/sensor{}"
+    SENSOR_DIR = "/run/sensors"
+    SENSOR_FILE = "sensor{}"
 
     longwordmap = {
         "partlycloud": "ptcld",
@@ -217,18 +218,25 @@ class DVBBot(HubBot):
             query = result.xml.find("{{{}}}query".format(self.SENSOR_NS))
 
             if query:
-                sensors = {}
+                sensors = dict(self._sensors)
                 sensor_tag = "{{{}}}sensor".format(self.SENSOR_NS)
                 for child in query:
                     if child.tag != sensor_tag:
                         continue
-                    sensors[child.get("serial")] = int(child.get("value")) / 16.0
+                    sensors.setdefault(child.get("serial"), []).append(int(child.get("value")) / 16.0)
                 self._sensors = sensors
                 print(self._sensors)
 
-        for k, v in self._sensors.items():
-            with open(self.SENSOR_FILE.format(k), "w") as f:
-                f.write("{:.2f}".format(v))
+    def _write_sensors(self):
+        sensors = dict(self._sensors)
+        for filename in os.listdir(self.SENSOR_DIR):
+            if os.path.isfile(os.path.join(self.SENSOR_DIR, filename)):
+                os.unlink(file)
+        for k, v in sensors.items():
+            filename = os.path.join(self.SENSOR_DIR, self.SENSOR_FILE.format(k))
+            with open(filename, "w") as f:
+                f.write("{:.2f}".format(sum(v) / len(v)))
+        self._sensors = {}
 
     def handle_presence(self, pres):
         if pres["from"].bare == self.LCD:
@@ -259,8 +267,14 @@ class DVBBot(HubBot):
             )
         self.scheduler.add(
             "update-sensors",
-            5.0,
+            2.5,
             self._read_sensors,
+            repeat=True
+            )
+        self.scheduler.add(
+            "update-output",
+            60*4,
+            self._write_sensors,
             repeat=True
             )
         self.update()
