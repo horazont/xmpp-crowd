@@ -27,7 +27,8 @@ def trunc_to_hour(dt):
 class DVBBot(HubBot):
     DEPARTURE_URL = "http://widgets.vvo-online.de/abfahrtsmonitor/Abfahrten.do?ort=Dresden&hst={}"
     WEATHER_URL = "http://api.met.no/weatherapi/locationforecast/1.8/?lat={lat}&lon={lon}"
-    LCD = "lcd@hub.sotecware.net/fritzbox-home"
+    LCD = "lcd@hub.sotecware.net"
+    LCD_IQ = "lcd@hub.sotecware.net/fritzbox-home"
     BRACES_RE = re.compile("\(.*?\)")
     USER_AGENT = "InfoLCD/1.0"
     ACCEPT_HEADER = "application/xml"
@@ -205,7 +206,7 @@ class DVBBot(HubBot):
         return self._hexBuffer("{0:20s}".format(date) + self._get_weather_buffer())
 
     def _read_sensors(self):
-        iq = self.make_iq_get(queryxmlns=self.SENSOR_NS, ito=self.LCD)
+        iq = self.make_iq_get(queryxmlns=self.SENSOR_NS, ito=self.LCD_IQ)
         try:
             result = iq.send(block=True, timeout=10)
         except IqTimeout:
