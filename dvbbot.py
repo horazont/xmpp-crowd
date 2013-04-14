@@ -33,7 +33,7 @@ class DVBBot(HubBot):
     ACCEPT_HEADER = "application/xml"
 
     SENSOR_NS = "http://xmpp.sotecware.net/xmlns/sensor"
-    SENSOR_FILE = "/tmp/sensor0"
+    SENSOR_FILE = "/run/sensors/sensor0"
 
     longwordmap = {
         "partlycloud": "ptcld",
