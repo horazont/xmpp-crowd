@@ -230,8 +230,9 @@ class DVBBot(HubBot):
     def _write_sensors(self):
         sensors = dict(self._sensors)
         for filename in os.listdir(self.SENSOR_DIR):
-            if os.path.isfile(os.path.join(self.SENSOR_DIR, filename)):
-                os.unlink(file)
+            filename = os.path.join(self.SENSOR_DIR, filename)
+            if os.path.isfile(filename):
+                os.unlink(filename)
         for k, v in sensors.items():
             filename = os.path.join(self.SENSOR_DIR, self.SENSOR_FILE.format(k))
             value = sum(v) / len(v)
