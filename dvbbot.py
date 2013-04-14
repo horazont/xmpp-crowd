@@ -116,7 +116,7 @@ class DVBBot(HubBot):
         except urllib.error.HTTPError as err:
             if err.code == 304:
                 raise
-        except socket.error:
+        except socket.timeout:
             pass
 
     def _get_weather_cached(self):
@@ -327,7 +327,10 @@ class DVBBot(HubBot):
         if self._lcd_away:
             # no need to update while LCD is away
             return
-        data = self._getNextDepartures()[:8]  # we can take a max of 8 entries
+        try:
+            data = self._getNextDepartures()[:8]  # we can take a max of 8 entries
+        except socket.timeout:
+            return
         buffers = []
         while len(data) > 0:
             buffers.append(self._dataToBuffer(data[:4]))
