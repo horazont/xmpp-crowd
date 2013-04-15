@@ -149,7 +149,11 @@ class DVBBot(HubBot):
             forecast = self._forecast_by_date(tree, now)
         except IndexError:
             now = now + timedelta(seconds=3601)
-            forecast = self._forecast_by_date(tree, now)
+            try:
+                forecast = self._forecast_by_date(tree, now)
+            except IndexError:
+                print(ET.tostring(doc))
+                return self._weather
 
         weather = [self._parse_forecast(forecast)]
         for offs in [6, 9]:
