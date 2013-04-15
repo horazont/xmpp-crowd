@@ -2,6 +2,8 @@
 from hub import HubBot
 import ast
 import urllib.request
+import urllib.error
+import warnings
 import re
 import lcdencode
 import binascii
@@ -359,6 +361,9 @@ class DVBBot(HubBot):
         try:
             data = self._getNextDepartures()[:8]  # we can take a max of 8 entries
         except socket.timeout:
+            return
+        except urllib.error.URLError as err:
+            warnings.warn(err)
             return
         buffers = []
         while len(data) > 0:
