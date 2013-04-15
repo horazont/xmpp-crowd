@@ -140,7 +140,11 @@ class DVBBot(HubBot):
         point, integrated = locnodes
         temp = float(point.find("temperature").get("value"))
         precipitation = float(integrated.find("precipitation").get("value"))
-        kind = integrated.find("symbol").get("id").lower()
+        symbol = integrated.find("symbol")
+        if symbol is not None:
+            kind = symbol.get("id").lower()
+        else:
+            kind = " ??? "
 
         return temp, precipitation, kind
 
