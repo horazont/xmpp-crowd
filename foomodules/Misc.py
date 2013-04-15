@@ -12,10 +12,11 @@ class Pong(Base.MessageHandler):
 
 
 class IgnoreList(Base.MessageHandler):
-    def __init__(self, message="I will ignore you.", **kwargs):
+    def __init__(self, message="I will ignore you.",
+                 initial=[], **kwargs):
         super().__init__(**kwargs)
         self.message = message
-        self.ignoredJids = set()
+        self.ignoredJids = set(initial)
 
     def __call__(self, msg, errorSink=None):
         bare = str(msg["from"].bare)
