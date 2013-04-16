@@ -163,8 +163,11 @@ class DVBBot(HubBot):
 
         weather = [self._parse_forecast(forecast)]
         for offs in [6, 9]:
-            forecast = self._forecast_by_date(tree, now + timedelta(seconds=offs*3600+1))
-            weather.append(self._parse_forecast(forecast))
+            try:
+                forecast = self._forecast_by_date(tree, now + timedelta(seconds=offs*3600))
+                weather.append(self._parse_forecast(forecast))
+            except IndexError:
+                weather.append((float("NaN"), float("NaN"), " ??? "))
 
         return weather
 
