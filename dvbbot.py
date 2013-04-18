@@ -122,6 +122,8 @@ class DVBBot(HubBot):
         except urllib.error.HTTPError as err:
             if err.code == 304:
                 raise
+        except urllib.error.URLError as err:
+            pass
         except socket.timeout:
             pass
 
