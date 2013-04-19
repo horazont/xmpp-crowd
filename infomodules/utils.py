@@ -25,3 +25,6 @@ def http_request(url, user_agent=None, accept=None, last_modified=None, headers=
     else:
         timestamp = None
     return response, timestamp
+
+def date_to_key(date):
+    return (date.year, date.month, date.day, date.hour)

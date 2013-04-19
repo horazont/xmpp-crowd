@@ -53,11 +53,11 @@ class Weather(object):
         forecasts = {}
         for forecast in tree.xpath("//time[@datatype='forecast' and @from=@to]"):
             date = datetime.strptime(forecast.get("from"), "%Y-%m-%dT%H:00:00Z")
-            key = (date.year, date.month, date.day, date.hour)
+            key = infomodules.utils.date_to_key(date)
 
             locnode = forecast.find("location")
             data = Forecast()
-            data.temperature = self.get_forecast_attr(locnode, "temperature", default=data.temperature)
+            data.temperature = float(self.get_forecast_attr(locnode, "temperature", default=data.temperature))
 
             forecasts[key] = data
 
@@ -66,11 +66,11 @@ class Weather(object):
             date2 = datetime.strptime(integrated.get("to"), "%Y-%m-%dT%H:00:00Z")
             if date2 - date > timedelta(seconds=3600):
                 continue
-            key = (date.year, date.month, date.day, date.hour)
+            key = infomodules.utils.date_to_key(date)
 
             locnode = integrated.find("location")
             data = forecasts.setdefault(key, Forecast())
-            data.precipitation = self.get_forecast_attr(locnode, "precipitation", default=data.precipitation)
+            data.precipitation = float(self.get_forecast_attr(locnode, "precipitation", default=data.precipitation))
             data.symbol = self.get_forecast_attr(locnode, "symbol", default=data.symbol, valuename="id")
 
         return forecasts
