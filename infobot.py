@@ -3,8 +3,28 @@ from hub import HubBot
 from datetime import datetime, timedelta
 import math
 import binascii
+import traceback
 
 import infomodules.utils
+
+class SafeCallback(object):
+    @staticmethod
+    def _default_error_handler(exc_type, exc_value, exc_traceback):
+        print("During safe callback:")
+        traceback.print_exception(exc_type, exc_value, exc_traceback)
+
+
+    def __init__(self, callback, error_handler=None):
+        self._callback = callback
+        self._error_handler = error_handler if error_handler is not None \
+            else self._default_error_handler
+
+    def __call__(self, *args, **kwargs):
+        try:
+            return self._callback(*args, **kwargs)
+        except:
+            self._error_handler(*sys.exc_info())
+
 
 class InfoBot(HubBot):
     longwordmap = {
@@ -12,6 +32,10 @@ class InfoBot(HubBot):
         "lightrain": "lrain",
         "lightrainsun": "lrmix"
         }
+
+    SENSOR_NS = "http://xmpp.sotecware.net/xmlns/sensor"
+    SENSOR_DIR = "/run/sensors"
+    SENSOR_FILE = "sensor{}"
 
     def __init__(self, config_file):
         self._config_file = config_file
@@ -24,6 +48,7 @@ class InfoBot(HubBot):
 
         self.initialized = True
         credentials = self.config_credentials
+        self.notification_to = credentials.get("notify", None)
 
         self.hooks_setup = False
 
@@ -90,8 +115,10 @@ class InfoBot(HubBot):
         localnow = datetime.utcnow() + timedelta(seconds=2*60*60)
         dateline = localnow.strftime("%H:%M") + "  "
 
-        temps = [forecast.temperature for forecast in data]
-        precp = [forecast.precipitation for forecast in data[:12]]
+        temps = [forecast.temperature for forecast in data
+                 if forecast.temperature is not None]
+        precp = [forecast.precipitation for forecast in data[:12]
+                 if forecast.precipitation is not None]
         dateline += "<{:+3.0f} >{:+3.0f}".format(max(temps), min(temps))
         dateline += "  {:2.0f}".format(sum(precp))
 
@@ -192,6 +219,10 @@ class InfoBot(HubBot):
     def _encode_for_lcd(data):
         return binascii.b2a_hex(data.encode("hd44780a00")).decode("ascii")
 
+    def _write_lcd(self, command):
+        print("-> " + command)
+        self.send_message(mto=self.lcd, mbody=command, mtype="chat")
+
     def _update_lcd(self):
         if self._lcd_away:
             return
@@ -202,31 +233,56 @@ class InfoBot(HubBot):
         if self._weather_buffer is not None:
             self.write_lcd("update page 2 {}".format(self._encode_for_lcd(self._weather_buffer)))
 
+
+    def _error_handler(self, exc_type, exc_value, exc_traceback):
+        traceback.print_exception(exc_type, exc_value, exc_traceback)
+
+        body = "During callback: {!s}: {!s}. Traceback logged to stderr.".format(exc_type, exc_value)
+        if self.notification_to is not None:
+            body = "{}: {}".format(self.notification_to, body)
+
+        self.send_message(
+            mto=self.bots_switch,
+            mbody=body,
+            mtype="groupchat")
+
     def sessionStart(self, event):
         super().sessionStart(event)
         if not self.hooks_setup:
             self.scheduler.add(
                 "update-weather",
                 600.0,
-                self._update_weather,
+                SafeCallback(self._update_weather,
+                             error_handler=self._error_handler),
                 repeat=True)
             self.scheduler.add(
                 "update-departures-and-lcd",
                 30.0,
-                self._update_departures_and_lcd,
+                SafeCallback(self._update_departures_and_lcd,
+                             error_handler=self._error_handler),
                 repeat=True)
             self.scheduler.add(
                 "update-sensors",
                 5.0,
-                self._update_sensors,
+                SafeCallback(self._update_sensors,
+                             error_handler=self._error_handler),
                 repeat=True)
             self.scheduler.add(
                 "update-output",
                 60*4,
-                self._update_output,
+                SafeCallback(self._update_output,
+                             error_handler=self._error_handler),
                 repeat=True)
             self.hooks_setup = True
         self.update_all()
+
+    def messageMUC(self, msg):
+        if msg["mucnick"] == self.nick:
+            return
+        contents = msg["body"].strip()
+        if contents == "ping":
+            self.reply(msg, "pong")
+            return
 
     def update_all(self):
         self._update_weather()
