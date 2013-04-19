@@ -1,6 +1,7 @@
 import ast
 from datetime import datetime, timedelta
 import socket
+import warnings
 
 import infomodules.utils
 
@@ -32,7 +33,7 @@ class Departure(object):
             finally:
                 response.close()
         except socket.timeout as err:
-            if self.cached_data is not None:
+            if self.cached_timestamp is not None and self.cached_data is not None:
                 if self.cached_timestamp - datetime.utcnow() <= self.MAX_AGE:
                     return self.cached_data
             raise
@@ -46,4 +47,8 @@ class Departure(object):
         return self.cached_data
 
     def __call__(self):
-        return self.get_departure_data()
+        try:
+            return self.get_departure_data()
+        except (socket.timeout, urllib.error.URLError, urllib.error.HTTPError) as err:
+            warnings.warn(err)
+            return None
