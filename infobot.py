@@ -134,6 +134,10 @@ class InfoBot(HubBot):
         return dateline+timeline+templine+whichline
 
     @staticmethod
+    def _error_buffer(msg):
+        return " "*20 + "{:^20s}".format(msg) + " "*40
+
+    @staticmethod
     def _extract_next_weather(forecast):
         now = datetime.utcnow()
         key = infomodules.utils.date_to_key(now)
@@ -175,7 +179,10 @@ class InfoBot(HubBot):
 
     def _update_departures_and_lcd(self):
         departures = self.departure()
-        self._departure_buffers = self._format_departure_buffers(departures)
+        if departures is None:
+            self._departure_buffers = [self._error_buffer("No data available")]
+        else:
+            self._departure_buffers = self._format_departure_buffers(departures)
 
         self._update_lcd()
 
