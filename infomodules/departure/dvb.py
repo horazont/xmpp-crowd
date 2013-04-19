@@ -2,6 +2,7 @@ import ast
 from datetime import datetime, timedelta
 import socket
 import warnings
+import urllib.error
 
 import infomodules.utils
 
