@@ -85,7 +85,7 @@ class InfoBot(HubBot):
         self.lcd = namespace["lcd"]
         self.lcd_resource = namespace["lcd_resource"]
         self.lcd_full = self.lcd + "/" + self.lcd_resource
-        self.authorized_jids = namespace["authorized_jids"]
+        self.authorized_jids = frozenset(namespace["authorized_jids"])
         self._sensors = {}
         self._lcd_away = False
         self._weather_buffer = None
@@ -277,12 +277,57 @@ class InfoBot(HubBot):
             self.hooks_setup = True
         self.update_all()
 
+    @staticmethod
+    def _format_text_weather(forecasts, index):
+        precipitation = sum(forecast.precipitation
+                            for forecast in forecasts[:index+1])
+        forecast = forecasts[index]
+        return "T≈{T:+.1f} °C. Until then approx. {p:.1f} mm precipitation, {symbol} weather.".format(
+            T=forecast.temperature,
+            p=precipitation,
+            symbol=forecast.symbol.lower())
+
+    def get_weather(self, orig_msg):
+        forecast = self.weather()
+        data = self._extract_next_weather(forecast)
+
+        keys = [("now", 0),
+                ("+3h", 3),
+                ("+6h", 6),
+                ("+9h", 9),
+                ("+12h", 12)]
+
+        lines = []
+        for name, idx in keys:
+            lines.append("{}: {}".format(
+                    name,
+                    self._format_text_weather(data, idx)
+                    ))
+        self.reply(orig_msg, "\n".join(lines))
+
     def messageMUC(self, msg):
         if msg["mucnick"] == self.nick:
             return
         contents = msg["body"].strip()
         if contents == "ping":
             self.reply(msg, "pong")
+            return
+
+    def message(self, msg):
+        if not msg["from"].bare in self.authorized_jids:
+            return
+
+        body = msg["body"].strip()
+        if body == "get_weather":
+            self.get_weather(msg)
+            return
+        elif body == "get_sensors":
+            self.reply(msg, repr(self._sensors))
+            return
+        elif body == "debug":
+            self.reply(msg, repr(self._departure_buffers))
+            self.reply(msg, repr(self._weather_buffer))
+            self.reply(msg, repr(self._sensors))
             return
 
     def handle_presence(self, pres):
