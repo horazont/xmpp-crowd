@@ -5,6 +5,7 @@ import math
 import binascii
 import traceback
 import sys
+import os
 import lcdencode
 import infomodules.utils
 
