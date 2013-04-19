@@ -91,28 +91,35 @@ class InfoBot(HubBot):
         self._lcd_away = False
         self._weather_buffer = None
         self._departure_buffers = []
+        self._weather_data = None
 
         return None
 
     def _format_weather_buffer(self, data):
-        to_show = [("now", data[0]),
-                   ("+6h", data[6]),
-                   ("+9h", data[9])]
+        if data is not None:
+            to_show = [("now", data[0]),
+                       ("+6h", data[6]),
+                       ("+9h", data[9])]
 
-        timeline, templine, whichline = "", "", ""
-        for time, forecast in to_show:
-            timeline += "{:5s}  ".format(time)
-            templine += "{:+5.1f}  ".format(forecast.temperature)
+            timeline, templine, whichline = "", "", ""
+            for time, forecast in to_show:
+                timeline += "{:5s}  ".format(time)
+                templine += "{:+5.1f}  ".format(forecast.temperature)
 
-            symbol = forecast.symbol.lower()
+                symbol = forecast.symbol.lower()
 
-            whichline += "{:5s}  ".format(
-                self.longwordmap.get(symbol, symbol[:5])
-                )
+                whichline += "{:5s}  ".format(
+                    self.longwordmap.get(symbol, symbol[:5])
+                    )
 
-        timeline = timeline[:20]
-        templine = templine[:20]
-        whichline = whichline[:20]
+            timeline = timeline[:20]
+            templine = templine[:20]
+            whichline = whichline[:20]
+        else:
+            timeline = " "*20
+            templine = "{:^20s}".format("No weather data")
+            whichline = " "*20
+
 
         localnow = datetime.utcnow() + timedelta(seconds=2*60*60)
         dateline = localnow.strftime("%H:%M") + "  "
@@ -146,8 +153,7 @@ class InfoBot(HubBot):
     def _update_weather(self):
         forecast = self.weather()
         data = self._extract_next_weather(forecast)
-        self._weather_buffer = self._format_weather_buffer(data)
-        print(self._weather_buffer)
+        self._weather_data = data
 
     @classmethod
     def _format_departure(cls, departure):
@@ -228,6 +234,9 @@ class InfoBot(HubBot):
     def _update_lcd(self):
         if self._lcd_away:
             return
+
+        self._weather_buffer = self._format_weather_buffer(self._weather_data)
+        print(self._weather_buffer)
 
         for i, dep_page in enumerate(self._departure_buffers[:2]):
             self._write_lcd("update page {} {}".format(i, self._encode_for_lcd(dep_page)))
