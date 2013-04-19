@@ -8,6 +8,7 @@ import sys
 import os
 import lcdencode
 import infomodules.utils
+from sleekxmpp.exceptions import IqError, IqTimeout
 
 class SafeCallback(object):
     @staticmethod
