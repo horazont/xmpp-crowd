@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 import math
 import binascii
 import traceback
-
+import sys
+import lcdencode
 import infomodules.utils
 
 class SafeCallback(object):
@@ -66,7 +67,7 @@ class InfoBot(HubBot):
 
     def reload_config(self):
         namespace = {}
-        with open(self._config_path, "r") as f:
+        with open(self._config_file, "r") as f:
             conf = f.read()
 
         global_namespace = dict(globals())
@@ -91,8 +92,7 @@ class InfoBot(HubBot):
 
         return None
 
-    @staticmethod
-    def _format_weather_buffer(data):
+    def _format_weather_buffer(self, data):
         to_show = [("now", data[0]),
                    ("+6h", data[6]),
                    ("+9h", data[9])]
@@ -227,11 +227,11 @@ class InfoBot(HubBot):
         if self._lcd_away:
             return
 
-        for i, dep_page in enumerate(self._departures[:2]):
-            self.write_lcd("update page {} {}".format(i, self._encode_for_lcd(dep_page)))
+        for i, dep_page in enumerate(self._departure_buffers[:2]):
+            self._write_lcd("update page {} {}".format(i, self._encode_for_lcd(dep_page)))
 
         if self._weather_buffer is not None:
-            self.write_lcd("update page 2 {}".format(self._encode_for_lcd(self._weather_buffer)))
+            self._write_lcd("update page 2 {}".format(self._encode_for_lcd(self._weather_buffer)))
 
 
     def _error_handler(self, exc_type, exc_value, exc_traceback):
@@ -284,7 +284,36 @@ class InfoBot(HubBot):
             self.reply(msg, "pong")
             return
 
+    def handle_presence(self, pres):
+        if pres["from"].bare == self.lcd:
+            if pres["type"] == "available":
+                print("lcd available")
+                was_away = self._lcd_away
+                self._lcd_away = False
+                if was_away:
+                    self.update()
+            else:
+                print("lcd went {}".format(pres["type"]))
+                self._lcd_away = True
+                self._sensors = {}
+
     def update_all(self):
         self._update_weather()
-        self._update_departures()
+        self._update_departures_and_lcd()
         self._update_sensors()
+
+if __name__=="__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-c", "--config-file",
+        default="dvbbot_config.py",
+        help="Path to the config file to use.",
+        dest="config_file"
+    )
+
+    args = parser.parse_args()
+    del parser
+
+    bot = InfoBot(args.config_file)
+    bot.run()
