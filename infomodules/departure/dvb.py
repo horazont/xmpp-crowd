@@ -49,7 +49,9 @@ class Departure(object):
 
     def __call__(self):
         try:
-            return self.get_departure_data()
+            data = self.get_departure_data()
         except (socket.timeout, urllib.error.URLError, urllib.error.HTTPError) as err:
             warnings.warn(err)
             return None
+        data.sort(key=lambda x: x[2])
+        return data

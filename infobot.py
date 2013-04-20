@@ -33,7 +33,7 @@ class InfoBot(HubBot):
     longwordmap = {
         "partlycloud": "ptcld",
         "lightrain": "lrain",
-        "lightrainsun": "lrmix"
+        "lightrainsun": "lrmix",
         }
 
     SENSOR_NS = "http://xmpp.sotecware.net/xmlns/sensor"
