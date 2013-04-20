@@ -354,7 +354,7 @@ class InfoBot(HubBot):
                 was_away = self._lcd_away
                 self._lcd_away = False
                 if was_away:
-                    self.update()
+                    self.update_all()
             else:
                 print("lcd went {}".format(pres["type"]))
                 self._lcd_away = True
