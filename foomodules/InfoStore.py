@@ -223,7 +223,7 @@ class RemoveCommand(ExistingCommandBase):
         self.argparse.add_argument(
             "name",
             nargs="+",
-            help="Name of the information to amend."
+            help="Names of the information to remove."
         )
 
     def _call(self, msg, args, errorSink=None):
