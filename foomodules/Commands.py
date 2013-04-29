@@ -38,7 +38,7 @@ class Fnord(Base.MessageHandler):
         "Fnord ist ein wirklich, wirklich hoher Berg",
         "Fnord ist der Ort wohin die Socken nach der Wäsche verschwinden",
         "Fnord ist das Gerät der Zahnärzte für schwierige Patienten",
-        "Fnord ist der Eimer, wo sie die unbenutzen Serifen von Helvetica lagern",
+        "Fnord ist der Eimer, in dem sie die unbenutzen Serifen von Helvetica lagern",
         "Fnord ist das Echo der Stille",
         "Fnord ist Pacman ohne die Punkte",
         "Fnord ist eine Reihe von nervigen elektronischen Nachrichten",
