@@ -360,7 +360,8 @@ class Dig(Base.ArgparseCommand):
             nargs="?",
             default=None,
             type=lambda x: x.upper(),
-            choices=["SRV", "A", "AAAA", "CNAME", "MX", "SOA", "TXT", "SPF"],
+            choices=["SRV", "A", "AAAA", "CNAME", "MX", "SOA", "TXT",
+                "SPF"],
             help="Record kind to ask for"
         )
         self.argparse.add_argument(
