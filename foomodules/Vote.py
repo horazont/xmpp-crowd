@@ -37,10 +37,10 @@ class Vote(Base.ArgparseCommand):
                 if args.index < 1 or args.index > len(vote.options):
                     self.reply(msg, "There is no option with index {t} for this vote.".format(i=args.index))
                     return
-                vote.votes[jid] = (nick, args.index)
+                vote.votes[jid] = (nick, args.index - 1)
                 reply = "{user}: Your vote for option {i} has been counted!".format(user=nick, i=args.index)
             else:
-                delta_t = vote.dt_start + timedelta(0, 0, 0, 0, vote.duration) - datetime.now()
+                delta_t = vote.dt_start + timedelta(minutes=vote.duration) - datetime.now()
                 minutes_left = int(delta_t.total_seconds() / 60)
                 seconds_left = int(delta_t.total_seconds() % 60)
                 reply  = "There is an active vote from {owner} in this room!\n".format(owner=vote.owner[0])
@@ -101,8 +101,12 @@ class StartVote(Base.ArgparseCommand):
             return
 
         owner_info = (msg.get_mucnick(), msg.get_from())
-        vote = VoteModel(owner=owner_info, dt_start=datetime.now(), duration=args.duration, topic=args.topic, options=args.options)
+        vote = VoteModel(owner=owner_info, dt_start=datetime.now(), duration=args.duration,
+                         topic=args.topic, options=args.options)
         current_votes[mucname] = vote
+
+        # schedule events related to this vote
+        self.xmpp.scheduler.add("{muc}_finish".format(muc=mucname), args.duration * 60, self._on_finish)
 
         reply  = "User {the_owner} has started a vote!\n".format(the_owner=owner_info[0])
         reply += "Topic: {the_topic}\n".format(the_topic=args.topic)
@@ -112,6 +116,41 @@ class StartVote(Base.ArgparseCommand):
         reply += "Use !vote <n> to place your vote."
 
         self.reply(msg, reply)
+
+    def _on_finish(self):
+        votes_to_del = []
+        for key in current_votes.keys():
+            vote = current_votes[key]
+            finish_t = vote.dt_start + timedelta(minutes=vote.duration)
+            if (finish_t - datetime.now()).total_seconds() <= 0:
+                votes_to_del.append(key)
+                vc = len(vote.votes)
+                if vc < 1:
+                    body = "Vote from {owner} canceled. No votes have been placed!".format(owner=vote.owner[0])
+                    self.xmpp.send_message(mtype="groupchat", mto=key, mbody=body)
+                    continue
+                results = []
+                for i in range(0, len(vote.options)):
+                    results.append(0)
+                for val in vote.votes.values():
+                    results[val[1]] += 1
+                msg  = "Vote from {owner} finished!\n".format(owner=vote.owner[0])
+                msg += "The topic was: {topic}\n".format(topic=vote.topic)
+                msg += "These are the final results based on {count} votes:\n".format(count=vc)
+                winner_msg = None
+                winner_perc = 0
+                for i in range(0, len(vote.options)): 
+                    pperc = results[i] / vc
+                    bar_width = int(pperc * 10)
+                    msg += "   {index}: [{bar:<10}] {perc:>3}% ({count:>2}) {option}\n".format(
+                        index=i+1, option=vote.options[i], bar="■"*bar_width,
+                        perc=int(pperc * 100), count=results[i])
+                    if pperc > winner_perc:
+                        winner_msg = vote.options[i]
+                msg += "*** The winner is: {winner} ***\n".format(winner=winner_msg)
+                self.xmpp.send_message(mtype="groupchat", mto=key, mbody=msg)
+        for key in votes_to_del:
+            del current_votes[key]
 
 class StopVote(Base.MessageHandler):
     def __call__(self, msg, arguments, errorSink=None):
