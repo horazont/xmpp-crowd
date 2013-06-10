@@ -139,6 +139,7 @@ class StartPoll(Base.ArgparseCommand):
                 msg += "These are the final results based on {count} votes:\n".format(count=vc)
                 winner_msg = None
                 winner_perc = 0
+                winner_count = 0
                 for i in range(0, len(poll.options)):
                     pperc = results[i] / vc
                     bar_width = int(pperc * 10)
@@ -147,7 +148,14 @@ class StartPoll(Base.ArgparseCommand):
                         perc=int(pperc * 100), count=results[i])
                     if pperc > winner_perc:
                         winner_msg = poll.options[i]
-                msg += "*** The winner is: {winner} ***\n".format(winner=winner_msg)
+                        winner_perc = pperc
+                        winner_count = 1
+                    if pperc == winner_perc:
+                        winner_count += 1
+                if winner_count > 1:
+                    msg += "*** We've got a tie! No winner. ***"
+                else:
+                    msg += "*** The winner is: {winner} ***\n".format(winner=winner_msg)
                 self.xmpp.send_message(mtype="groupchat", mto=key, mbody=msg)
         for key in polls_to_del:
             del active_polls[key]
