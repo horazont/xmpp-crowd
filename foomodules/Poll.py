@@ -35,7 +35,7 @@ class Vote(Base.ArgparseCommand):
             if args.index is not None:
                 args.index = int(args.index)
                 if args.index < 1 or args.index > len(poll.options):
-                    self.reply(msg, "There is no option with index {t} for this poll. Try !vote".format(i=args.index))
+                    self.reply(msg, "There is no option with index {i} for this poll. Try !vote".format(i=args.index))
                     return
                 poll.votes[jid] = (nick, args.index - 1)
                 reply = "{user}: Your vote for option {i} has been counted!".format(user=nick, i=args.index)
