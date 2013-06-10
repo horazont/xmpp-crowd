@@ -47,7 +47,7 @@ class Vote(Base.ArgparseCommand):
                 reply += "Topic: {topic}\n".format(topic=poll.topic)
                 reply += "You have {tm} minutes and {ts} seconds left to vote for one of:\n".format(tm=minutes_left, ts=seconds_left)
                 for i in range(0, len(poll.options)):
-                    reply += "    {index}: {option}\n".format(index=i+1, option=poll.options[i])
+                    reply += "    {index} ⇰ {option}\n".format(index=i+1, option=poll.options[i])
                 reply += "{count} votes have been placed so far. ".format(count=len(poll.votes.keys()))
                 reply += "Place your vote with !vote <index>"
         except KeyError:
@@ -142,7 +142,7 @@ class StartPoll(Base.ArgparseCommand):
                 for i in range(0, len(poll.options)):
                     pperc = results[i] / vc
                     bar_width = int(pperc * 10)
-                    msg += "   {index}: [{bar:<10}] {perc:>3}% ({count:>2}) {option}\n".format(
+                    msg += "   {index} ⇰ [{bar:<10}] {perc:>3}% ({count:>2}) {option}\n".format(
                         index=i+1, option=poll.options[i], bar="■"*bar_width,
                         perc=int(pperc * 100), count=results[i])
                     if pperc > winner_perc:
