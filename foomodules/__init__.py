@@ -15,7 +15,7 @@ import foomodules.InfoStore as InfoStore
 import foomodules.Timers as Timers
 import foomodules.GitLog as GitLog
 import foomodules.SympyInterface as SympyInterface
-import foomodules.Vote as Vote
+import foomodules.Poll as Poll
 
 logger = logging.getLogger(__name__)
 
