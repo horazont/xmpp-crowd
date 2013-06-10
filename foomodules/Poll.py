@@ -112,7 +112,7 @@ class StartPoll(Base.ArgparseCommand):
         reply += "Topic: {the_topic}\n".format(the_topic=args.topic)
         reply += "You have {t} minute(s) to vote for one of the following options:\n".format(t=args.duration)
         for i in range(0, len(args.options)):
-            reply += "   {index}: {option_text}\n".format(index=i+1, option_text=args.options[i])
+            reply += "   {index} ⇰ {option_text}\n".format(index=i+1, option_text=args.options[i])
         reply += "Use !vote <n> to place your vote. {owner} may cancel the poll with !stoppoll".format(owner=owner_info[0])
 
         self.reply(msg, reply)
