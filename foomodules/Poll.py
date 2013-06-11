@@ -139,8 +139,7 @@ class PollCtl(Base.ArgparseCommand):
             dest    = 'duration',
             default = 1,
             type    = int,
-            help    = self.ST_ARG_HELP_DURATION
-        )
+            help    = self.ST_ARG_HELP_DURATION)
         parser_start.add_argument('topic', help = self.ST_ARG_HELP_TOPIC)
         parser_start.add_argument('options', nargs = '+', help = self.ST_ARG_HELP_OPTIONS)
         # arg parser for the cancel command
@@ -181,7 +180,7 @@ class PollCtl(Base.ArgparseCommand):
         # maybe we want to allow for longer vote durations
         # however, votes may block other votes in the channel
         if args.duration < 1 or args.duration > 60:
-            self.reply(msg, self.ST_INVALID_DURATION.format(t=args.duration))
+            self.reply(msg, self.ST_INVALID_DURATION.format(duration=args.duration))
             return
         if len(args.options) < 2:
             self.reply(msg, self.ST_TOO_FEW_OPTIONS)
