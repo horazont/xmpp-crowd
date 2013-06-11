@@ -26,7 +26,7 @@ class Vote(Base.ArgparseCommand):
     # string templates
     ST_INDEX_HELP       = 'The index of the option you are voting for.'
     ST_NO_OPT_WITH_IDX  = 'There is no option with index {index} for this poll.'
-    ST_VOTE_COUNTED     = '{user}: Thanks, your vote for "{opt}" has been counted!'
+    ST_VOTE_COUNTED     = '{user}: Thanks, vote counted!'
     ST_NO_ACTIVE_POLL   = 'No active poll in this room.'
 
     def __init__(self, timeout = 3, command_name = 'vote', maxlen = 64, **kwargs):
@@ -72,30 +72,22 @@ class PollCtl(Base.ArgparseCommand):
     ST_INVALID_DURATION     = 'Poll duration must be in range [1, 60] ∌ {duration}!'
     ST_TOO_FEW_OPTIONS      = 'You have to specify at least 2 *different* options!'
     ST_TOO_MANY_OPTIONS     = 'You must not add more than 9 vote options!'
-    ST_POLL_ANNOUNCEMENT    = ('*** User {owner} has started a public poll! ***\n'
-                              'Topic: "{topic}"\n'
-                              'You have {t} minute(s) to vote for one of the following options:\n'
+    ST_POLL_ANNOUNCEMENT    = ('{owner} has started a poll: "{topic}"\n'
                               '{options}'
-                              'Use !vote <n> to place your vote.\n'
-                              'Poll owner {owner} may cancel the poll using "!pollctl cancel".')
-    ST_POLL_OPTION          = '   {index} ⇰ {option}\n'
+                              'Use !vote <n> to place your vote within the next {t} minutes.')
+    ST_POLL_OPTION          = '    [{index}] {option}\n'
     ST_CANCELED_BY_USER     = 'Poll has been canceled by {owner}.'
     ST_CANCELED_NO_VOTES    = 'Poll canceled. No votes have been placed!'
     ST_CANCEL_DENIED        = 'Only {owner} may cancel this poll!'
-    ST_POLL_STATUS          = ('There is an active poll from {owner} in this room!\n'
-                              'Topic: {topic}\n'
-                              'You have {tm} minutes and {ts} seconds left to vote for one of:\n'
+    ST_POLL_STATUS          = ('Active poll from {owner}: "{topic}"\n'
                               '{options}'
-                              '{count} votes have been placed so far. '
-                              'Place your vote with "!vote <index>".')
+                              'Place your vote with "!vote <index>". {tm} mins and {ts} secs left.')
     ST_POLL_TIME_LEFT       = 'Current poll ends in {s} seconds!'
-    ST_POLL_RESULTS         = ('Poll from {owner} finished!\n'
-                              'The topic was: {topic}\n'
-                              'These are the final results based on {count} votes:\n'
-                              '{results}{winner}')
-    ST_POLL_RESULT_BAR      = '   [{bar:<10}] {perc:>3}% ({count:>2}) {option}\n'
-    ST_POLL_RESULT_WINNER   = 'The winner is: {winner}'
-    ST_POLL_RESULT_TIE      = 'We have got a tie! No winner.'
+    ST_POLL_RESULTS         = ('{owner}\'s poll "{topic}" finished. '
+                              'Results based on {count} votes:'
+                              '{results}')
+    ST_POLL_RESULT_BAR      = '\n    [{bar:░<10}] {perc:>3}% ({count:>2}) {option}'
+    ST_POLL_RESULT_BAR_CHAR = '█'
 
     def __init__(self, timeout = 3, command_name = 'pollctl', maxlen = 256, **kwargs):
         super().__init__(command_name, **kwargs)
@@ -117,9 +109,13 @@ class PollCtl(Base.ArgparseCommand):
         parser_start.add_argument('topic', help = self.ST_ARG_HELP_TOPIC)
         parser_start.add_argument('options', nargs = '+', help = self.ST_ARG_HELP_OPTIONS)
         # arg parser for the cancel command
-        parser_cancel = subparsers.add_parser('cancel', help = self.ST_ARG_HELP_CANCEL)
+        parser_cancel = subparsers.add_parser('cancel',
+            help    = self.ST_ARG_HELP_CANCEL,
+            aliases = [ 'stop', 'abort' ])
         # arg parser for the status command
-        parser_status = subparsers.add_parser('status', help = self.ST_ARG_HELP_OPTIONS)
+        parser_status = subparsers.add_parser('status',
+            help    = self.ST_ARG_HELP_OPTIONS,
+            aliases = [ 'info' ])
 
     def _call(self, msg, args, errorSink=None):
         # select func name from dict to prevent arbitrary func names
@@ -129,7 +125,10 @@ class PollCtl(Base.ArgparseCommand):
             func_name = {
                 'start':    '_poll_start',
                 'cancel':   '_poll_cancel',
+                'stop':     '_poll_cancel',
+                'abort':    '_poll_cancel',
                 'status':   '_poll_status',
+                'info':     '_poll_status',
             }[args.action]
             getattr(self, func_name)(msg, args, errorSink)
         except KeyError:
@@ -245,29 +244,17 @@ class PollCtl(Base.ArgparseCommand):
             results.append(0)
         for val in poll.votes.values():
             results[val[1]] += 1
-        winner_msg = None
-        winner_perc = 0
-        winner_count = 0
         results_str = ''
         for i in range(0, len(poll.options)):
             pperc = results[i] / vc
             bar_width = int(pperc * 10)
             results_str += self.ST_POLL_RESULT_BAR.format(
-                option=poll.options[i],
-                bar="■"*bar_width,
-                perc=int(pperc * 100),
-                count=results[i])
-            if pperc > winner_perc:
-                winner_msg = self.ST_POLL_RESULT_WINNER.format(winner=poll.options[i])
-                winner_perc = pperc
-                winner_count = 1
-            elif pperc == winner_perc:
-                winner_count += 1
-        if winner_count > 1:
-            winner_msg = self.ST_POLL_RESULT_TIE
+                option  = poll.options[i],
+                bar     = self.ST_POLL_RESULT_BAR_CHAR * bar_width,
+                perc    = int(pperc * 100),
+                count   = results[i])
         self.reply(msg, self.ST_POLL_RESULTS.format(
             owner   = poll.owner[0],
             topic   = poll.topic,
             count   = vc,
-            results = results_str,
-            winner  = winner_msg))
+            results = results_str))
