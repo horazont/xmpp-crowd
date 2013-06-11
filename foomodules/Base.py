@@ -91,6 +91,7 @@ class ArgumentParser(argparse.ArgumentParser):
 class ArgparseCommand(MessageHandler):
     def __init__(self, command_name, **kwargs):
         super().__init__()
+        self.subparsers = []
         self.argparse = ArgumentParser(prog=command_name, **kwargs)
 
     def _error(self, msg, err_str):
@@ -99,6 +100,8 @@ class ArgparseCommand(MessageHandler):
     def __call__(self, msg, arguments, errorSink=None):
         args = shlex.split(arguments)
         try:
+            for subparser in self.subparsers:
+                subparser.reply = lambda x: self.reply(msg, x, overrideMType="chat")
             args = self.argparse.parse_args(lambda x: self.reply(msg, x, overrideMType="chat"), args)
         except ArgumentHelpPrinted:
             return
