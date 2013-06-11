@@ -79,6 +79,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
     def print_help(self):
         h = self.format_help()
+        print(type(self))
         self.reply(h)
         raise ArgumentHelpPrinted()
 

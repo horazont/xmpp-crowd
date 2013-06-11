@@ -99,6 +99,7 @@ class PollCtl(Base.ArgparseCommand):
         )
         # arg parser for the start command
         parser_start = subparsers.add_parser('start', help = self.ST_ARG_HELP_START)
+        parser_start.reply = self.reply
         parser_start.add_argument(
             '-d', '--duration',
             dest    = 'duration',
@@ -112,10 +113,12 @@ class PollCtl(Base.ArgparseCommand):
         parser_cancel = subparsers.add_parser('cancel',
             help    = self.ST_ARG_HELP_CANCEL,
             aliases = [ 'stop', 'abort' ])
+        parser_cancel.reply = self.reply
         # arg parser for the status command
         parser_status = subparsers.add_parser('status',
-            help    = self.ST_ARG_HELP_OPTIONS,
+            help    = self.ST_ARG_HELP_STATUS,
             aliases = [ 'info' ])
+        parser_status.reply = self.reply
 
     def _call(self, msg, args, errorSink=None):
         # select func name from dict to prevent arbitrary func names
