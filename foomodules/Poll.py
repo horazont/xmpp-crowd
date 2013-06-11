@@ -61,7 +61,7 @@ class PollCtl(Base.ArgparseCommand):
         self.maxlen = maxlen
         subparsers = self.argparse.add_subparsers(
             dest='action',
-            help='Poll supports the following actions:'
+            help='Poll management actions'
         )
         # arg parser for the start command
         parser_start = subparsers.add_parser('start', help='Start a new vote')
@@ -90,12 +90,15 @@ class PollCtl(Base.ArgparseCommand):
         # select func name from dict to prevent arbitrary func names
         # to be called (this is just for sanity, since argparse ought
         # to only accept valid actions)
-        func_name = {
-            'start':    '_poll_start',
-            'cancel':   '_poll_cancel',
-            'status':   '_poll_status',
-        }[args.action]
-        getattr(self, func_name)(msg, args, errorSink)
+        try:
+            func_name = {
+                'start':    '_poll_start',
+                'cancel':   '_poll_cancel',
+                'status':   '_poll_status',
+            }[args.action]
+            getattr(self, func_name)(msg, args, errorSink)
+        except KeyError:
+            self.reply(msg, 'Usage: !pollctl [-h] {start,cancel,status} ...')
 
     def _poll_start(self, msg, args, errorSink):
         mucname = msg['mucroom']
