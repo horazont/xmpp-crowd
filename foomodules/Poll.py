@@ -19,14 +19,41 @@ class Poll(object):
         self.topic = topic
         self.options = options
         self.service_name = service_name
-        self.votes = {}
+        self._votes = {}
+        self._results = []
 
+    def _recalc_results(self):
+        self._results = [0] * len(self.options)
+        vote_count = len(self.votes.keys())
+        # count votes for each option
+        for user in self.votes.keys():
+            index = self.votes[user][1]
+            self._results[index] += 1
+        # calculate percentage
+        for i in range(0, len(self._results)):
+            self._results[i] = (self._results[i], self._results[i] / vote_count)
+
+    def set_vote(self, user, nick, index):
+        self._votes[user] = (nick, index)
+        self._recalc_results()
+
+    @property
+    def votes(self):
+        return self._votes
+
+    @property
+    def results(self):
+        return self._results
+        
 class Vote(Base.ArgparseCommand):
 
     # string templates
     ST_INDEX_HELP       = 'The index of the option you are voting for.'
     ST_NO_OPT_WITH_IDX  = 'There is no option with index {index} for this poll.'
-    ST_VOTE_COUNTED     = '{user}: Thanks, vote counted!'
+    ST_VOTE_COUNTED     = 'Vote counted: {items}'
+    ST_VOTE_ITEM        = '[{index}: {bar} {option} ({perc}%)]'
+    ST_VOTE_ITEM_SEP    = ', '
+    ST_PERC_BARS        = '▁▂▃▄▅▆▇█'
     ST_NO_ACTIVE_POLL   = 'No active poll in this room.'
 
     def __init__(self, timeout = 3, command_name = 'vote', maxlen = 64, **kwargs):
@@ -42,7 +69,6 @@ class Vote(Base.ArgparseCommand):
         mucname = msg.get_mucroom()
         user = msg.get_from()
         nick = msg.get_mucnick()
-        selected_option = None
         # get vote for this room if available
         try:
             poll = active_polls[mucname]
@@ -50,12 +76,22 @@ class Vote(Base.ArgparseCommand):
             if args.index < 1 or args.index > len(poll.options):
                 self.reply(msg, self.ST_NO_OPT_WITH_IDX.format(index = args.index))
                 return
-            poll.votes[user] = (nick, args.index - 1)
+            poll.set_vote(user, nick, args.index - 1)
             reply = self.ST_VOTE_COUNTED
-            selected_option = poll.options[args.index - 1]
+            vote_count = len(poll.votes.keys())
+            items_list = []
+            for i in range(0, len(poll.results)):
+                bar_index = int((len(self.ST_PERC_BARS) - 1) * poll.results[i][1])
+                items_list.append(self.ST_VOTE_ITEM.format(
+                    bar     = list(self.ST_PERC_BARS)[bar_index],
+                    perc    = int(poll.results[i][1] * 100),
+                    index   = i + 1,
+                    option  = poll.options[i]))
+            self.reply(msg, reply.format(
+                count   = vote_count,
+                items   = self.ST_VOTE_ITEM_SEP.join(items_list)))
         except KeyError:
-            reply = self.ST_NO_ACTIVE_POLL
-        self.reply(msg, reply.format(user = nick, opt = selected_option))
+            self.reply(msg, self.ST_NO_ACTIVE_POLL)
  
 class PollCtl(Base.ArgparseCommand):
 
@@ -72,10 +108,9 @@ class PollCtl(Base.ArgparseCommand):
     ST_INVALID_DURATION     = 'Poll duration must be in range [1, 60] ∌ {duration}!'
     ST_TOO_FEW_OPTIONS      = 'You have to specify at least 2 *different* options!'
     ST_TOO_MANY_OPTIONS     = 'You must not add more than 9 vote options!'
-    ST_POLL_ANNOUNCEMENT    = ('{owner} has started a poll: "{topic}"\n'
-                              '{options}'
-                              'Use !vote <n> to place your vote within the next {t} minutes.')
-    ST_POLL_OPTION          = '    [{index}] {option}\n'
+    ST_POLL_ANNOUNCEMENT    = ('{owner} has started a poll ({t} min): "{topic}"\n'
+                              '    {options}')
+    ST_POLL_OPTION          = ' [{index}]: {option}, '
     ST_CANCELED_BY_USER     = 'Poll has been canceled by {owner}.'
     ST_CANCELED_NO_VOTES    = 'Poll canceled. No votes have been placed!'
     ST_CANCEL_DENIED        = 'Only {owner} may cancel this poll!'
@@ -83,11 +118,10 @@ class PollCtl(Base.ArgparseCommand):
                               '{options}'
                               'Place your vote with "!vote <index>". {tm} mins and {ts} secs left.')
     ST_POLL_TIME_LEFT       = 'Current poll ends in {s} seconds!'
-    ST_POLL_RESULTS         = ('{owner}\'s poll "{topic}" finished. '
-                              'Results based on {count} votes:'
+    ST_POLL_RESULTS         = ('{owner}\'s poll "{topic}" finished ({count} votes): '
                               '{results}')
-    ST_POLL_RESULT_BAR      = '\n    [{bar:░<10}] {perc:>3}% ({count:>2}) {option}'
-    ST_POLL_RESULT_BAR_CHAR = '█'
+    ST_POLL_RESULT_BAR      = '\n    {perc:>3}% ┤{bar:░<10}├ ({count:>2})  {option}'
+    ST_POLL_RESULT_HBAR     = '█'
 
     def __init__(self, timeout = 3, command_name = 'pollctl', maxlen = 256, **kwargs):
         super().__init__(command_name, **kwargs)
@@ -238,24 +272,18 @@ class PollCtl(Base.ArgparseCommand):
         del active_polls[room]
         self.xmpp.scheduler.remove(poll.service_name)
 
-        vc = len(poll.votes)
+        vc = len(poll.votes.keys())
         if vc < 1:
             self.reply(msg, self.ST_CANCELED_NO_VOTES)
             return
-        results = []
-        for i in range(0, len(poll.options)):
-            results.append(0)
-        for val in poll.votes.values():
-            results[val[1]] += 1
         results_str = ''
-        for i in range(0, len(poll.options)):
-            pperc = results[i] / vc
-            bar_width = int(pperc * 10)
+        for i in range(0, len(poll.results)):
+            bar_width = int(poll.results[i][1] * 10)
             results_str += self.ST_POLL_RESULT_BAR.format(
                 option  = poll.options[i],
-                bar     = self.ST_POLL_RESULT_BAR_CHAR * bar_width,
-                perc    = int(pperc * 100),
-                count   = results[i])
+                bar     = self.ST_POLL_RESULT_HBAR * bar_width,
+                perc    = int(poll.results[i][1] * 100),
+                count   = poll.results[i][0])
         self.reply(msg, self.ST_POLL_RESULTS.format(
             owner   = poll.owner[0],
             topic   = poll.topic,
