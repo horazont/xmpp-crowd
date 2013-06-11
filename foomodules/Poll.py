@@ -51,7 +51,7 @@ class Vote(Base.ArgparseCommand):
     ST_INDEX_HELP       = 'The index of the option you are voting for.'
     ST_NO_OPT_WITH_IDX  = 'There is no option with index {index} for this poll.'
     ST_VOTE_COUNTED     = 'Vote counted: {items}'
-    ST_VOTE_ITEM        = '[{index}: {bar} {option} ({perc}%)]'
+    ST_VOTE_ITEM        = '[ {bar} {option} ({perc}%) ]'
     ST_VOTE_ITEM_SEP    = ', '
     ST_PERC_BARS        = '▁▂▃▄▅▆▇█'
     ST_NO_ACTIVE_POLL   = 'No active poll in this room.'
@@ -115,7 +115,7 @@ class PollCtl(Base.ArgparseCommand):
     ST_CANCELED_NO_VOTES    = 'Poll canceled. No votes have been placed!'
     ST_CANCEL_DENIED        = 'Only {owner} may cancel this poll!'
     ST_POLL_STATUS          = ('Active poll from {owner}: "{topic}"\n'
-                              '{options}'
+                              '    {options}\n'
                               'Place your vote with "!vote <index>". {tm} mins and {ts} secs left.')
     ST_POLL_TIME_LEFT       = 'Current poll ends in {s} seconds!'
     ST_POLL_RESULTS         = ('{owner}\'s poll "{topic}" finished ({count} votes): '
