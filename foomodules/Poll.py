@@ -110,15 +110,15 @@ class PollCtl(Base.ArgparseCommand):
     ST_TOO_MANY_OPTIONS     = 'You must not add more than 9 vote options!'
     ST_POLL_ANNOUNCEMENT    = ('{owner} has started a poll ({t} min): "{topic}"\n'
                               '    {options}')
-    ST_POLL_OPTION          = ' [{index}]: {option}, '
+    ST_POLL_OPTION          = ' [{index}]: {option} '
     ST_CANCELED_BY_USER     = 'Poll has been canceled by {owner}.'
     ST_CANCELED_NO_VOTES    = 'Poll canceled. No votes have been placed!'
     ST_CANCEL_DENIED        = 'Only {owner} may cancel this poll!'
     ST_POLL_STATUS          = ('Active poll from {owner}: "{topic}"\n'
                               '    {options}\n'
                               'Place your vote with "!vote <index>". {tm} mins and {ts} secs left.')
-    ST_POLL_TIME_LEFT       = 'Current poll ends in {s} seconds!'
-    ST_POLL_RESULTS         = ('{owner}\'s poll "{topic}" finished ({count} votes): '
+    ST_POLL_TIME_LEFT       = 'Poll ends soon. Don\'t forget to vote!'
+    ST_POLL_RESULTS         = ('{owner}\'s poll "{topic}" finished with {count} votes: '
                               '{results}')
     ST_POLL_RESULT_BAR      = '\n    {perc:>3}% ┤{bar:░<10}├ ({count:>2})  {option}'
     ST_POLL_RESULT_HBAR     = '█'
@@ -133,7 +133,7 @@ class PollCtl(Base.ArgparseCommand):
         )
         # arg parser for the start command
         parser_start = subparsers.add_parser('start', help = self.ST_ARG_HELP_START)
-        parser_start.reply = self.reply
+        self.subparsers.append(parser_start)
         parser_start.add_argument(
             '-d', '--duration',
             dest    = 'duration',
@@ -147,12 +147,12 @@ class PollCtl(Base.ArgparseCommand):
         parser_cancel = subparsers.add_parser('cancel',
             help    = self.ST_ARG_HELP_CANCEL,
             aliases = [ 'stop', 'abort' ])
-        parser_cancel.reply = self.reply
+        self.subparsers.append(parser_cancel)
         # arg parser for the status command
         parser_status = subparsers.add_parser('status',
             help    = self.ST_ARG_HELP_STATUS,
             aliases = [ 'info' ])
-        parser_status.reply = self.reply
+        self.subparsers.append(parser_status)
 
     def _call(self, msg, args, errorSink=None):
         # select func name from dict to prevent arbitrary func names
