@@ -120,7 +120,7 @@ class PollCtl(Base.ArgparseCommand):
     ST_POLL_TIME_LEFT       = 'Poll ends soon. Don\'t forget to vote!'
     ST_POLL_RESULTS         = ('{owner}\'s poll "{topic}" finished with {count} votes: '
                               '{results}')
-    ST_POLL_RESULT_BAR      = '\n    {perc:>3}% ┤{bar:░<10}├ ({count:>2})  {option}'
+    ST_POLL_RESULT_BAR      = '\n    {perc: >3}% ┤{bar:░<10}├ ({count: >2})  {option}'
     ST_POLL_RESULT_HBAR     = '█'
 
     def __init__(self, timeout = 3, command_name = 'pollctl', maxlen = 256, **kwargs):
