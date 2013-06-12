@@ -37,9 +37,17 @@ class Poll(object):
         self._votes[user] = (nick, index)
         self._recalc_results()
 
+    def unset_vote(self, user):
+        del self._votes[user]
+        self._recalc_results()
+
     @property
     def votes(self):
         return self._votes
+
+    @property
+    def voters(self):
+        return self._votes.keys()
 
     @property
     def results(self):
@@ -51,6 +59,8 @@ class Vote(Base.ArgparseCommand):
     ST_INDEX_HELP       = 'The index of the option you are voting for.'
     ST_NO_OPT_WITH_IDX  = 'There is no option with index {index} for this poll.'
     ST_VOTE_COUNTED     = 'Vote counted: {items}'
+    ST_VOTE_WITHDRAWN   = 'Your vote has been withdrawn.'
+    ST_NOT_VOTED        = 'You have not voted yet.'
     ST_VOTE_ITEM        = '[ {bar} {option} ({perc}%) ]'
     ST_VOTE_ITEM_SEP    = ', '
     ST_PERC_BARS        = '▁▂▃▄▅▆▇█'
@@ -73,6 +83,16 @@ class Vote(Base.ArgparseCommand):
         try:
             poll = active_polls[mucname]
             args.index = int(args.index)
+
+            # withdraw
+            if args.index == 0:
+                if user in poll.voters:
+                    poll.unset_vote(user)
+                    self.reply(msg, self.ST_VOTE_WITHDRAWN)
+                else:
+                    self.reply(msg, self.ST_NOT_VOTED)
+                return
+
             if args.index < 1 or args.index > len(poll.options):
                 self.reply(msg, self.ST_NO_OPT_WITH_IDX.format(index = args.index))
                 return
