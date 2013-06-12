@@ -1,6 +1,6 @@
 # a foomodule for simple polls
 # Rene Kuettner <rene@bitkanal.net>
-# 
+#
 # licensed under GPL version 2
 
 from datetime import datetime, timedelta
@@ -44,7 +44,7 @@ class Poll(object):
     @property
     def results(self):
         return self._results
-        
+
 class Vote(Base.ArgparseCommand):
 
     # string templates
@@ -92,7 +92,7 @@ class Vote(Base.ArgparseCommand):
                 items   = self.ST_VOTE_ITEM_SEP.join(items_list)))
         except KeyError:
             self.reply(msg, self.ST_NO_ACTIVE_POLL)
- 
+
 class PollCtl(Base.ArgparseCommand):
 
     ST_ARG_HELP_ACTION      = 'Poll management actions'
@@ -254,7 +254,7 @@ class PollCtl(Base.ArgparseCommand):
                 options = options_str))
         except KeyError:
             self.reply(msg, self.ST_NO_ACTIVE_POLL)
- 
+
     def _on_poll_service(self, room=None, msg=None):
         poll = active_polls[room]
         delta_t = poll.dt_start + timedelta(minutes=poll.duration)
