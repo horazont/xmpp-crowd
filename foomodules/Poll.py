@@ -23,23 +23,34 @@ class Poll(object):
         self._results = []
 
     def _recalc_results(self):
-        self._results = [0] * len(self.options)
+        self._results = [ [0, 0] for i in range(len(self.options)) ]
         vote_count = len(self.votes.keys())
+        # are there any votes?
+        if vote_count == 0:
+            return
         # count votes for each option
         for user in self.votes.keys():
             index = self.votes[user][1]
-            self._results[index] += 1
+            self._results[index][0] += 1
         # calculate percentage
         for i in range(0, len(self._results)):
-            self._results[i] = (self._results[i], self._results[i] / vote_count)
+            self._results[i][1] = self._results[i][0] / vote_count
 
     def set_vote(self, user, nick, index):
         self._votes[user] = (nick, index)
         self._recalc_results()
 
+    def unset_vote(self, user):
+        del self._votes[user]
+        self._recalc_results()
+
     @property
     def votes(self):
         return self._votes
+
+    @property
+    def voters(self):
+        return self._votes.keys()
 
     @property
     def results(self):
@@ -51,6 +62,8 @@ class Vote(Base.ArgparseCommand):
     ST_INDEX_HELP       = 'The index of the option you are voting for.'
     ST_NO_OPT_WITH_IDX  = 'There is no option with index {index} for this poll.'
     ST_VOTE_COUNTED     = 'Vote counted: {items}'
+    ST_VOTE_WITHDRAWN   = 'Vote withdrawn: {items}'
+    ST_NOT_VOTED        = 'You have not voted yet.'
     ST_VOTE_ITEM        = '[ {bar} {option} ({perc}%) ]'
     ST_VOTE_ITEM_SEP    = ', '
     ST_PERC_BARS        = '▁▂▃▄▅▆▇█'
@@ -73,11 +86,24 @@ class Vote(Base.ArgparseCommand):
         try:
             poll = active_polls[mucname]
             args.index = int(args.index)
-            if args.index < 1 or args.index > len(poll.options):
-                self.reply(msg, self.ST_NO_OPT_WITH_IDX.format(index = args.index))
-                return
-            poll.set_vote(user, nick, args.index - 1)
-            reply = self.ST_VOTE_COUNTED
+
+            if args.index == 0:
+                # withdraw
+                try:
+                    poll.unset_vote(user)
+                    reply = self.ST_VOTE_WITHDRAWN
+                except KeyError:
+                    self.reply(msg, self.ST_NOT_VOTED)
+                    return
+            else:
+                # vote
+                if args.index < 1 or args.index > len(poll.options):
+                    self.reply(msg, self.ST_NO_OPT_WITH_IDX.format(
+                        index = args.index))
+                    return
+                poll.set_vote(user, nick, args.index - 1)
+                reply = self.ST_VOTE_COUNTED
+
             vote_count = len(poll.votes.keys())
             items_list = []
             for i in range(0, len(poll.results)):
