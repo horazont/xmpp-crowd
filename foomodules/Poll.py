@@ -5,6 +5,7 @@
 
 from datetime import datetime, timedelta
 
+import math
 import foomodules.Base as Base
 
 # FIXME: global variables are evil
@@ -160,8 +161,8 @@ class PollCtl(Base.ArgparseCommand):
     ST_POLL_TIME_LEFT       = 'Poll ends soon. Don\'t forget to vote!'
     ST_POLL_RESULTS         = ('{owner}\'s poll "{topic}" finished with {count} votes: '
                               '{results}')
-    ST_POLL_RESULT_BAR      = '\n    {perc: >3}% ┤{bar:░<10}├ ({count: >2})  {option}'
-    ST_POLL_RESULT_HBAR     = '█'
+    ST_RESULT_BAR           = '\n    {perc: >3}% {bar:▏<10}▏({count: >2})  {option}'
+    ST_RESULT_BAR_BLOCKS    = '█▏▎▍▌▋▊█'
 
     def __init__(self,
                  timeout=3,
@@ -321,10 +322,16 @@ class PollCtl(Base.ArgparseCommand):
             return
         results_str = ''
         for i in range(0, len(poll.results)):
-            bar_width = int(poll.results[i][1] * 10)
-            results_str += self.ST_POLL_RESULT_BAR.format(
+            real_bar_width = poll.results[i][1] * 10.0
+            full_block_width = int(real_bar_width)
+            frac_block_index = round(math.modf(real_bar_width)[0] * 7.0)
+            results_bar = '{full}{fract}'.format(
+                full    = self.ST_RESULT_BAR_BLOCKS[0] * full_block_width,
+                fract   = self.ST_RESULT_BAR_BLOCKS[frac_block_index]
+                            if frac_block_index > 0 else '')
+            results_str += self.ST_RESULT_BAR.format(
                 option  = poll.options[i],
-                bar     = self.ST_POLL_RESULT_HBAR * bar_width,
+                bar     = results_bar,
                 perc    = int(poll.results[i][1] * 100),
                 count   = poll.results[i][0])
         self.reply(msg, self.ST_POLL_RESULTS.format(
