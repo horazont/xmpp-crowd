@@ -11,8 +11,13 @@ import foomodules.Base as Base
 active_polls = {}
 
 class Poll(object):
-    def __init__(self, owner = (None, None), dt_start = datetime.now(), duration = 1,
-                       topic = None, options = [], timer_name = None):
+    def __init__(self,
+                 owner=(None, None),
+                 dt_start=datetime.now(),
+                 duration=1,
+                 topic=None,
+                 options=[],
+                 timer_name=None):
         self.owner = owner
         self.dt_start = dt_start
         self.duration = duration
@@ -69,7 +74,11 @@ class Vote(Base.ArgparseCommand):
     ST_PERC_BARS        = '▁▂▃▄▅▆▇█'
     ST_NO_ACTIVE_POLL   = 'No active poll in this room.'
 
-    def __init__(self, timeout = 3, command_name = 'vote', maxlen = 64, **kwargs):
+    def __init__(self,
+                 timeout=3,
+                 command_name='vote',
+                 maxlen=64,
+                 **kwargs):
         super().__init__(command_name, **kwargs)
         self.timeout = timeout
         self.maxlen = maxlen
@@ -149,7 +158,11 @@ class PollCtl(Base.ArgparseCommand):
     ST_POLL_RESULT_BAR      = '\n    {perc: >3}% ┤{bar:░<10}├ ({count: >2})  {option}'
     ST_POLL_RESULT_HBAR     = '█'
 
-    def __init__(self, timeout = 3, command_name = 'pollctl', maxlen = 256, **kwargs):
+    def __init__(self,
+                 timeout=3,
+                 command_name='pollctl',
+                 maxlen=256,
+                 **kwargs):
         super().__init__(command_name, **kwargs)
         self.timeout = timeout
         self.maxlen = maxlen
@@ -157,8 +170,10 @@ class PollCtl(Base.ArgparseCommand):
             dest='action',
             help=self.ST_ARG_HELP_ACTION
         )
+
         # arg parser for the start command
-        parser_start = subparsers.add_parser('start', help = self.ST_ARG_HELP_START)
+        parser_start = subparsers.add_parser('start',
+            help=self.ST_ARG_HELP_START)
         self.subparsers.append(parser_start)
         parser_start.add_argument(
             '-d', '--duration',
@@ -166,8 +181,11 @@ class PollCtl(Base.ArgparseCommand):
             default = 1,
             type    = int,
             help    = self.ST_ARG_HELP_DURATION)
-        parser_start.add_argument('topic', help = self.ST_ARG_HELP_TOPIC)
-        parser_start.add_argument('options', nargs = '+', help = self.ST_ARG_HELP_OPTIONS)
+        parser_start.add_argument('topic',
+            help=self.ST_ARG_HELP_TOPIC)
+        parser_start.add_argument('options', nargs = '+',
+            help=self.ST_ARG_HELP_OPTIONS)
+
         # arg parser for the cancel command
         parser_cancel = subparsers.add_parser('cancel',
             help    = self.ST_ARG_HELP_CANCEL,
@@ -206,7 +224,8 @@ class PollCtl(Base.ArgparseCommand):
         # maybe we want to allow for longer vote durations
         # however, votes may block other votes in the channel
         if args.duration < 1 or args.duration > 60:
-            self.reply(msg, self.ST_INVALID_DURATION.format(duration=args.duration))
+            self.reply(msg, self.ST_INVALID_DURATION.format(
+                duration=args.duration))
             return
         if len(args.options) < 2:
             self.reply(msg, self.ST_TOO_FEW_OPTIONS)
@@ -285,7 +304,8 @@ class PollCtl(Base.ArgparseCommand):
         delta_t = poll.dt_start + timedelta(minutes=poll.duration)
         seconds_left = (delta_t - datetime.now()).total_seconds()
         if seconds_left >= 0:
-            self.reply(msg, self.ST_POLL_TIME_LEFT.format(s=int(seconds_left)))
+            self.reply(msg, self.ST_POLL_TIME_LEFT.format(
+                s=int(seconds_left)))
 
     def _on_poll_finished_event(self, room=None, msg=None):
         poll = active_polls[room]
