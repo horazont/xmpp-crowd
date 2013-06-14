@@ -190,34 +190,25 @@ class PollCtl(Base.ArgparseCommand):
             help=self.ST_ARG_HELP_TOPIC)
         parser_start.add_argument('options', nargs = '+',
             help=self.ST_ARG_HELP_OPTIONS)
+        parser_start.set_defaults(func=self._poll_start)
 
         # arg parser for the cancel command
         parser_cancel = subparsers.add_parser('cancel',
             help    = self.ST_ARG_HELP_CANCEL,
             aliases = [ 'stop', 'abort' ])
         self.subparsers.append(parser_cancel)
+        parser_cancel.set_defaults(func=self._poll_cancel)
+
         # arg parser for the status command
         parser_status = subparsers.add_parser('status',
             help    = self.ST_ARG_HELP_STATUS,
             aliases = [ 'info' ])
         self.subparsers.append(parser_status)
+        parser_status.set_defaults(func=self._poll_cancel)
 
     def _call(self, msg, args, errorSink=None):
-        # select func name from dict to prevent arbitrary func names
-        # to be called (this is just for sanity, since argparse ought
-        # to only accept valid actions)
-        try:
-            func_name = {
-                'start':    '_poll_start',
-                'cancel':   '_poll_cancel',
-                'stop':     '_poll_cancel',
-                'abort':    '_poll_cancel',
-                'status':   '_poll_status',
-                'info':     '_poll_status',
-            }[args.action]
-            getattr(self, func_name)(msg, args, errorSink)
-        except KeyError:
-            self.reply(msg, self.ST_SHORT_USAGE)
+        # func has been set using set_default
+        args.func(msg, args, errorSink)
 
     def _poll_start(self, msg, args, errorSink):
         mucname = msg.get_mucroom()
