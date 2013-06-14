@@ -12,13 +12,13 @@ active_polls = {}
 
 class Poll(object):
     def __init__(self, owner = (None, None), dt_start = datetime.now(), duration = 1,
-                       topic = None, options = [], service_name = None):
+                       topic = None, options = [], timer_name = None):
         self.owner = owner
         self.dt_start = dt_start
         self.duration = duration
         self.topic = topic
         self.options = options
-        self.service_name = service_name
+        self.timer_name = timer_name
         self._votes = {}
         self._results = []
 
@@ -197,15 +197,14 @@ class PollCtl(Base.ArgparseCommand):
             duration        = args.duration,
             topic           = args.topic,
             options         = args.options,
-            service_name    = '{muc}_poll_service'.format(muc=mucname))
+            timer_name      = '{muc}_poll_service'.format(muc=mucname))
 
-        # schedule a service for this poll
+        # schedule finish event for this poll
         self.xmpp.scheduler.add(
-            active_polls[mucname].service_name,
-            10,
-            self._on_poll_service,
-            kwargs = { 'room': mucname, 'msg': msg },
-            repeat = True)
+            active_polls[mucname].timer_name,
+            args.duration * 60,
+            self._on_poll_finished_event,
+            kwargs = { 'room': mucname, 'msg': msg })
 
         # tell everyone about the new poll
         options_str = ''
@@ -226,7 +225,7 @@ class PollCtl(Base.ArgparseCommand):
             poll = active_polls[mucname]
             if poll.owner[1] == user:
                 del active_polls[mucname]
-                self.xmpp.scheduler.remove(poll.service_name)
+                self.xmpp.scheduler.remove(poll.timer_name)
                 self.reply(msg, self.ST_CANCELED_BY_USER.format(owner=poll.owner[0]))
             else:
                 self.reply(msg, self.ST_CANCEL_DENIED.format(owner=poll.owner[0]))
@@ -255,21 +254,18 @@ class PollCtl(Base.ArgparseCommand):
         except KeyError:
             self.reply(msg, self.ST_NO_ACTIVE_POLL)
 
-    def _on_poll_service(self, room=None, msg=None):
+    def _on_poll_bump_event(self, room=None, msg=None):
         poll = active_polls[room]
         delta_t = poll.dt_start + timedelta(minutes=poll.duration)
         seconds_left = (delta_t - datetime.now()).total_seconds()
-        if seconds_left < 1:
-            self._on_poll_finished(room, msg)
-        if int(seconds_left) in range(24, 37):
+        if seconds_left >= 0:
             self.reply(msg, self.ST_POLL_TIME_LEFT.format(s=int(seconds_left)))
 
-    def _on_poll_finished(self, room=None, msg=None):
+    def _on_poll_finished_event(self, room=None, msg=None):
         poll = active_polls[room]
 
-        # remove poll and service
+        # remove poll
         del active_polls[room]
-        self.xmpp.scheduler.remove(poll.service_name)
 
         vc = len(poll.votes.keys())
         if vc < 1:
