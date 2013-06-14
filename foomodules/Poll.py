@@ -204,7 +204,7 @@ class PollCtl(Base.ArgparseCommand):
             help    = self.ST_ARG_HELP_STATUS,
             aliases = [ 'info' ])
         self.subparsers.append(parser_status)
-        parser_status.set_defaults(func=self._poll_cancel)
+        parser_status.set_defaults(func=self._poll_status)
 
     def _call(self, msg, args, errorSink=None):
         # func has been set using set_default
