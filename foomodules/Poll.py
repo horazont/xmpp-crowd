@@ -87,46 +87,51 @@ class Vote(Base.ArgparseCommand):
             type = int,
             help = self.ST_INDEX_HELP)
 
-    def _call(self, msg, args, errorSink = None):
+    def _send_update_msg(self, poll, orig_msg, reply):
+        vote_count = len(poll.votes.keys())
+        items_list = []
+        for i in range(0, len(poll.results)):
+            bar_index = int((len(self.ST_PERC_BARS) - 1) * poll.results[i][1])
+            items_list.append(self.ST_VOTE_ITEM.format(
+                bar     = list(self.ST_PERC_BARS)[bar_index],
+                perc    = int(poll.results[i][1] * 100),
+                index   = i + 1,
+                option  = poll.options[i]))
+        self.reply(orig_msg, reply.format(
+            count   = vote_count,
+            items   = self.ST_VOTE_ITEM_SEP.join(items_list)))
+
+    def _call(self, msg, args, errorSink=None):
         mucname = msg.get_mucroom()
         user = msg.get_from()
         nick = msg.get_mucnick()
         # get vote for this room if available
         try:
             poll = active_polls[mucname]
-            args.index = int(args.index)
-
-            if args.index == 0:
-                # withdraw
-                try:
-                    poll.unset_vote(user)
-                    reply = self.ST_VOTE_WITHDRAWN
-                except KeyError:
-                    self.reply(msg, self.ST_NOT_VOTED)
-                    return
-            else:
-                # vote
-                if args.index < 1 or args.index > len(poll.options):
-                    self.reply(msg, self.ST_NO_OPT_WITH_IDX.format(
-                        index = args.index))
-                    return
-                poll.set_vote(user, nick, args.index - 1)
-                reply = self.ST_VOTE_COUNTED
-
-            vote_count = len(poll.votes.keys())
-            items_list = []
-            for i in range(0, len(poll.results)):
-                bar_index = int((len(self.ST_PERC_BARS) - 1) * poll.results[i][1])
-                items_list.append(self.ST_VOTE_ITEM.format(
-                    bar     = list(self.ST_PERC_BARS)[bar_index],
-                    perc    = int(poll.results[i][1] * 100),
-                    index   = i + 1,
-                    option  = poll.options[i]))
-            self.reply(msg, reply.format(
-                count   = vote_count,
-                items   = self.ST_VOTE_ITEM_SEP.join(items_list)))
         except KeyError:
             self.reply(msg, self.ST_NO_ACTIVE_POLL)
+            return
+
+        args.index = int(args.index)
+        if args.index == 0:
+            # withdraw
+            try:
+                poll.unset_vote(user)
+                reply = self.ST_VOTE_WITHDRAWN
+            except KeyError:
+                self.reply(msg, self.ST_NOT_VOTED)
+                return
+        else:
+            # vote
+            if args.index < 1 or args.index > len(poll.options):
+                self.reply(msg, self.ST_NO_OPT_WITH_IDX.format(
+                    index = args.index))
+                return
+            poll.set_vote(user, nick, args.index - 1)
+            reply = self.ST_VOTE_COUNTED
+
+        self._send_update_msg(poll, msg, reply)
+
 
 class PollCtl(Base.ArgparseCommand):
 
@@ -268,36 +273,42 @@ class PollCtl(Base.ArgparseCommand):
         mucname = msg.get_mucroom()
         try:
             poll = active_polls[mucname]
-            if poll.owner[1] == user:
-                del active_polls[mucname]
-                self.xmpp.scheduler.remove(poll.timer_name)
-                self.reply(msg, self.ST_CANCELED_BY_USER.format(owner=poll.owner[0]))
-            else:
-                self.reply(msg, self.ST_CANCEL_DENIED.format(owner=poll.owner[0]))
         except KeyError:
             self.reply(msg, self.ST_NO_ACTIVE_POLL)
+            return
+
+        if poll.owner[1] == user:
+            del active_polls[mucname]
+            self.xmpp.scheduler.remove(poll.timer_name)
+            self.reply(msg, self.ST_CANCELED_BY_USER.format(
+                owner=poll.owner[0]))
+        else:
+            self.reply(msg, self.ST_CANCEL_DENIED.format(
+                owner=poll.owner[0]))
 
     def _poll_status(self, msg, args, errorSink):
         mucname = msg.get_mucroom()
         try:
             poll = active_polls[mucname]
-            delta_t = poll.dt_start + timedelta(minutes=poll.duration) - datetime.now()
-            minutes_left = int(delta_t.total_seconds() / 60)
-            seconds_left = int(delta_t.total_seconds() % 60)
-            options_str = ''
-            for i in range(0, len(poll.options)):
-                options_str += self.ST_POLL_OPTION.format(
-                    index   = i + 1,
-                    option  = poll.options[i])
-            self.reply(msg, self.ST_POLL_STATUS.format(
-                owner   = poll.owner[0],
-                topic   = poll.topic,
-                tm      = minutes_left,
-                ts      = seconds_left,
-                count   = len(poll.votes.keys()),
-                options = options_str))
         except KeyError:
             self.reply(msg, self.ST_NO_ACTIVE_POLL)
+            return
+
+        delta_t = poll.dt_start + timedelta(minutes=poll.duration) - datetime.now()
+        minutes_left = int(delta_t.total_seconds() / 60)
+        seconds_left = int(delta_t.total_seconds() % 60)
+        options_str = ''
+        for i in range(0, len(poll.options)):
+            options_str += self.ST_POLL_OPTION.format(
+                index   = i + 1,
+                option  = poll.options[i])
+        self.reply(msg, self.ST_POLL_STATUS.format(
+            owner   = poll.owner[0],
+            topic   = poll.topic,
+            tm      = minutes_left,
+            ts      = seconds_left,
+            count   = len(poll.votes.keys()),
+            options = options_str))
 
     def _on_poll_bump_event(self, room=None, msg=None):
         poll = active_polls[room]
