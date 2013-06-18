@@ -1,3 +1,5 @@
+import urllib.error
+
 from datetime import datetime, timedelta
 import infomodules.utils
 
