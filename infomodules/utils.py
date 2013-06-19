@@ -3,6 +3,13 @@ import urllib.request
 from wsgiref.handlers import format_date_time
 from datetime import datetime, timedelta
 import email.utils as eutils
+from calendar import timegm
+
+def to_timestamp(datetime):
+    """
+    Convert *datetime* to a UTC unix timestamp.
+    """
+    return timegm(datetime.utctimetuple())
 
 def parse_http_date(httpdate):
     return datetime(*eutils.parsedate(httpdate)[:6])
