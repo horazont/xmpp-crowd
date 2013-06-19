@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import math
 import binascii
 import traceback
+import logging
 import sys
 import os
 import lcdencode
@@ -366,6 +367,14 @@ class InfoBot(HubBot):
         self._update_sensors()
 
 if __name__=="__main__":
+    try:
+        import setproctitle
+        setproctitle.setproctitle("infobot")
+    except ImportError:
+        pass
+    logging.basicConfig(level=logging.INFO,
+                        format='%(levelname)-8s %(message)s')
+
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument(
