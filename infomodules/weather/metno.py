@@ -1,4 +1,5 @@
 import urllib.error
+import socket
 
 from datetime import datetime, timedelta
 import infomodules.utils
