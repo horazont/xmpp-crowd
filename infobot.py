@@ -38,8 +38,6 @@ class InfoBot(HubBot):
         }
 
     SENSOR_NS = "http://xmpp.sotecware.net/xmlns/sensor"
-    SENSOR_DIR = "/run/sensors"
-    SENSOR_FILE = "sensor{}"
 
     def __init__(self, config_file):
         self._config_file = config_file
@@ -93,6 +91,7 @@ class InfoBot(HubBot):
         self._weather_buffer = None
         self._departure_buffers = []
         self._weather_data = None
+        self._config_update_output = namespace.get("update_output")
 
         return None
 
@@ -210,26 +209,23 @@ class InfoBot(HubBot):
                 continue
             value = int(child.get("value")) / 16.0
             if -40 <= value <= 135:
-                sensors.setdefault(child.get("serial"), []).append(value)
+                timestamp = datetime.utcnow()
+                sensors.setdefault(child.get("serial"), []).append(
+                    (timestamp, value))
+            else:
+                logging.warning("received possible bogus value from "
+                                "sensor %s: %f",
+                                child.get("serial"),
+                                value)
         return sensors
 
     def _update_sensors(self):
         self._sensors = self._read_sensors()
 
     def _update_output(self):
-        for filename in os.listdir(self.SENSOR_DIR):
-            filename = os.path.join(self.SENSOR_DIR, filename)
-            if os.path.isfile(filename):
-                os.unlink(filename)
-
         sensors = dict(self._sensors)
-        self._sensors = {}
-
-        for k, v in sensors.items():
-            filename = os.path.join(self.SENSOR_DIR, self.SENSOR_FILE.format(k))
-            value = sum(v) / len(v)
-            with open(filename, "w") as f:
-                f.write("{:.2f}".format(value))
+        self._sensors = dict()
+        self._config_update_output(self, sensors)
 
     @staticmethod
     def _encode_for_lcd(data):
@@ -288,7 +284,7 @@ class InfoBot(HubBot):
                 repeat=True)
             self.scheduler.add(
                 "update-output",
-                60*4,
+                15,
                 SafeCallback(self._update_output,
                              error_handler=self._error_handler),
                 repeat=True)
