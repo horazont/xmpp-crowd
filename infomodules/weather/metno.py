@@ -3,27 +3,13 @@ import socket
 
 from datetime import datetime, timedelta
 import infomodules.utils
+import infomodules.weather
 
 import lxml.etree as ET
 
-class Forecast(object):
-    temperature = None
-    symbol = None
-    precipitation = None
+Forecast = infomodules.weather.Forecast
 
-    def __init__(self, *args, temp=None, symbol=None, prec=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.temperature = temp
-        self.symbol = symbol
-        self.precipitation = prec
-
-    def __repr__(self):
-        return "Forecast(temp={!r}, symbol={!r}, prec={!r})".format(
-            self.temperature,
-            self.symbol,
-            self.precipitation)
-
-class Weather(object):
+class Weather(infomodules.weather.Weather):
     URL = "http://api.met.no/weatherapi/locationforecast/1.8/?lat={lat}&lon={lon}"
     MAX_AGE = timedelta(seconds=60*30)
 
