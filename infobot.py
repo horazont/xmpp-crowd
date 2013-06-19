@@ -235,7 +235,7 @@ class InfoBot(HubBot):
         return binascii.b2a_hex(data.encode("hd44780a00")).decode("ascii")
 
     def _write_lcd(self, command):
-        print("-> " + command)
+        # print("-> " + command)
         self.send_message(mto=self.lcd, mbody=command, mtype="chat")
 
     def _update_lcd(self):
@@ -243,7 +243,7 @@ class InfoBot(HubBot):
             return
 
         self._weather_buffer = self._format_weather_buffer(self._weather_data)
-        print(self._weather_buffer)
+        # print(self._weather_buffer)
 
         for i, dep_page in enumerate(self._departure_buffers[:2]):
             self._write_lcd("update page {} {}".format(i, self._encode_for_lcd(dep_page)))
