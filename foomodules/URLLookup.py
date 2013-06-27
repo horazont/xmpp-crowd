@@ -226,6 +226,30 @@ class HTMLDocument(HandlerBase):
 
         return title, descr
 
+    def response_from_info(self, title, description, response, no_description=False):
+        if title is None:
+            title = "⟨unknown title⟩"
+        title = utils.cleanup_string(normalize(title, eraseNewlines=True))
+        if description is None:
+            description = ""
+        else:
+            # actually, amazon sometimes sends 0x1a characters, which is quite
+            # odd and leads to not-wellformed kicks
+            description = utils.cleanup_string(normalize(description, eraseNewlines=True))
+
+        if no_description or response.url.hostname in self.descriptionBlacklist:
+            description = ""
+        if self.description_limit is not None and \
+                len(description) > self.description_limit:
+            if self.description_limit > 3:
+                description = description[:self.description_limit-3]+self.description_ellipsis
+            else:
+                description = ""
+
+        return iter(self.formatResponses(self.responseFormats,
+                title=title or "Untitled Document",
+                description=description))
+
     def processResponse(self, response, no_description=False):
         bufferLen = len(response.buf)
 
@@ -262,28 +286,9 @@ class HTMLDocument(HandlerBase):
             tree = ET.ElementTree(ET.XML(response.buf))
             title, description = self._xhtml(tree)
 
-        if title is None:
-            title = "⟨unknown title⟩"
-        title = utils.cleanup_string(normalize(title, eraseNewlines=True))
-        if description is None:
-            description = ""
-        else:
-            # actually, amazon sometimes sends 0x1a characters, which is quite
-            # odd and leads to not-wellformed kicks
-            description = utils.cleanup_string(normalize(description, eraseNewlines=True))
-
-        if no_description or response.url.hostname in self.descriptionBlacklist:
-            description = ""
-        if self.description_limit is not None and \
-                len(description) > self.description_limit:
-            if self.description_limit > 3:
-                description = description[:self.description_limit-3]+self.description_ellipsis
-            else:
-                description = ""
-
-        return iter(self.formatResponses(self.responseFormats,
-                title=title or "Untitled Document",
-                description=description))
+        return self.response_from_info(
+            title, description, response,
+            no_description=no_description)
 
 
 class UnixFile(HandlerBase):
