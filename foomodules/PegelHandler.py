@@ -34,12 +34,12 @@ class PegelDocument(HTMLDocument):
         tds = tr.select("td")
 
         try:
-            level = int(tds[1].text)
+            level = float(tds[1].text.replace(",", "."))
         except ValueError:
             level = None
 
         try:
-            Q = int(tds[2].text)
+            Q = float(tds[2].text.replace(",", "."))
         except ValueError:
             Q = None
 
