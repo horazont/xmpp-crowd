@@ -182,7 +182,7 @@ class HTMLDocument(HandlerBase):
             accept=[
                 Accept("text/html", 1.0),
                 Accept("application/xhtml+xml", 0.9)
-            ]
+            ],
             **kwargs):
         super().__init__(accept, **kwargs)
         self.responseFormats = responseFormats
