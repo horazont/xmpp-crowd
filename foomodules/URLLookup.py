@@ -109,9 +109,10 @@ class Accept(object):
 
 
 class HandlerBase(object):
-    def __init__(self, accepts, **kwargs):
+    def __init__(self, accepts, url_patterns=[], **kwargs):
         super().__init__(**kwargs)
         self.accepts = list(accepts)
+        self.url_patterns = list(url_patterns)
 
     def formatResponses(self, responses, **kwargs):
         for i, line in enumerate(responses):
@@ -357,6 +358,12 @@ class URLLookup(Base.MessageHandler):
         self.globMap = sorted(((key, value) for key, value in globMap.items()),
                               reverse=True, key=operator.itemgetter(0))
 
+        self.pattern_handlers = [
+            (pattern, handler)
+            for handler in reversed(self.handlers)
+            for pattern in handler.url_patterns
+        ]
+
     def bufferResponse(self, response, info):
         try:
             contentLength = int(info["Content-Length"])
@@ -372,7 +379,7 @@ class URLLookup(Base.MessageHandler):
             response.contentLength = len(buf)  # good guess at least ;)
         response.buf = buf
 
-    def annotateResponse(self, response):
+    def annotateResponse(self, url, response):
         info = response.info()
         try:
             mimeType, sep, mimeInfo = info["Content-Type"].partition(";")
@@ -389,16 +396,21 @@ class URLLookup(Base.MessageHandler):
             mimeType = "unknown/unknown"
             encoding = None
 
-        try:
-            response.handler = self.mimeMap[mimeType]
-        except KeyError:
-            print("fallback")
-            for glob, handler in self.globMap:
-                if fnmatch(mimeType, glob):
-                    response.handler = handler
-                    break
-            else:
-                raise URLLookupError("No handler for MIME type: {0}")
+        for pattern, handler in self.pattern_handlers:
+            if pattern.match(url):
+                response.handler = handler
+                break
+        else:
+            try:
+                response.handler = self.mimeMap[mimeType]
+            except KeyError:
+                print("fallback")
+                for glob, handler in self.globMap:
+                    if fnmatch(mimeType, glob):
+                        response.handler = handler
+                        break
+                else:
+                    raise URLLookupError("No handler for MIME type: {0}")
 
         response.mimeType = mimeType
         response.encoding = encoding
@@ -426,7 +438,7 @@ class URLLookup(Base.MessageHandler):
             if newURL != url and self.showRedirects:
                 yield "→ <{0}>".format(newURL)
 
-            self.annotateResponse(response)
+            self.annotateResponse(url, response)
 
             if response.contentLength is not None:
                 sizeFormatted = formatBytes(response.contentLength)
