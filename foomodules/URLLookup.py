@@ -179,11 +179,12 @@ class HTMLDocument(HandlerBase):
             ],
             description_limit=None,
             description_ellipsis="[…]",
+            accept=[
+                Accept("text/html", 1.0),
+                Accept("application/xhtml+xml", 0.9)
+            ]
             **kwargs):
-        super().__init__([
-            Accept("text/html", 1.0),
-            Accept("application/xhtml+xml", 0.9)
-        ], **kwargs)
+        super().__init__(accept, **kwargs)
         self.responseFormats = responseFormats
         self.descriptionBlacklist = frozenset(descriptionBlacklist)
         self.description_limit = description_limit

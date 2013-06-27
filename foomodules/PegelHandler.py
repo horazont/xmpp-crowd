@@ -23,6 +23,7 @@ class PegelDocument(HTMLDocument):
             descriptionBlacklist=[],
             responseFormats=responseFormats,
             url_patterns=[self.pegel_re],
+            accept=[],
             **kwargs)
         self._level_format = level_format
         self._Q_format = Q_format
