@@ -16,6 +16,7 @@ import foomodules.Timers as Timers
 import foomodules.GitLog as GitLog
 import foomodules.SympyInterface as SympyInterface
 import foomodules.Poll as Poll
+import foomodules.PegelHandler as PegelHandler
 
 logger = logging.getLogger(__name__)
 
