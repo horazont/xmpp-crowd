@@ -13,12 +13,14 @@ active_polls = {}
 
 class Poll(object):
     def __init__(self,
+                 pollctl,
                  owner=(None, None),
                  dt_start=datetime.now(),
                  duration=1,
                  topic=None,
                  options=[],
                  timer_name=None):
+        self.pollctl = pollctl
         self.owner = owner
         self.dt_start = dt_start
         self.duration = duration
@@ -42,12 +44,12 @@ class Poll(object):
         for i in range(0, len(self._results)):
             self._results[i][1] = self._results[i][0] / vote_count
 
-    def set_vote(self, user, nick, index):
-        self._votes[user] = (nick, index)
+    def set_vote(self, ident, nick, index):
+        self._votes[ident] = (nick, index)
         self._recalc_results()
 
-    def unset_vote(self, user):
-        del self._votes[user]
+    def unset_vote(self, ident):
+        del self._votes[ident]
         self._recalc_results()
 
     @property
@@ -104,8 +106,6 @@ class Vote(Base.ArgparseCommand):
 
     def _call(self, msg, args, errorSink=None):
         mucname = msg.get_mucroom()
-        user = msg.get_from()
-        nick = msg.get_mucnick()
         # get vote for this room if available
         try:
             poll = active_polls[mucname]
@@ -113,11 +113,13 @@ class Vote(Base.ArgparseCommand):
             self.reply(msg, self.ST_NO_ACTIVE_POLL)
             return
 
+        ident = poll.pollctl.get_identifier_from_msg(msg)
+
         args.index = int(args.index)
         if args.index == 0:
             # withdraw
             try:
-                poll.unset_vote(user)
+                poll.unset_vote(ident)
                 reply = self.ST_VOTE_WITHDRAWN
             except KeyError:
                 self.reply(msg, self.ST_NOT_VOTED)
@@ -128,7 +130,7 @@ class Vote(Base.ArgparseCommand):
                 self.reply(msg, self.ST_NO_OPT_WITH_IDX.format(
                     index = args.index))
                 return
-            poll.set_vote(user, nick, args.index - 1)
+            poll.set_vote(ident, msg['mucnick'], args.index - 1)
             reply = self.ST_VOTE_COUNTED
 
         self._send_update_msg(poll, msg, reply)
@@ -168,10 +170,12 @@ class PollCtl(Base.ArgparseCommand):
                  timeout=3,
                  command_name='pollctl',
                  maxlen=256,
+                 use_jid=True,
                  **kwargs):
         super().__init__(command_name, **kwargs)
         self.timeout = timeout
         self.maxlen = maxlen
+        self._use_jid = use_jid
         subparsers = self.argparse.add_subparsers(
             dest='action',
             help=self.ST_ARG_HELP_ACTION
@@ -207,6 +211,17 @@ class PollCtl(Base.ArgparseCommand):
         self.subparsers.append(parser_status)
         parser_status.set_defaults(func=self._poll_status)
 
+    def get_identifier_from_muc_and_nick(self, mucjid, nick):
+        if self._use_jid:
+            return self.XMPP.muc.getJidProperty(mucjid, nick, 'jid')
+        else:
+            return nick
+
+    def get_identifier_from_msg(self, msg):
+        return self.get_identifier_from_muc_and_nick(
+            msg['from'].bare,
+            msg['mucnick'])
+
     def _call(self, msg, args, errorSink=None):
         # func has been set using set_default
         args.func(msg, args, errorSink)
@@ -232,8 +247,10 @@ class PollCtl(Base.ArgparseCommand):
             return
 
         # create poll
-        owner_info = (msg['mucnick'], msg['from'])
+        owner_info = (msg['mucnick'],
+            self.get_identifier_from_msg(msg))
         active_polls[mucname] = Poll(
+            self,
             owner           = owner_info,
             dt_start        = datetime.now(),
             duration        = args.duration,
