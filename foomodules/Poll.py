@@ -278,7 +278,7 @@ class PollCtl(Base.ArgparseCommand):
             options = options_str))
 
     def _poll_cancel(self, msg, args, errorSink):
-        user = msg.get_from()
+        user = self.get_identifier_from_msg(msg)
         mucname = msg.get_mucroom()
         try:
             poll = active_polls[mucname]
