@@ -9,6 +9,7 @@ import sys
 import os
 import lcdencode
 import infomodules.utils
+import infomodules.rrdsink
 from sleekxmpp.exceptions import IqError, IqTimeout
 
 class SafeCallback(object):
@@ -65,7 +66,6 @@ class InfoBot(HubBot):
         self.bots_switch, self.nick = self.addSwitch("bots", nickname)
         self.add_event_handler("presence", self.handle_presence)
 
-
     def reload_config(self):
         namespace = {}
         with open(self._config_file, "r") as f:
@@ -92,6 +92,7 @@ class InfoBot(HubBot):
         self._departure_buffers = []
         self._weather_data = None
         self._config_update_output = namespace.get("update_output")
+        self._last_weather_update = None
 
         return None
 
@@ -156,8 +157,14 @@ class InfoBot(HubBot):
 
     def _update_weather(self):
         forecast = self.weather()
+        if forecast is None:
+            if (self._last_weather_update is not None
+                    and (self._last_weather_update - datetime.utcnow()) > self._weather_timeout):
+                self._weater_data = None
+            return
         data = self._extract_next_weather(forecast)
         self._weather_data = data
+        self._last_weather_update = datetime.utcnow()
 
     @classmethod
     def _format_departure(cls, departure):
@@ -175,7 +182,6 @@ class InfoBot(HubBot):
         blocks = [departures[i*4:i*4+4]
                   for i in range(math.ceil(len(departures)/4))]
         return list(map(cls._format_departure_buffer, blocks))
-
 
     def _update_departures_and_lcd(self):
         departures = self.departure()

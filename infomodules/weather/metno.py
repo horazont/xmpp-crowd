@@ -64,7 +64,6 @@ class Weather(infomodules.weather.Weather):
 
         return forecasts
 
-
     def get_data(self):
         try:
             xml, timestamp = self._get_raw_xml()
@@ -82,4 +81,8 @@ class Weather(infomodules.weather.Weather):
         return self.cached_data
 
     def __call__(self):
-        return self.get_data()
+        try:
+            return self.get_data()
+        except (socket.timeout, urllib.error.URLError, urllib.error.HTTPError) as err:
+            logging.warn(err)
+            return None
