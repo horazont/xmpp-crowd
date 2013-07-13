@@ -93,8 +93,19 @@ class InfoBot(HubBot):
         self._weather_data = None
         self._config_update_output = namespace.get("update_output")
         self._last_weather_update = None
+        self._weather_timeout = namespace.get(
+            "weather_timeout",
+            timedelta(seconds=1800))
 
         return None
+
+    def _notify(self, msg):
+        self.send_message(
+            mto=self.bots_switch,
+            mbody="{notify}: {msg}".format(
+                self.notification_to,
+                msg),
+            mtype="groupchat")
 
     def _format_weather_buffer(self, data):
         if data is not None:
@@ -161,6 +172,7 @@ class InfoBot(HubBot):
             if (self._last_weather_update is not None
                     and (self._last_weather_update - datetime.utcnow()) > self._weather_timeout):
                 self._weater_data = None
+                self._notify("weather service unreachable")
             return
         data = self._extract_next_weather(forecast)
         self._weather_data = data
@@ -186,7 +198,10 @@ class InfoBot(HubBot):
     def _update_departures_and_lcd(self):
         departures = self.departure()
         if departures is None:
-            self._departure_buffers = [self._error_buffer("No data available")]
+            self._departure_buffers = [
+                self._error_buffer("No data available"),
+                self._error_buffer("No data available"),
+                ]
         else:
             self._departure_buffers = self._format_departure_buffers(departures)
 
