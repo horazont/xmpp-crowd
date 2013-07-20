@@ -10,11 +10,13 @@ class Departure(object):
     URL = "http://widgets.vvo-online.de/abfahrtsmonitor/Abfahrten.do?ort=Dresden&hst={}"
     MAX_AGE = timedelta(seconds=30)
 
-    def __init__(self, stop_name, user_agent="Departure/1.0"):
+    def __init__(self, stop_name, user_agent="Departure/1.0",
+                 debug_memory_use=False):
         self.url = self.URL.format(stop_name)
         self.user_agent = user_agent
         self.cached_data = None
         self.cached_timestamp = None
+        self._debug_memory_use = debug_memory_use
 
     def parse_data(self, s):
         struct = ast.literal_eval(s)
@@ -48,10 +50,20 @@ class Departure(object):
         return self.cached_data
 
     def __call__(self):
+        if self._debug_memory_use:
+            print("DEPARTURE: before get")
+            import objgraph
+            objgraph.show_growth()
         try:
-            data = self.get_departure_data()
-        except (socket.timeout, urllib.error.URLError, urllib.error.HTTPError) as err:
-            warnings.warn(err)
-            return None
-        data.sort(key=lambda x: x[2])
-        return data
+            try:
+                data = self.get_departure_data()
+            except (socket.timeout, urllib.error.URLError, urllib.error.HTTPError) as err:
+                warnings.warn(err)
+                return None
+            data.sort(key=lambda x: x[2])
+            return data
+        finally:
+            if self._debug_memory_use:
+                print("DEPARTURE: after get")
+                import objgraph
+                objgraph.show_growth()
