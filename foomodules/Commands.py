@@ -179,7 +179,7 @@ class Peek(Base.ArgparseCommand):
                 raise
         return buf.split(b"\n", 1)[0]
 
-    def _is_ipv6(host):
+    def _is_ipv6(self, host):
         try:
             return ipaddress.ip_address(host).version == 6
         except ValueError: # host is probably a hostname
