@@ -187,7 +187,9 @@ class Peek(Base.ArgparseCommand):
 
 
     def _call(self, msg, args, errorSink=None):
-        fam = socket.AF_INET6 if args.ipv6 else socket.AF_INET
+        v6 = True if args.ipv6 else self._is_ipv6(args.host)
+        fam = socket.AF_INET6 if v6 else socket.AF_INET
+
         typ = socket.SOCK_DGRAM if args.udp else socket.SOCK_STREAM
         sock = socket.socket(fam, typ, 0)
         sock.settimeout(self.timeout)
