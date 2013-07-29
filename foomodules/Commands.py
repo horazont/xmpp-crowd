@@ -8,6 +8,7 @@ import re
 import socket
 import argparse
 import datetime
+import ipaddress
 
 import foomodules.Base as Base
 import foomodules.utils as utils
@@ -178,8 +179,17 @@ class Peek(Base.ArgparseCommand):
                 raise
         return buf.split(b"\n", 1)[0]
 
+    def _is_ipv6(host):
+        try:
+            return ipaddress.ip_address(host).version == 6
+        except ValueError: # host is probably a hostname
+            return False
+
+
     def _call(self, msg, args, errorSink=None):
-        fam = socket.AF_INET6 if args.ipv6 else socket.AF_INET
+        v6 = True if args.ipv6 else self._is_ipv6(args.host)
+        fam = socket.AF_INET6 if v6 else socket.AF_INET
+
         typ = socket.SOCK_DGRAM if args.udp else socket.SOCK_STREAM
         sock = socket.socket(fam, typ, 0)
         sock.settimeout(self.timeout)
@@ -211,7 +221,8 @@ class Peek(Base.ArgparseCommand):
         if reply is None:
             reply = "hexdump: {0}".format(binascii.b2a_hex(buf).decode("ascii"))
         else:
-            reply = "{host}:{port} says: {0}".format(reply, host=args.host,
+            hoststr = "[{}]".format(args.host) if self._is_ipv6(args.host) else args.host
+            reply = "{host}:{port} says: {0}".format(reply, host=hoststr,
                 port=args.port)
 
         self.reply(msg, reply)
