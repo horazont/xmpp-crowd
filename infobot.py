@@ -320,7 +320,7 @@ class InfoBot(HubBot):
         return "T≈{T:+.1f} °C. Until then approx. {p:.1f} mm precipitation, {symbol} weather.".format(
             T=forecast.temperature,
             p=precipitation,
-            symbol=forecast.symbol.lower())
+            symbol=forecast.symbol.lower().replace("partlycloud", "PARTYCLOUD"))
 
     def get_weather(self, orig_msg):
         forecast = self.weather()
