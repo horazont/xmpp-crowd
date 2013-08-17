@@ -1,11 +1,14 @@
 import urllib.error
 import socket
+import logging
 
 from datetime import datetime, timedelta
 import infomodules.utils
 import infomodules.weather
 
 import lxml.etree as ET
+
+logger = logging.getLogger("weather.metno")
 
 Forecast = infomodules.weather.Forecast
 
@@ -84,5 +87,5 @@ class Weather(infomodules.weather.Weather):
         try:
             return self.get_data()
         except (socket.timeout, urllib.error.URLError, urllib.error.HTTPError) as err:
-            logging.warn(err)
+            logger.warn(err)
             return None
