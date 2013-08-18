@@ -40,8 +40,9 @@ class RRDServer(object):
         rrd.stdin.write(cmdbytes + b"\n")
         rrd.stdin.flush()
         response = rrd.stdout.readline().decode("ascii")
+        logger.debug("rrdtool >> %s", response[3:].strip())
         if response.startswith("OK"):
-            logger.debug("rrdtool >> %s", response[3:].strip())
+            return
         elif response.startswith("ERROR"):
             raise RRDToolError(response[6:])
         else:
