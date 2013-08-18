@@ -38,6 +38,7 @@ class RRDServer(object):
         logging.debug("rrdtool << %s", cmdbytes.decode("ascii"))
 
         rrd.stdin.write(cmdbytes + b"\n")
+        rrd.stdin.flush()
         response = rrd.stdout.readline().decode("ascii")
         if response.startswith("OK"):
             logger.debug("rrdtool >> %s", response[3:].strip())
