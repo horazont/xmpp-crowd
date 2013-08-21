@@ -286,7 +286,7 @@ class Ping(Base.ArgparseCommand):
                 packetinfo = packetinfo.groups()
                 rttinfo = rttinfo.group(1).split("/")
                 try:
-                    message = "{host}: {sent}/{recv} pckts., {loss}% loss, rtt ↓/-/↑/↕ = {rttmin}/{rttavg}/{rttmax}/{rttmdev}, time {time}ms".format(
+                    message = "{host}: {recv}/{sent} pckts., {loss}% loss, rtt ↓/-/↑/↕ = {rttmin}/{rttavg}/{rttmax}/{rttmdev}, time {time}ms".format(
                         host=args.host,
                         sent=int(packetinfo[0]),
                         recv=int(packetinfo[1]),
