@@ -368,7 +368,14 @@ class KeywordListener(Base.PrefixListener):
         if not self.check_count_and_reply(msg):
             return
 
-        keywords = [kw for kw in (kw.strip() for kw in shlex.split(contents)) if kw]
+        try:
+            parsed_contents = shlex.split(contents)
+        except ValueError as err:
+            self.reply(msg, "Parsing error: {0}".format(err))
+            return
+
+
+        keywords = [kw for kw in (kw.strip() for kw in parsed_contents) if kw]
         if len(keywords) == 1:
             # also try a search for a name
             name = keywords[0]
