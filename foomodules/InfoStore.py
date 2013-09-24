@@ -371,7 +371,7 @@ class KeywordListener(Base.PrefixListener):
         try:
             parsed_contents = shlex.split(contents)
         except ValueError as err:
-            self.reply(msg, "Parsing error: {0}".format(err))
+            self.reply(msg, "Parser error: {0}".format(err))
             return
 
 
