@@ -56,7 +56,7 @@ class Departure(object):
 
         try:
             response, timestamp = infomodules.utils.http_request(
-                self.url.format(stop_name),
+                self.URL.format(stop_name),
                 user_agent=self.user_agent,
                 accept="text/html")  # sic: the api returns plaintext, but Content-Type: text/html
 
