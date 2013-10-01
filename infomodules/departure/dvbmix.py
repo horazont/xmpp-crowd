@@ -16,7 +16,6 @@ class StopFilterFunc(StopFilter):
     def __init__(self, filter_func):
         self.filter_func = filter_func
 
-    @classmethod
     def _filter_departure(self, dep):
         return self.filter_func(dep[0])
 
