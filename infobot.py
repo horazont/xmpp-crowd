@@ -250,7 +250,7 @@ class InfoBot(HubBot):
 
     @staticmethod
     def _encode_for_lcd(data):
-        return binascii.b2a_hex(data.replace("ß", "β").encode("hd44780a00")).decode("ascii")
+        return binascii.b2a_hex(data.replace("ß", "ss").encode("hd44780a00")).decode("ascii")
 
     def _write_lcd(self, command):
         # print("-> " + command)
