@@ -55,7 +55,7 @@ class GitLog(Base.XMPPObject):
 
         repobranch = (repo, ref.split("/")[2])
 
-        for key in (repobranch, None):
+        for key in (repobranch, (repo, None), None):
             try:
                 hook = self.hooks[key]
             except KeyError:
