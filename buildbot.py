@@ -531,14 +531,14 @@ class BuildBot(HubBot):
             return
 
         contents = msg["body"]
-        args = contents.split(" ")
+        args = contents.split(" ", 1)
         cmd = args[0]
-        args = args[1:]
+        args = args[1]
         handler = self.COMMANDS.get(cmd, None)
         if handler is not None:
             try:
                 local = {"__func": handler, "__self": self, "__msg": msg}
-                self.reply(msg, repr(eval("__func(__self, __msg, {0})".format(", ".join(args)), globals(), local)))
+                self.reply(msg, repr(eval("__func(__self, __msg, {0})".format(args), globals(), local)))
             except Exception:
                 self.replyException(msg, sys.exc_info())
         else:
