@@ -459,7 +459,7 @@ class BuildBot(HubBot):
     def build_switch(self, msg):
         pass
 
-    def rebuild_repo(self, msg, repository, branch):
+    def rebuild_repo(self, msg, repo, branch):
         repobranch = (repo, branch)
         try:
             builds = self.repobranch_map[repobranch]
