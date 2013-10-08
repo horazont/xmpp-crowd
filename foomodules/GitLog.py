@@ -62,6 +62,10 @@ class GitLog(Base.XMPPObject):
                 continue
             hook(item, *repobranch)
 
+class CommitIgnore(Base.XMPPObject):
+    def __call__(self, item, repo, branch):
+        pass
+
 class CommitNotify(Base.XMPPObject):
     HEADLINE_NODE = "{{{0}}}headline".format(xmlns)
     AUTHOR_NODE = "{{{0}}}author".format(xmlns)
