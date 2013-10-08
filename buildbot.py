@@ -587,7 +587,7 @@ class BuildBot(HubBot):
             return True
 
     def cmdRebuildRepo(self, msg, repository, branch):
-        self.rebuild_repo(repository, branch)
+        self.rebuild_repo(msg, repository, branch)
 
     def cmdEcho(self, msg, *args):
         return " ".join((str(arg) for arg in args))
