@@ -13,6 +13,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Popen(subprocess.Popen):
+    DEVNULLR = open("/dev/null", "r")
+
     @classmethod
     def checked(cls, call, *args, **kwargs):
         proc = cls(call, *args, **kwargs)
@@ -26,6 +28,8 @@ class Popen(subprocess.Popen):
         if sink_line_call is not None:
             kwargs["stdout"] = subprocess.PIPE
             kwargs["stderr"] = subprocess.PIPE
+        if "stdin" not in kwargs:
+            kwargs["stdin"] = self.DEVNULLR
         super().__init__(call, *args, **kwargs)
         self.sink_line_call = sink_line_call
         if sink_line_call is not None:
