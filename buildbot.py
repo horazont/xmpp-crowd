@@ -459,21 +459,12 @@ class BuildBot(HubBot):
     def build_switch(self, msg):
         pass
 
-    def pubsubPublish(self, msg):
-        item = msg["pubsub_event"]["items"]["item"].xml[0]
-        repo = item.findtext("{http://hub.sotecware.net/xmpp/git-post-update}repository")
-        if repo is None:
-            print("Malformed git-post-update.")
-        ref = item.findtext("{http://hub.sotecware.net/xmpp/git-post-update}ref")
-        if ref is None:
-            print("Malformed git-post-update.")
-
-        repobranch = (repo, ref.split("/")[2])
+    def rebuild_repo(self, msg, repository, branch):
+        repobranch = (repo, branch)
         try:
             builds = self.repobranch_map[repobranch]
         except KeyError:
-            print(repobranch)
-            return
+            return False
         try:
             for build in builds:
                 self.rebuild(build)
@@ -494,6 +485,7 @@ class BuildBot(HubBot):
                 mtype="groupchat"
             )
             print(hint)
+            return False
         finally:
             self.send_message(
                 mto=self.switch,
@@ -501,6 +493,18 @@ class BuildBot(HubBot):
                 msubject=self.IDLE_MESSAGE,
                 mtype="groupchat"
             )
+        return True
+
+    def pubsubPublish(self, msg):
+        item = msg["pubsub_event"]["items"]["item"].xml[0]
+        repo = item.findtext("{http://hub.sotecware.net/xmpp/git-post-update}repository")
+        if repo is None:
+            print("Malformed git-post-update.")
+        ref = item.findtext("{http://hub.sotecware.net/xmpp/git-post-update}ref")
+        if ref is None:
+            print("Malformed git-post-update.")
+
+        self.rebuild_repo(msg, repo, ref.split("/")[2])
 
     def formatException(self, exc_info):
         return "\n".join(traceback.format_exception(*sys.exc_info()))
@@ -582,11 +586,15 @@ class BuildBot(HubBot):
         else:
             return True
 
+    def cmdRebuildRepo(self, msg, repository, branch):
+        self.rebuild_repo(repository, branch)
+
     def cmdEcho(self, msg, *args):
         return " ".join((str(arg) for arg in args))
 
     COMMANDS = {
         "rebuild": cmdRebuild,
+        "rebuild-repo": cmdRebuildRepo,
         "reload": cmdReload,
         "echo": cmdEcho
     }
