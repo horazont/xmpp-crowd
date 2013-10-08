@@ -60,11 +60,12 @@ class GitLog(Base.XMPPObject):
                 hook = self.hooks[key]
             except KeyError:
                 continue
-            hook(item, *repobranch)
+            if hook(item, *repobranch):
+                break
 
 class CommitIgnore(Base.XMPPObject):
     def __call__(self, item, repo, branch):
-        pass
+        return True
 
 class CommitNotify(Base.XMPPObject):
     HEADLINE_NODE = "{{{0}}}headline".format(xmlns)
@@ -110,3 +111,5 @@ class CommitNotify(Base.XMPPObject):
             else:
                 mtype = "chat"
             self.XMPP.send_message(mto=jid, mbody=msg, mtype=mtype)
+
+        return False
