@@ -372,6 +372,9 @@ class InfoBot(HubBot):
             self.reply(msg, repr(self._departure_buffers))
             self.reply(msg, repr(self._weather_buffer))
             self.reply(msg, repr(self._sensors))
+            self.reply(
+                msg,
+                "custom temp: {!r}".format(self._custom_temperature))
             return
 
     def handle_presence(self, pres):
