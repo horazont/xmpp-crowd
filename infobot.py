@@ -376,6 +376,9 @@ class InfoBot(HubBot):
                 msg,
                 "custom temp: {!r}".format(self._custom_temperature))
             return
+        elif body == "force_flush":
+            self._update_output()
+            return
 
     def handle_presence(self, pres):
         if pres["from"].bare == self.lcd:
