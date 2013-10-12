@@ -65,6 +65,7 @@ class InfoBot(HubBot):
         nickname = credentials.get("nickname", credentials["localpart"])
         self.bots_switch, self.nick = self.addSwitch("bots", nickname)
         self.add_event_handler("presence", self.handle_presence)
+        self._custom_temperature = None
 
     def reload_config(self):
         namespace = {}
@@ -114,9 +115,14 @@ class InfoBot(HubBot):
                        ("+9h", data[9])]
 
             timeline, templine, whichline = "", "", ""
-            for time, forecast in to_show:
+            for i, (time, forecast) in enumerate(to_show):
                 timeline += "{:5s}  ".format(time)
-                templine += "{:+5.1f}  ".format(forecast.temperature)
+
+                if i == 0 and self._custom_temperature:
+                    temp = self._custom_temperature
+                else:
+                    temp = forecast.temperature
+                templine += "{:+5.1f}  ".format(temp)
 
                 symbol = forecast.symbol.lower()
 
@@ -281,6 +287,9 @@ class InfoBot(HubBot):
             mto=self.bots_switch,
             mbody=body,
             mtype="groupchat")
+
+    def set_custom_temperature(self, value):
+        self._custom_temperature = value
 
     def sessionStart(self, event):
         super().sessionStart(event)
