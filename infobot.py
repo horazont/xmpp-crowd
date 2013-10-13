@@ -326,8 +326,15 @@ class InfoBot(HubBot):
         precipitation = sum(forecast.precipitation
                             for forecast in forecasts[:index+1])
         forecast = forecasts[index]
-        return "T≈{T:+.1f} °C. Until then approx. {p:.1f} mm precipitation, {symbol} weather.".format(
-            T=forecast.temperature,
+        if index == 0 and self._custom_temperature != 0:
+            T = self._custom_temperature
+            tempnote = "⃗†"
+        else:
+            T = forecast.temperature
+            tempnote = ""
+        return "{T}{tempnote}. Until then approx. {p:.1f} mm precipitation, {symbol} weather.".format(
+            T=T,
+            tempnote=tempnote,
             p=precipitation,
             symbol=forecast.symbol.lower().replace("partlycloud", "PARTYCLOUD"))
 
