@@ -48,7 +48,7 @@ class IRSSILogFormat(LogFormat):
 
     def format_log_start(self):
         return "{time} -!- logging starts".format(
-            self._format_timestamp())
+            self.format_timestamp())
 
     def format_daychange(self):
         dt = datetime.utcnow()
