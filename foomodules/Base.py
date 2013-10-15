@@ -92,6 +92,7 @@ class ArgparseCommand(MessageHandler):
     def __init__(self, command_name, **kwargs):
         super().__init__()
         self.subparsers = []
+        self.command_name = command_name
         self.argparse = ArgumentParser(prog=command_name, **kwargs)
 
     def _error(self, msg, err_str):

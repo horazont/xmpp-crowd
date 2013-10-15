@@ -436,3 +436,15 @@ class CW(Base.MessageHandler):
             year=current_year,
             parity=paritystr
         ))
+
+
+class Redirect(Base.MessageHandler):
+    def __init__(self, new_name, **kwargs):
+        super().__init__(**kwargs)
+        self._new_name = new_name
+
+    def __call__(self, msg, arguments, errorSink=None):
+        self.reply(
+            msg,
+            "I don't know that. Did you mean: {} {}".format(
+                self._new_name, arguments))
