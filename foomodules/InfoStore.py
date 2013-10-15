@@ -147,35 +147,137 @@ class Store(object):
         info.name = newname
         self.names[newname] = info
 
+class InfoCommand(Base.ArgparseCommand):
+    CMD_STORE = "store"
+    CMD_MOVE = "mv"
+    CMD_DELETE = "rm"
+    CMD_AMEND = "amend"
+    CMD_LIST = "list"
+    CMD_SAVE = "save"
+    CMD_STATS = "stats"
 
-class StoreCommand(Base.ArgparseCommand):
-    def __init__(self, store, command_name="store", **kwargs):
+    def __init__(self, store, command_name="info",
+                 disabled_commands=set(),
+                 **kwargs):
         super().__init__(command_name, **kwargs)
         self.store = store
-        self.argparse.add_argument(
-            "-k", "--keyword", "--tag", "-t",
-            dest="tags",
-            action="append",
-            help="Attach some tags to the information."
+
+        subparsers = self.argparse.add_subparsers(
+            dest="action",
+            help="Choose the action to execute"
         )
-        self.argparse.add_argument(
-            "name",
-            help="Descriptive name of the information to store"
-        )
-        self.argparse.add_argument(
-            "contents",
-            help="Contents of the information. If this is (only) a URL, it will be url-lookup'd upon retrieval"
-        )
+
+        self.disabled_commands = disabled_commands
+
+        if self.CMD_STORE not in disabled_commands:
+            # store command
+            parser = subparsers.add_parser(
+                "store",
+                help="Store a new piece of information in the system",
+                aliases={"add"})
+            parser.add_argument(
+                "-t", "--tag",
+                dest="tags",
+                action="append",
+                help="Tag to attach to the information")
+            parser.add_argument(
+                "name",
+                help="Descriptive name of the information to store")
+            parser.add_argument(
+                "contents",
+                help="Contents of the information. URLs will be looked "
+                     "up on retrieval of the information.")
+            parser.set_defaults(
+                func=self._cmd_store)
+
+        if self.CMD_MOVE not in disabled_commands:
+            # move command
+            parser = subparsers.add_parser(
+                "move",
+                help="Rename a piece of information",
+                aliases={"mv", "rename"})
+            parser.add_argument(
+                "-t", "-k", "--tag", "--keyword",
+                action="store_true",
+                dest="keyword",
+                help="If set, a tag (keyword) will be renamed instead "
+                     "of a name. All information previously reachable "
+                     "using the old name will be reachable using the "
+                     "new name afterwards.")
+            parser.set_defaults(
+                func=self._cmd_rename)
+
+        if self.CMD_DELETE not in disabled_commands:
+            # delete command
+            parser = subparsers.add_parser(
+                "rm",
+                help="Remove a piece of information",
+                aliases={"delete", "remove"})
+            parser.add_argument(
+                "names",
+                nargs="+",
+                help="Name of the information to remove")
+            parser.set_defaults(
+                func=self._cmd_delete)
+
+        if self.CMD_AMEND not in disabled_commands:
+            # amend command
+            parser = subparsers.add_parser(
+                "amend",
+                help="Change the tags of a piece of information.")
+            parser.add_argument(
+                "-a", "--add",
+                dest="add",
+                default=[],
+                action="append",
+                help="Tags to attach to the information")
+            parser.add_argument(
+                "-r", "--remove", "--rm",
+                dest="remove",
+                default=[],
+                action="append",
+                help="Tags to remove from the information")
+            parser.add_argument(
+                "name",
+                help="Name of the information to amend")
+            parser.set_defaults(
+                func=self._cmd_amend)
+
+        if self.CMD_SAVE not in disabled_commands:
+            parser = subparsers.add_parser(
+                "save",
+                help="Save all data stored in the infostore.")
+            parser.set_defaults(
+                func=self._cmd_save)
+
+        if self.CMD_LIST not in disabled_commands:
+            parser = subparsers.add_parser(
+                "list",
+                help="List and search stored data")
+            subparsers2 = parser.add_subparsers()
+            parser2 = subparsers2.add_parser(
+                "keywords",
+                help="List all keywords (tags)",
+                aliases={"tags", "kw"})
+            parser2.set_defaults(
+                func=self._cmd_list_keywords)
+            parser2 = subparsers2.add_parser(
+                "info",
+                help="List all information names",
+                aliases={"names"})
+            parser2.set_defaults(
+                func=self._cmd_list_names)
+
+        if self.CMD_STATS not in disabled_commands:
+            parser = subparsers.add_parser(
+                "stats",
+                help="Print memory usage statistics.")
+            parser.set_defaults(
+                func=self._cmd_stats)
 
     def _call(self, msg, args, errorSink=None):
-        try:
-            self.store.store_info(args.name, args.contents, keywords=(args.tags or []))
-        except ValueError as err:
-            self.reply(msg, "Sorry, {0}".format(err))
-        except KeyError as err:
-            self.reply(msg, "Sorry, that name is already assigned".format(err))
+        args.func(msg, args, errorSink=errorSink)
 
-class ExistingCommandBase(Base.ArgparseCommand):
     def _get_or_reply(self, msg, name):
         try:
             info = self.store.names[name]
@@ -184,80 +286,40 @@ class ExistingCommandBase(Base.ArgparseCommand):
             return None
         return info
 
-class AmendCommand(ExistingCommandBase):
-    def __init__(self, store, command_name="amend", **kwargs):
-        super().__init__(command_name, **kwargs)
-        self.store = store
-        self.argparse.add_argument(
-            "-a", "--add",
-            dest="add",
-            default=[],
-            action="append",
-            help="Tags to attach to the information."
-        )
-        self.argparse.add_argument(
-            "-r", "--remove", "--rm",
-            dest="remove",
-            default=[],
-            action="append",
-            help="Tags to remove from the information."
-        )
-        self.argparse.add_argument(
-            "name",
-            help="Name of the information to amend."
-        )
+    def _cmd_store(self, msg, args, errorSink=None):
+        try:
+            self.store.store_info(args.name, args.contents, keywords=(args.tags or []))
+        except ValueError as err:
+            self.reply(msg, "Sorry, {0}".format(err))
+        except KeyError as err:
+            self.reply(msg, "Sorry, that name is already assigned".format(err))
 
-    def _call(self, msg, args, errorSink=None):
+    def _cmd_amend(self, msg, args, errorSink=None):
         if not args.add and not args.remove:
             return
         info = self._get_or_reply(msg, args.name)
         if info is None:
             return
+
         self.store.attach_keywords(info, args.add)
         self.store.remove_keywords(info, args.remove)
 
-class RemoveCommand(ExistingCommandBase):
-    def __init__(self, store, command_name="rm", **kwargs):
-        super().__init__(command_name, **kwargs)
-        self.store = store
-        self.argparse.add_argument(
-            "name",
-            nargs="+",
-            help="Names of the information to remove."
-        )
-
-    def _call(self, msg, args, errorSink=None):
+    def _cmd_delete(self, msg, args, errorSink=None):
         unknown = set()
-        for name in args.name:
+        for name in args.names:
             info = self.store.names.get(name, None)
             if info is None:
                 unknown.add(name)
                 continue
             self.store.delete_info(info)
-        if len(unknown) > 0:
-            self.reply(msg, "Could not remove the following (unknown) information: {0}".format(", ".join(unknown)))
 
-class RenameCommand(ExistingCommandBase):
-    def __init__(self, store, command_name="mv", **kwargs):
-        super().__init__(command_name, **kwargs)
-        self.store = store
-        self.argparse.add_argument(
-            "-t", "--tag", "-k", "--keyword",
-            dest="keyword",
-            action="store_true",
-            default=False,
-            help="Rename a keyword instead of an information. When doing this, the keyword will be completely renamed, i.e. information accessible by the old keyword will be accessible by the new keyword."
-        )
-        self.argparse.add_argument(
-            "oldname",
-            help="Current name of the information or tag to move"
-        )
-        self.argparse.add_argument(
-            "newname",
-            help="New name for the information or tag to move"
-        )
+        if unknown:
+            self.reply(
+                msg,
+                "Could not remove the following (unknown) information: "
+                "{0}".format(", ".join(unknown)))
 
-    def _call(self, msg, args, errorSink=None):
+    def _cmd_rename(self, msg, args, errorSink=None):
         if info.keyword:
             try:
                 self.store.rename_keyword(args.oldname, args.newname)
@@ -269,53 +331,44 @@ class RenameCommand(ExistingCommandBase):
             except KeyError:
                 return
 
-class ListCommand(Base.ArgparseCommand):
-    def __init__(self, store, command_name="list", **kwargs):
-        super().__init__(command_name, **kwargs)
-        self.store = store
-        self.choices = {"keyword": self._keywords, "kw": self._keywords, "keywords": self._keywords, "info": self._info}
-        self.argparse.add_argument(
-            "what",
-            choices=self.choices,
-            help="What to list"
-        )
+    def _format_name_list(self, names):
+        return ", ".join(names)
 
-    def _keywords(self, msg, args):
+    def _cmd_list_keywords(self, msg, args, errorSink=None):
         keywords = self.store.keywords.keys()
-        if len(keywords) == 0:
-            self.reply(msg, "Sorry, I don't know any keywords. Teach me some with !amend or !store.")
-            return
-        self.reply(msg, "I know something about these keywords: {0}".format(", ".join(sorted(keywords))))
+        if not keywords:
+            if self.CMD_STORE not in self.disabled_commands:
+                self.reply(msg, "Sorry, I don't know any keywords. "
+                                "Teach me some with !{} store".format(
+                                    self.command_name))
+            else:
+                self.reply(msg, "Sorry, I don't know any keywords.")
 
-    def _info(self, msg, args):
+        self.reply(
+            msg,
+            "I know something about these keywords: {}".format(
+                self._format_name_list(keywords)))
+
+    def _cmd_list_names(self, msg, args, errorSink=None):
         names = self.store.names.keys()
-        if len(names) == 0:
-            self.reply(msg, "Sorry, I don't know any names. Teach me some with !store.")
-            return
-        self.reply(msg, "Stored information: {0}".format(", ".join(sorted(names))))
+        if not names:
+            if self.CMD_STORE not in self.disabled_commands:
+                self.reply(msg, "Sorry, I don't know any names. "
+                                "Teach me some with !{} store".format(
+                                    self.command_name))
+            else:
+                self.reply(msg, "Sorry, I don't know any names.")
 
-    def _call(self, msg, args, errorSink=None):
-        self.choices[args.what](msg, args)
+        self.reply(
+            msg,
+            "Stored information: {}".format(
+                self._format_name_list(keywords)))
 
-class SaveCommand(Base.MessageHandler):
-    def __init__(self, store):
-        super().__init__()
-        self.store = store
-
-    def __call__(self, msg, arguments, errorSink=None):
-        if arguments.strip():
-            return
+    def _cmd_save(self, msg, args, errorSink=None):
         self.store.save()
-        self.reply(msg, "Successfully stored information.")
+        self.reply(msg, "Successfully saved information")
 
-class StatsCommand(Base.MessageHandler):
-    def __init__(self, store):
-        super().__init__()
-        self.store = store
-
-    def __call__(self, msg, arguments, errorSink=None):
-        if arguments.strip():
-            return
+    def _cmd_stats(self, msg, args, errorSink=None):
         names = sys.getsizeof(self.store.names) + sum(map(sys.getsizeof, self.store.names.keys()))
         keywords = sys.getsizeof(self.store.keywords) + sum(map(sys.getsizeof, self.store.keywords.keys()))
         objects = sum(map(Nugget.get_size, self.store.names.values()))
