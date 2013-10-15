@@ -277,6 +277,7 @@ class InfoCommand(Base.ArgparseCommand):
 
     def _call(self, msg, args, errorSink=None):
         args.func(msg, args, errorSink=errorSink)
+        return True
 
     def _get_or_reply(self, msg, name):
         try:

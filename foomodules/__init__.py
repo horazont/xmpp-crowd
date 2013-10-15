@@ -209,9 +209,9 @@ class CommandListener(Base.PrefixListener):
                 self.reply(msg, "I don't know what {0} should mean."\
                         .format(command))
             logger.info("Received unknown command %r from %s", command, str(msg["from"]))
-            return
+            return False
 
         if not self.check_count_and_reply(msg):
-            return
-        handler(msg, arguments, errorSink=errorSink)
+            return False
+        return handler(msg, arguments, errorSink=errorSink)
 

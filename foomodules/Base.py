@@ -70,7 +70,7 @@ class PrefixListener(MessageHandler):
         contents = msg["body"]
         if not contents.startswith(self.prefix):
             return
-        self._prefix_matched(msg, contents[len(self.prefix):], errorSink=errorSink)
+        return self._prefix_matched(msg, contents[len(self.prefix):], errorSink=errorSink)
 
 class ArgumentParser(argparse.ArgumentParser):
     def parse_args(self, reply_method, args):
@@ -109,5 +109,4 @@ class ArgparseCommand(MessageHandler):
         except ValueError as err:
             self._error(msg, str(err))
             return
-        self._call(msg, args, errorSink=None)
-
+        return self._call(msg, args, errorSink=None)
