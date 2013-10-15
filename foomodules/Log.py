@@ -26,19 +26,19 @@ class IRSSILogFormat(LogFormat):
 
     def format_message_groupchat(self, msg):
         return "{time} < {nick}> {message}".format(
-            self.format_timestamp(),
-            msg["from"].resource,
-            msg["body"])
+            time=self.format_timestamp(),
+            nick=msg["from"].resource,
+            message=msg["body"])
 
     def _format_leave(self, presence):
         return "{time} -!- {nick} has left the room".format(
-            self.format_timestamp(),
-            presence["from"].resource)
+            time=self.format_timestamp(),
+            nick=presence["from"].resource)
 
     def _format_join(self, presence):
         return "{time} -!- {nick} has joined the room".format(
-            self.format_timestamp(),
-            presence["from"].resource)
+            time=self.format_timestamp(),
+            nick=presence["from"].resource)
 
     def format_presence(self, presence):
         if presence["type"] == "unavailable":
@@ -48,7 +48,7 @@ class IRSSILogFormat(LogFormat):
 
     def format_log_start(self):
         return "{time} -!- logging starts".format(
-            self.format_timestamp())
+            time=self.format_timestamp())
 
     def format_daychange(self):
         dt = datetime.utcnow()
