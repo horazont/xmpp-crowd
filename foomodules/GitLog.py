@@ -74,10 +74,15 @@ class CommitNotify(Base.XMPPObject):
 
     DEFAULT_FORMAT = "{repo}/{branch} is now at {shortsha} (by {shortauthor}): {headline}"
 
-    def __init__(self, to_jids=[], fmt=DEFAULT_FORMAT, **kwargs):
+    def __init__(self,
+                 to_jids=[],
+                 fmt=DEFAULT_FORMAT,
+                 skip_others=False,
+                 **kwargs):
         super().__init__(**kwargs)
         self.to_jids = list(to_jids)
         self.fmt = fmt
+        self.skip_others = skip_others
 
     def __call__(self, item, repo, branch):
         new_ref = item.find(self.NEW_REF_NODE)
@@ -112,4 +117,4 @@ class CommitNotify(Base.XMPPObject):
                 mtype = "chat"
             self.XMPP.send_message(mto=jid, mbody=msg, mtype=mtype)
 
-        return False
+        return self.skip_others
