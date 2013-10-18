@@ -97,7 +97,7 @@ class Vote(Base.ArgparseCommand):
             bar_index = int((len(self.ST_PERC_BARS) - 1) * poll.results[i][1])
             items_list.append(self.ST_VOTE_ITEM.format(
                 bar     = list(self.ST_PERC_BARS)[bar_index],
-                perc    = int(poll.results[i][1] * 100),
+                perc    = round(poll.results[i][1] * 100),
                 index   = i + 1,
                 option  = poll.options[i]))
         self.reply(orig_msg, reply.format(
