@@ -531,13 +531,13 @@ class BuildBot(HubBot):
         if contents == "ping":
             self.reply(msg, "pong")
             return
-        #if not self.authorizedSource(msg):
-        #    return
 
     def message(self, msg):
         if msg["type"] == "groupchat":
             return
 
+        if not self.authorizedSource(msg):
+            return
         contents = msg["body"]
         args = contents.split(" ", 1)
         cmd = args[0]
