@@ -9,8 +9,112 @@ import threading
 import subprocess
 import tempfile
 import logging
+import calendar
+import abc
+import smtplib
+
+from datetime import datetime, timedelta
+
+import email.message
+import email.mime.text
+import email.mime.multipart
+
+from wsgiref.handlers import format_date_time
 
 logger = logging.getLogger(__name__)
+
+class MailSendConfig:
+    @abc.abstractmethod
+    def send_mime_mail(self, mime_mail):
+        pass
+
+class MailSMTPConfig:
+    @staticmethod
+    def smtp_insecure(host, port):
+        return smtplib.SMTP(host, port)
+
+    @staticmethod
+    def smtp_ssl(host, port):
+        return smtplib.SMTP_SSL(host, port)
+
+    @staticmethod
+    def smtp_starttls(host, port):
+        smtp = smtplib.SMTP(host, port)
+        smtp.starttls()
+        return smtp
+
+    SEC_NONE = smtp_insecure
+    SEC_SSL = smtp_ssl
+    SEC_STARTTLS = smtp_starttls
+
+    def __init__(self, host, port, user, passwd, security=SEC_STARTTLS):
+        self._host = host
+        self._port = port
+        self._user = user
+        self._passwd = passwd
+        self._security = security
+
+    def send_mime_mail(self, mime_mail):
+        smtp = self._security(self._host, self._port)
+        if self._user is not None:
+            smtp.login(self._user, self._passwd)
+        smtp.sendmail(
+            mime_mail["From"],
+            mime_mail["To"],
+            mime_mail.as_string())
+        smtp.quit()
+
+
+class MailConfig:
+    def __init__(self,
+                 mfrom,
+                 sendconfig,
+                 subject="[buildbot] {severity}: {project} -- {target}"):
+        super().__init__()
+
+        self._mfrom = mfrom
+        self._sendconfig = sendconfig
+        self._subject = subject
+
+    def send_mail(self, lines, severity, project, target, tolist):
+        mail = email.mime.multipart.MIMEMultipart()
+        mail["To"] = ", ".join(tolist)
+        mail["From"] = self._mfrom
+        mail["Date"] = format_date_time(
+            calendar.timegm(datetime.utcnow().utctimetuple()))
+        mail["Subject"] = self._subject.format(
+            severity=severity,
+            project=project,
+            target=target)
+
+        text = """
+Hello,
+
+This is buildbot. This is a status notification for the job
+
+    {project} / {target}
+
+The job has the status: {severity}.
+
+Please see the attached output log for details and take appropriate
+action.""".format(
+            severity=severity,
+            project=project,
+            target=target)
+
+        mime_text = email.mime.text.MIMEText(text)
+        mime_text.set_charset("utf-8")
+        mail.attach(mime_text)
+
+        mime_log = email.mime.text.MIMEText(
+            "\n".join(lines))
+        mime_log.add_header(
+            "Content-Disposition",
+            "attachment",
+            filename="job.log")
+        mail.attach(mime_log)
+
+        self._sendconfig.send_mime_mail(mail)
 
 class Popen(subprocess.Popen):
     DEVNULLR = open("/dev/null", "r")
@@ -340,7 +444,10 @@ class Project:
         return (name, cls(name, *args, **kwargs))
 
     def __init__(self, name, *builds,
-            repository_url=None, pubsub_name=None, working_copy=None,
+            repository_url=None,
+            pubsub_name=None,
+            working_copy=None,
+            mail_on_error=None,
             **kwargs):
         super().__init__(**kwargs)
         self.name = name
@@ -348,6 +455,7 @@ class Project:
         self.pubsub_name = pubsub_name
         self.working_copy = working_copy
         self.builds = builds
+        self.mail_on_error = mail_on_error
         for build in self.builds:
             build.project = self
 
@@ -372,6 +480,42 @@ class Project:
 
     def __str__(self):
         return self.name
+
+class IOHandler:
+    class IOCapture:
+        def __init__(self, handler):
+            self._handler = handler
+            self._lines = []
+
+        def _handle_line(self, line):
+            self._lines.append(line)
+
+        def __enter__(self):
+            self._handler.add_line_hook(self._handle_line)
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            self._handler.remove_line_hook(self._handle_line)
+
+        @property
+        def lines(self):
+            return self._lines
+
+    def __init__(self):
+        self._line_hooks = []
+
+    def add_line_hook(self, line_hook):
+        self._line_hooks.append(line_hook)
+
+    def remove_line_hook(self, line_hook):
+        self._line_hooks.remove(line_hook)
+
+    def capture(self):
+        return IOCapture(self)
+
+    def write_line(self, line):
+        for hook in self._line_hooks:
+            hook(line)
 
 class BuildBot(HubBot):
     GIT_NODE = "git@"+HubBot.FEED
@@ -405,6 +549,14 @@ class BuildBot(HubBot):
         self.bots_switch, _ = self.addSwitch("bots", nickname)
 
         self.add_event_handler("pubsub_publish", self.pubsubPublish)
+        self.output_handler = IOHandler()
+
+    def _muc_output(self, line):
+        self.send_message(
+            mto=self.switch,
+            mbody=line,
+            mtype="groupchat"
+        )
 
     def sessionStart(self, event):
         super().sessionStart(event)
@@ -445,7 +597,7 @@ class BuildBot(HubBot):
         del cmp_creds_new["password"]
         cmp_creds_old = dict(self.config_credentials)
 
-        if  cmp_creds_new != cmp_creds_old and self.initialized:
+        if cmp_creds_new != cmp_creds_old and self.initialized:
             logger.info("Respawning due to major config change")
             Respawn.exec_respawn(self)
 
@@ -465,6 +617,27 @@ class BuildBot(HubBot):
     def build_switch(self, msg):
         pass
 
+    def broadcast_error(self, exc):
+        hint = "Project “{0}”, target “{1!s}” is broken, traceback logged to {2}".format(
+            build.project.name,
+            build,
+            self.switch
+        )
+        self.send_message(
+            mto=self.bots_switch,
+            mbody="{1}: {0}".format(hint, self.notification_to),
+            mtype="groupchat"
+        )
+        self.send_message(
+            mto=self.switch,
+            mbody=self.format_exception(err),
+            mtype="groupchat"
+        )
+        print(hint)
+
+    def mail_error(self, build, err):
+        pass
+
     def rebuild_repo(self, msg, repo, branch):
         repobranch = (repo, branch)
         try:
@@ -473,24 +646,15 @@ class BuildBot(HubBot):
             return False
         try:
             for build in builds:
-                self.rebuild(build)
+                with self.output_handler.capture() as capture:
+                    self.rebuild(build)
+        except subprocess.CalledProcessError as err:
+            self.broadcast_error(err)
+            self.mail_error(build.project, err)
+            return False
         except Exception as err:
-            hint = "Project “{0}”, target “{1!s}” is broken, traceback logged to {2}".format(
-                build.project.name,
-                build,
-                self.switch
-            )
-            self.send_message(
-                mto=self.bots_switch,
-                mbody="{1}: {0}".format(hint, self.notification_to),
-                mtype="groupchat"
-            )
-            self.send_message(
-                mto=self.switch,
-                mbody=self.formatException(err),
-                mtype="groupchat"
-            )
-            print(hint)
+            self.broadcast_error(err)
+            self.mail_error(build.project, err)
             return False
         finally:
             self.send_message(
@@ -512,11 +676,11 @@ class BuildBot(HubBot):
 
         self.rebuild_repo(msg, repo, ref.split("/")[2])
 
-    def formatException(self, exc_info):
+    def format_exception(self, exc_info):
         return "\n".join(traceback.format_exception(*sys.exc_info()))
 
-    def replyException(self, msg, exc_info):
-        self.reply(msg, self.formatException(exc_info))
+    def reply_exception(self, msg, exc_info):
+        self.reply(msg, self.format_exception(exc_info))
 
     def authorizedSource(self, msg):
         origin = str(msg["from"].bare)
@@ -557,18 +721,12 @@ class BuildBot(HubBot):
             self.reply(msg, "Unknown command: {0}".format(cmd))
 
     def rebuild(self, build):
-        def log_func(msg):
-            self.send_message(
-                mto=self.switch,
-                mbody=msg,
-                mtype="groupchat"
-            )
         def log_func_binary(buf):
             if not isinstance(buf, str):
                 buf = buf.decode()
             msg = buf.strip()
             if msg:
-                log_func(msg)
+                self.output_handler.write_line(msg)
         project = build.project
 
         topic = "Running: {project!s} – {build!s}".format(
