@@ -522,7 +522,8 @@ class BuildBot(HubBot):
             if not origin in self.blacklist:
                 self.reply(msg, "You're not authorized.")
                 self.blacklist.add(origin)
-            return
+            return False
+        return True
 
     def messageMUC(self, msg):
         if msg["mucnick"] == self.nick:
@@ -538,6 +539,7 @@ class BuildBot(HubBot):
 
         if not self.authorizedSource(msg):
             return
+
         contents = msg["body"]
         args = contents.split(" ", 1)
         cmd = args[0]
