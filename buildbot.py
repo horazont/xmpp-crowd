@@ -45,7 +45,7 @@ class Popen(subprocess.Popen):
 
         split = buf.split(b"\n")
         for line in split[:-1]:
-            self.sink_line_call(buf)
+            self.sink_line_call(line)
         return split[-1]
 
     def communicate(self):
