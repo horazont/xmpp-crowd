@@ -622,7 +622,7 @@ class BuildBot(HubBot):
     def build_switch(self, msg):
         pass
 
-    def broadcast_error(self, exc):
+    def broadcast_error(self, msg, build, exc):
         hint = "Project “{0}”, target “{1!s}” is broken, traceback logged to {2}".format(
             build.project.name,
             build,
@@ -671,11 +671,11 @@ class BuildBot(HubBot):
                 with self.output_handler.capture() as capture:
                     self.rebuild(build)
         except subprocess.CalledProcessError as err:
-            self.broadcast_error(err)
+            self.broadcast_error(msg, build, err)
             self.mail_error(project, build, err, capture.lines)
             return False
         except Exception as err:
-            self.broadcast_error(err)
+            self.broadcast_error(msg, build, err)
             self.mail_error(project, build, err, capture.lines)
             return False
         finally:
