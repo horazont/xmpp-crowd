@@ -737,7 +737,7 @@ class BuildBot(HubBot):
                 local = {"__func": handler, "__self": self, "__msg": msg}
                 self.reply(msg, repr(eval("__func(__self, __msg, {0})".format(args), globals(), local)))
             except Exception:
-                self.replyException(msg, sys.exc_info())
+                self.reply_exception(msg, sys.exc_info())
         else:
             self.reply(msg, "Unknown command: {0}".format(cmd))
 
@@ -769,7 +769,7 @@ class BuildBot(HubBot):
     def cmdReload(self, msg):
         result = self.reloadConfig()
         if result:
-            self.replyException(msg, result)
+            self.reply_exception(msg, result)
         else:
             return True
 
