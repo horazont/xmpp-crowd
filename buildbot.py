@@ -672,11 +672,11 @@ class BuildBot(HubBot):
                     self.rebuild(build)
         except subprocess.CalledProcessError as err:
             self.broadcast_error(msg, build, err)
-            self.mail_error(project, build, err, capture.lines)
+            self.mail_error("failure", project, build, err, capture.lines)
             return False
         except Exception as err:
             self.broadcast_error(msg, build, err)
-            self.mail_error(project, build, err, capture.lines)
+            self.mail_error("error", project, build, err, capture.lines)
             return False
         finally:
             self.send_message(
