@@ -755,9 +755,9 @@ class BuildBot(HubBot):
             build=build
         )
         self.send_message(mto=self.switch, mbody="", msubject=topic, mtype="groupchat")
-        log_func(topic)
+        self.output_handler.write_line(topic)
         build.build(log_func_binary)
-        log_func("done.")
+        self.output_handler.write_line("done.")
 
     def cmdRebuild(self, msg, projectName):
         project = self.projects.get(projectName, None)
