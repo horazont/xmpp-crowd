@@ -511,7 +511,7 @@ class IOHandler:
         self._line_hooks.remove(line_hook)
 
     def capture(self):
-        return IOCapture(self)
+        return self.IOCapture(self)
 
     def write_line(self, line):
         for hook in self._line_hooks:
