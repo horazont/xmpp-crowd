@@ -23,25 +23,23 @@ from wsgiref.handlers import format_date_time
 
 logger = logging.getLogger(__name__)
 
+def smtp_insecure(host, port):
+    return smtplib.SMTP(host, port)
+
+def smtp_ssl(host, port):
+    return smtplib.SMTP_SSL(host, port)
+
+def smtp_starttls(host, port):
+    smtp = smtplib.SMTP(host, port)
+    smtp.starttls()
+    return smtp
+
 class MailSendConfig:
     @abc.abstractmethod
     def send_mime_mail(self, mime_mail):
         pass
 
 class MailSMTPConfig:
-    @staticmethod
-    def smtp_insecure(host, port):
-        return smtplib.SMTP(host, port)
-
-    @staticmethod
-    def smtp_ssl(host, port):
-        return smtplib.SMTP_SSL(host, port)
-
-    @staticmethod
-    def smtp_starttls(host, port):
-        smtp = smtplib.SMTP(host, port)
-        smtp.starttls()
-        return smtp
 
     SEC_NONE = smtp_insecure
     SEC_SSL = smtp_ssl
