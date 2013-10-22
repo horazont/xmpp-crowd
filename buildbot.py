@@ -757,9 +757,11 @@ class BuildBot(HubBot):
         self.send_message(mto=self.switch, mbody="", msubject=topic, mtype="groupchat")
         self.output_handler.write_line(topic)
         self.output_handler.add_line_hook(self._muc_output)
-        build.build(log_func_binary)
-        self.output_handler.write_line("done.")
-        self.output_handler.remove_line_hook(self._muc_output)
+        try:
+            build.build(log_func_binary)
+            self.output_handler.write_line("done.")
+        finally:
+            self.output_handler.remove_line_hook(self._muc_output)
 
     def cmdRebuild(self, msg, projectName):
         project = self.projects.get(projectName, None)
