@@ -607,10 +607,15 @@ class BuildBot(HubBot):
         self.blacklist = set()
         self.projects = dict(namespace.get("projects", []))
 
+        # repobranch-map contains the following structure
+        #
+        # {(repo, branch) => {project => [builds]}}
         self.repobranch_map = {}
         for project in self.projects.values():
-            for reprobranch, build in project.triggers.items():
-                self.repobranch_map.setdefault(reprobranch, []).extend(build)
+            for repobranch, builds in project.triggers.items():
+                projectmap = self.repobranch_map.setdefault(
+                    repobranch, {})
+                projectmap[project] = list(builds)
 
         return None
 
@@ -635,26 +640,43 @@ class BuildBot(HubBot):
         )
         print(hint)
 
-    def mail_error(self, build, err):
-        pass
+    def mail_error(self, severity, project, build, err, output_lines):
+        if project.mail_on_error is None:
+            return
+
+        mailconf, tolist = project.mail_on_error
+
+        mailconf.send_mail(
+            output_lines,
+            severity,
+            project.name,
+            build.name,
+            tolist)
 
     def rebuild_repo(self, msg, repo, branch):
         repobranch = (repo, branch)
         try:
-            builds = self.repobranch_map[repobranch]
+            projects = self.repobranch_map[repobranch]
         except KeyError:
-            return False
+            self.reply("Repository-branch combination not tracked: {}".format((repo, branch))
+            return
+
+        for project, builds in projects.items():
+            self.rebuild_project_subset(msg, project, builds)
+        return True
+
+    def rebuild_project_subset(self, msg, project, builds):
         try:
             for build in builds:
                 with self.output_handler.capture() as capture:
                     self.rebuild(build)
         except subprocess.CalledProcessError as err:
             self.broadcast_error(err)
-            self.mail_error(build.project, err)
+            self.mail_error(project, build, err, capture.lines)
             return False
         except Exception as err:
             self.broadcast_error(err)
-            self.mail_error(build.project, err)
+            self.mail_error(project, build, err, capture.lines)
             return False
         finally:
             self.send_message(
@@ -663,7 +685,6 @@ class BuildBot(HubBot):
                 msubject=self.IDLE_MESSAGE,
                 mtype="groupchat"
             )
-        return True
 
     def pubsubPublish(self, msg):
         item = msg["pubsub_event"]["items"]["item"].xml[0]
