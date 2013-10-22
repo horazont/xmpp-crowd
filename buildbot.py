@@ -622,7 +622,7 @@ class BuildBot(HubBot):
     def build_switch(self, msg):
         pass
 
-    def broadcast_error(self, msg, build, exc):
+    def broadcast_error(self, msg, build, err):
         hint = "Project “{0}”, target “{1!s}” is broken, traceback logged to {2}".format(
             build.project.name,
             build,
