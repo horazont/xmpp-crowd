@@ -658,7 +658,7 @@ class BuildBot(HubBot):
         try:
             projects = self.repobranch_map[repobranch]
         except KeyError:
-            self.reply("Repository-branch combination not tracked: {}".format((repo, branch))
+            self.reply("Repository-branch combination not tracked: {}".format((repo, branch)))
             return
 
         for project, builds in projects.items():
