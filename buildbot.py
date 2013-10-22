@@ -642,8 +642,10 @@ class BuildBot(HubBot):
 
     def mail_error(self, severity, project, build, err, output_lines):
         if project.mail_on_error is None:
+            print("project doesn't have configured mail foo")
             return
 
+        print("sending mail")
         mailconf, tolist = project.mail_on_error
 
         mailconf.send_mail(
