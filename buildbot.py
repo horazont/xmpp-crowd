@@ -52,13 +52,13 @@ class MailSMTPConfig:
         self._passwd = passwd
         self._security = security
 
-    def send_mime_mail(self, mime_mail):
+    def send_mime_mail(self, mime_mail, tolist):
         smtp = self._security(self._host, self._port)
         if self._user is not None:
             smtp.login(self._user, self._passwd)
         smtp.sendmail(
             mime_mail["From"],
-            mime_mail["To"],
+            tolist,
             mime_mail.as_string())
         smtp.quit()
 
@@ -112,7 +112,7 @@ action.""".format(
             filename="job.log")
         mail.attach(mime_log)
 
-        self._sendconfig.send_mime_mail(mail)
+        self._sendconfig.send_mime_mail(mail, tolist)
 
 class Popen(subprocess.Popen):
     DEVNULLR = open("/dev/null", "r")
