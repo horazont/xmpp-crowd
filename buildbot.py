@@ -37,6 +37,7 @@ def smtp_starttls(host, port):
 class MailSendConfig(metaclass=abc.ABCMeta):
     @classmethod
     def _mime_to_bytes(cls, mime):
+        from io import StringIO
         from email.generator import BytesGenerator
         fp = StringIO()
         g = BytesGenerator(fp, mangle_from_=False)
