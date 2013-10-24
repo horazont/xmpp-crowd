@@ -106,6 +106,7 @@ action.""".format(
 
         mime_log = email.mime.text.MIMEText(
             "\n".join(lines))
+        mime_log.set_charset("utf-8")
         mime_log.add_header(
             "Content-Disposition",
             "attachment",
