@@ -34,7 +34,15 @@ def smtp_starttls(host, port):
     smtp.starttls()
     return smtp
 
-class MailSendConfig:
+class MailSendConfig(metaclass=abc.ABCMeta):
+    @classmethod
+    def _mime_to_bytes(cls, mime):
+        from email.generator import BytesGenerator
+        fp = StringIO()
+        g = BytesGenerator(fp, mangle_from_=False)
+        g.flatten(mime)
+        return fp.getvalue()
+
     @abc.abstractmethod
     def send_mime_mail(self, mime_mail):
         pass
@@ -56,10 +64,14 @@ class MailSMTPConfig:
         smtp = self._security(self._host, self._port)
         if self._user is not None:
             smtp.login(self._user, self._passwd)
+
+        mailbytes = self._mime_to_bytes(mime_mail)
+        assert isinstance(mailbytes, bytes)
+
         smtp.sendmail(
             mime_mail["From"],
             tolist,
-            mime_mail.as_string())
+            mailbytes)
         smtp.quit()
 
 
