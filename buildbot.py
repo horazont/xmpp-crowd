@@ -38,9 +38,9 @@ class MailSendConfig(metaclass=abc.ABCMeta):
     @classmethod
     def _mime_to_bytes(cls, mime):
         from io import StringIO
-        from email.generator import BytesGenerator
+        from email.generator import Generator
         fp = StringIO()
-        g = BytesGenerator(fp, mangle_from_=False)
+        g = Generator(fp, mangle_from_=False)
         g.flatten(mime)
         return fp.getvalue()
 
