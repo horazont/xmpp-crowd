@@ -47,7 +47,7 @@ class MailSendConfig(metaclass=abc.ABCMeta):
     def send_mime_mail(self, mime_mail):
         pass
 
-class MailSMTPConfig:
+class MailSMTPConfig(MailSendConfig):
 
     SEC_NONE = smtp_insecure
     SEC_SSL = smtp_ssl
