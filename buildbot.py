@@ -113,13 +113,12 @@ action.""".format(
             project=project,
             target=target)
 
-        mime_text = email.mime.text.MIMEText(text)
-        mime_text.set_charset("utf-8")
+        mime_text = email.mime.text.MIMEText(
+            text.encode("utf-8"), _charset="utf-8")
         mail.attach(mime_text)
 
         mime_log = email.mime.text.MIMEText(
-            "\n".join(lines))
-        mime_log.set_charset("utf-8")
+            "\n".join(lines).encode("utf-8"), _charset="utf-8")
         mime_log.add_header(
             "Content-Disposition",
             "attachment",
