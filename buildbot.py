@@ -67,7 +67,6 @@ class MailSMTPConfig(MailSendConfig):
             smtp.login(self._user, self._passwd)
 
         mailbytes = self._mime_to_bytes(mime_mail)
-        assert isinstance(mailbytes, bytes)
 
         smtp.sendmail(
             mime_mail["From"],
