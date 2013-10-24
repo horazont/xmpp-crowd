@@ -742,7 +742,7 @@ class BuildBot(HubBot):
         contents = msg["body"]
         args = contents.split(" ", 1)
         cmd = args[0]
-        args = args[1]
+        args = args[1] if len(args) > 0 else ""
         handler = self.COMMANDS.get(cmd, None)
         if handler is not None:
             try:
