@@ -138,12 +138,16 @@ class Popen(subprocess.Popen):
             raise subprocess.CalledProcessError(retval, " ".join(call))
         return result
 
-    def __init__(self, call, *args, sink_line_call=None, **kwargs):
+    def __init__(self, call, *args, sink_line_call=None, update_env={}, **kwargs):
         if sink_line_call is not None:
             kwargs["stdout"] = subprocess.PIPE
             kwargs["stderr"] = subprocess.PIPE
         if "stdin" not in kwargs:
             kwargs["stdin"] = self.DEVNULLR
+        if update_env:
+            env = os.environ
+            env.update(update_env)
+            kwargs["env"] = env
         super().__init__(call, *args, **kwargs)
         self.sink_line_call = sink_line_call
         if sink_line_call is not None:
@@ -270,16 +274,18 @@ class Execute(Target):
     def __init__(self, name, *commands,
             working_directory=None,
             branch="master",
+            update_env={},
             **kwargs):
         super().__init__(name, branch, **kwargs)
         self.working_directory = working_directory
         self.commands = commands
+        self.update_env = update_env
 
     def _do_build(self, log_func):
         def checked(*args, **kwargs):
             return Popen.checked(*args, sink_line_call=log_func, **kwargs)
         for command in self.commands:
-            checked(command)
+            checked(command, update_env=self.update_env)
 
     def build(self, log_func):
         wd = self.working_directory or os.getcwd()
