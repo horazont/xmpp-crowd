@@ -1,6 +1,8 @@
 import abc
 import logging
 
+from datetime import datetime, timedelta
+
 import foomodules.Base as Base
 import foomodules.URLLookup as URLLookup
 
@@ -193,3 +195,31 @@ class SYNACK(Base.MessageHandler):
             self._fin(msg)
             return self.abort
         return False
+
+class CTCP(Base.MessageHandler):
+    def __init__(self,
+            versionstr,
+            dateformat="%a %d %b %Y %H:%M:%S UTC"):
+        self._versionstr = versionstr
+        self._dateformat = dateformat
+
+    def __call__(self, msg, errorSink=None):
+        if msg["mtype"] != "chat":
+            return False
+
+        body = msg["body"].strip()
+        if not body.startswith("\u0001"):
+            return False
+
+        #body = body[5:]
+        #if body.startswith("VERSION"):
+        #    self.reply(msg, self._versionstr)
+        #elif body.startswith("TIME"):
+        #    self.reply(msg, datetime.utcnow().strftime(self._dateformat))
+        #elif body.startswith("PING"):
+        #    self.reply(msg, body)
+
+        # Until we have found out on how to properly send NOTICEs, we'll
+        # just ignore these messages
+
+        return True
