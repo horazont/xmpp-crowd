@@ -321,8 +321,7 @@ class InfoBot(HubBot):
             self.hooks_setup = True
         self.update_all()
 
-    @staticmethod
-    def _format_text_weather(forecasts, index):
+    def _format_text_weather(self, forecasts, index):
         precipitation = sum(forecast.precipitation
                             for forecast in forecasts[:index+1])
         forecast = forecasts[index]
