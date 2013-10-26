@@ -208,7 +208,7 @@ class CTCP(Base.MessageHandler):
             return False
 
         body = msg["body"].strip()
-        if not body.startswith("\u0001") or body.startswith("CTCP"):
+        if not body.startswith("\u0001") and not body.startswith("CTCP"):
             return False
 
         #body = body[5:]
