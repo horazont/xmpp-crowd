@@ -199,7 +199,8 @@ class SYNACK(Base.MessageHandler):
 class CTCP(Base.MessageHandler):
     def __init__(self,
             versionstr,
-            dateformat="%a %d %b %Y %H:%M:%S UTC"):
+            dateformat="%a %d %b %Y %H:%M:%S UTC",
+            **kwargs):
         super().__init__(**kwargs)
         self._versionstr = versionstr
         self._dateformat = dateformat
