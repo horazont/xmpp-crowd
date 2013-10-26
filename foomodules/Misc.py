@@ -200,6 +200,7 @@ class CTCP(Base.MessageHandler):
     def __init__(self,
             versionstr,
             dateformat="%a %d %b %Y %H:%M:%S UTC"):
+        super().__init__(**kwargs)
         self._versionstr = versionstr
         self._dateformat = dateformat
 
