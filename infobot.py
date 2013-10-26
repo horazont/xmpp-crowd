@@ -325,9 +325,9 @@ class InfoBot(HubBot):
         precipitation = sum(forecast.precipitation
                             for forecast in forecasts[:index+1])
         forecast = forecasts[index]
-        if index == 0 and self._custom_temperature != 0:
+        if index == 0 and self._custom_temperature is not None:
             T = self._custom_temperature
-            tempnote = "⃗†"
+            tempnote = "†"
         else:
             T = forecast.temperature
             tempnote = ""
