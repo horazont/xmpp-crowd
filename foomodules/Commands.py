@@ -7,8 +7,16 @@ import os
 import re
 import socket
 import argparse
-import datetime
+from datetime import datetime, timedelta, date
 import ipaddress
+import logging
+import calendar
+
+try:
+    import pytz
+except ImportError:
+    # no timezone support
+    pytz = None
 
 import foomodules.Base as Base
 import foomodules.utils as utils
@@ -422,7 +430,7 @@ class CW(Base.MessageHandler):
     def __call__(self, msg, arguments, errorSink=None):
         if arguments.strip():
             return
-        current_date = datetime.date.today()
+        current_date = date.today()
         current_cw = current_date.isocalendar()[1]
         current_year = current_date.year
         paritystr = ""
@@ -448,3 +456,126 @@ class Redirect(Base.MessageHandler):
             msg,
             "I don't know that. Did you mean: {} {}".format(
                 self._new_name, arguments))
+
+
+class Date(Base.MessageHandler):
+    def __init__(self, timezone, **kwargs):
+        super().__init__(**kwargs)
+        if pytz is None:
+            logging.warn("Timezone support disabled, install pytz to enable.")
+            self._timezone = None
+        else:
+            self._timezone = pytz.timezone(timezone)
+
+    def _format_date(self, dt):
+        return dt.strftime("%a %d %b %Y %H:%M:%S %Z")
+
+    def __call__(self, msg, arguments, errorSink=None):
+        if arguments.strip():
+            return
+
+        self.reply(self._format_date(datetime.now(pytz.UTC)))
+
+class DiscordianDateTime:
+    ST_TIBS_DAY = "St. Tib’s Day"
+
+    HOLIDAYS = [
+        "Mungday",
+        "Chaoflux",
+        "Mojoday",
+        "Discoflux",
+        "Syaday",
+        "Confuflux",
+        "Zaraday",
+        "Bureflux",
+        "Maladay",
+    ]
+
+    SEASONS = [
+        "Chaos",
+        "Discord",
+        "Confusion",
+        "Bureaucracy",
+        "The Aftermath",
+    ]
+
+    WEEKDAYS = [
+        "Sweetmorn",
+        "Boomtime",
+        "Pungenday",
+        "Prickle-Prickle",
+        "Setting Orange",
+    ]
+
+    yold = None
+    seasonname = None
+    season = None
+    weekday = None
+    weekdayname = None
+    day = None
+    hour = None
+    minute = None
+    second = None
+
+    def __init__(self, dt):
+        y, m, d = dt.year, dt.month, dt.day
+
+        self.yold = y + 1166
+        self.hour = dt.hour
+        self.minute = dt.minute
+        self.second = dt.second
+
+        if (m, d) == (2, 29):
+            self.weekdayname = self.ST_TIBS_DAY
+        else:
+            # this is ugly. if you know something better, tell me
+            day_of_year = int(dt.strftime("%j"))
+
+            if calendar.isleap(y):
+                # 60th is St. Tib's Day
+                if day_of_year > 60:
+                    day_of_year -= 1
+
+            season = int((day_of_year-1) / 73)
+            self.season = season+1
+            self.seasonname = self.SEASONS[season]
+
+            self.day = (day_of_year-1) % 73 + 1
+
+            self.weekday = (day_of_year-1) % 5 + 1
+            if self.day == 5 or self.day == 50:
+                # holiday
+                offs = 1 if self.day == 50 else 0
+                holidayidx = season*2 + offs
+                self.weekdayname = self.HOLIDAYS[holidayidx]
+            else:
+                self.weekdayname = self.WEEKDAYS[self.weekday-1]
+
+class DDate(Date):
+    @staticmethod
+    def _cardinal_number(num):
+        suffixes = {
+            "1": "st",
+            "2": "nd",
+            "3": "rd"
+        }
+        exceptions = {11, 12, 13}
+        if num in exceptions:
+            return "{:d}th".format(num)
+
+        num = str(num)
+        num += suffixes.get(num[-1], "th")
+        return num
+
+    def _format_date(self, dt):
+        ddt = DiscordianDateTime(dt)
+        if ddt.day is None:
+            return "Today is {weekdayname} in the YOLD {yold:04d}".format(
+                weekdayname=ddt.weekdayname,
+                yold=ddt.yold)
+        else:
+            return "Today is {weekdayname}, the {card} day of {seasonname} in the YOLD {yold}".format(
+                weekdayname=ddt.weekdayname,
+                card=self._cardinal_number(ddt.day),
+                seasonname=ddt.seasonname,
+                yold=ddt.yold)
