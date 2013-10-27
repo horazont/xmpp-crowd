@@ -474,7 +474,7 @@ class Date(Base.MessageHandler):
         if arguments.strip():
             return
 
-        self.reply(self._format_date(datetime.now(pytz.UTC)))
+        self.reply(msg, self._format_date(datetime.now(pytz.UTC)))
 
 class DiscordianDateTime:
     ST_TIBS_DAY = "St. Tib’s Day"
