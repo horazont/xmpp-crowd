@@ -139,7 +139,7 @@ class InfoBot(HubBot):
             whichline = " "*20
 
 
-        localnow = datetime.utcnow() + timedelta(seconds=2*60*60)
+        localnow = datetime.utcnow() + timedelta(seconds=60*60)
         dateline = localnow.strftime("%H:%M") + "  "
 
         temps = [forecast.temperature for forecast in data
