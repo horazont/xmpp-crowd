@@ -476,7 +476,7 @@ class Date(Base.MessageHandler):
 
         if pytz is not None:
             dt = datetime.now(pytz.UTC)
-            if self._timezone is not None
+            if self._timezone is not None:
                 dt = dt.astimezone(self._timezone)
         else:
             dt = datetime.utcnow()
