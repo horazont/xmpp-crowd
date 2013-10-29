@@ -88,22 +88,14 @@ class LogToFile(Base.XMPPObject):
     def _xmpp_changed(self, old_value, new_value):
         super()._xmpp_changed(old_value, new_value)
         if old_value is not None:
-            old_value.del_event_handler("presence", self.handle_presence)
-            old_value.del_event_handler("groupchat_message", self.handle_message)
+            old_value.del_event_handler("muc::{}::presence".format(self._target_jid), self.handle_presence)
+            old_value.del_event_handler("muc::{}::message".format(self._target_jid), self.handle_message)
         if new_value is not None:
-            new_value.add_event_handler("presence", self.handle_presence)
-            new_value.add_event_handler("groupchat_message", self.handle_message)
+            new_value.add_event_handler("muc::{}::presence".format(self._target_jid), self.handle_presence)
+            new_value.add_event_handler("muc::{}::message".format(self._target_jid), self.handle_message)
 
     def handle_presence(self, presence):
-        if presence["from"].bare == self._target_jid:
-            self._presence(presence)
-
-    def handle_message(self, msg):
-        if msg["from"].bare == self._target_jid:
-            self._message(msg)
-
-    def _presence(self, presence):
         self._log(self._format.format_presence(presence))
 
-    def _message(self, msg):
+    def handle_message(self, msg):
         self._log(self._format.format_message_groupchat(msg))
