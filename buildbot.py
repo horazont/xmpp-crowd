@@ -698,8 +698,7 @@ class BuildBot(HubBot):
         try:
             projects = self.repobranch_map[repobranch]
         except KeyError:
-            self.reply("Repository-branch combination not tracked: {}".format((repo, branch)))
-            return
+            raise
 
         for project, builds in projects.items():
             self.rebuild_project_subset(msg, project, builds)
@@ -735,7 +734,10 @@ class BuildBot(HubBot):
         if ref is None:
             print("Malformed git-post-update.")
 
-        self.rebuild_repo(msg, repo, ref.split("/")[2])
+        try:
+            self.rebuild_repo(msg, repo, ref.split("/")[2])
+        except KeyError:
+            pass
 
     def format_exception(self, exc_info):
         return "\n".join(traceback.format_exception(*sys.exc_info()))
@@ -818,7 +820,10 @@ class BuildBot(HubBot):
             return True
 
     def cmdRebuildRepo(self, msg, repository, branch):
-        self.rebuild_repo(msg, repository, branch)
+        try:
+            self.rebuild_repo(msg, repository, branch)
+        except KeyError:
+            self.reply(msg, "Repository-branch combination not tracked: {}".format((repo, branch)))
 
     def cmdEcho(self, msg, *args):
         return " ".join((str(arg) for arg in args))
