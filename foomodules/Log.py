@@ -9,11 +9,19 @@ class LogFormat(object, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def format_presence(self, presence):
+    def format_daychange(self, dt):
         pass
 
     @abc.abstractmethod
-    def format_daychange(self, dt):
+    def format_nickchange(self, oldnick, newnick, presence):
+        pass
+
+    @abc.abstractmethod
+    def format_join(self, presence):
+        pass
+
+    @abc.abstractmethod
+    def format_leave(self, presence):
         pass
 
 class IRSSILogFormat(LogFormat):
@@ -30,21 +38,15 @@ class IRSSILogFormat(LogFormat):
             nick=msg["from"].resource,
             message=msg["body"])
 
-    def _format_leave(self, presence):
+    def format_leave(self, presence):
         return "{time} -!- {nick} has left the room".format(
             time=self.format_timestamp(),
             nick=presence["from"].resource)
 
-    def _format_join(self, presence):
+    def format_join(self, presence):
         return "{time} -!- {nick} has joined the room".format(
             time=self.format_timestamp(),
             nick=presence["from"].resource)
-
-    def format_presence(self, presence):
-        if presence["type"] == "unavailable":
-            return self._format_leave(presence)
-        else:
-            return self._format_join(presence)
 
     def format_log_start(self):
         return "{time} -!- logging starts".format(
@@ -56,6 +58,12 @@ class IRSSILogFormat(LogFormat):
             day=dt.day,
             month=dt.month,
             year=dt.year)
+
+    def format_nickchange(self, oldnick, newnick, presence):
+        return "{time} -!- {oldnick} is now known as {newnick}".format(
+            time=self.format_timestamp(),
+            oldnick=oldnick,
+            newnick=newnick)
 
 class LogToFile(Base.XMPPObject):
     def __init__(self,
@@ -69,6 +77,7 @@ class LogToFile(Base.XMPPObject):
         self._format = format
         self._last_entry = None
         self._start_logging()
+        self._known_nicks = set()
 
     def _log(self, text):
         curr_time = datetime.utcnow()
@@ -95,7 +104,21 @@ class LogToFile(Base.XMPPObject):
             new_value.add_event_handler("muc::{}::message".format(self._target_jid), self.handle_message)
 
     def handle_presence(self, presence):
-        self._log(self._format.format_presence(presence))
+        curr_nick = presence['from'].resource
+        item = presence.xml.find('{{{0}}}x/{{{0}}}item'.format('http://jabber.org/protocol/muc#user'))
+        new_nick = item.get('nick')
+        if curr_nick != new_nick and new_nick is not None:
+            self._log(self._format.format_nickchange(curr_nick, new_nick, presence))
+            try:
+                self._known_nicks.remove(curr_nick)
+            except KeyError:
+                pass
+            self._known_nicks.add(new_nick)
+        else:
+            if presence['type'] == 'unavailable':
+                self._log(self._format.format_leave(presence))
+            elif curr_nick not in self._known_nicks:
+                self._log(self._format.format_join(presence))
 
     def handle_message(self, msg):
         self._log(self._format.format_message_groupchat(msg))
