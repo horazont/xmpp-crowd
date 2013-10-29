@@ -12,6 +12,7 @@ import logging
 import calendar
 import abc
 import smtplib
+import sleekxmpp.exceptions
 
 from datetime import datetime, timedelta
 
@@ -574,11 +575,32 @@ class BuildBot(HubBot):
             mtype="groupchat"
         )
 
+    def _setup_pubsub(self):
+        try:
+            iq = self.pubsub.get_subscriptions(self.FEED, self.GIT_NODE)
+            if len(iq["pubsub"]["subscriptions"]) == 0:
+                self.pubsub.subscribe(self.FEED, self.GIT_NODE, bare=True)
+        except sleekxmpp.exceptions.IqError:
+            # error'd
+            self.send_message(
+                mto=self.bots_switch,
+                mbody="failed to setup pubsub link",
+                mtype="groupchat"
+            )
+            # this is the return value for the scheduler (i.e. run
+            # again)
+            return True
+        return False
+
     def sessionStart(self, event):
         super().sessionStart(event)
-        iq = self.pubsub.get_subscriptions(self.FEED, self.GIT_NODE)
-        if len(iq["pubsub"]["subscriptions"]) == 0:
-            self.pubsub.subscribe(self.FEED, self.GIT_NODE, bare=True)
+        if self._setup_pubsub():
+            self.scheduler.add(
+                "link-pubsub",
+                60.0,
+                self._setup_pubsub,
+                repeat=True)
+
         self.send_message(mto=self.switch,
             mbody="",
             msubject=self.IDLE_MESSAGE,
