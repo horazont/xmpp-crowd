@@ -118,6 +118,7 @@ class LogToFile(Base.XMPPObject):
             if presence['type'] == 'unavailable':
                 self._log(self._format.format_leave(presence))
             elif curr_nick not in self._known_nicks:
+                self._known_nicks.add(curr_nick)
                 self._log(self._format.format_join(presence))
 
     def handle_message(self, msg):
