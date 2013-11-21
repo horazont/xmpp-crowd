@@ -633,10 +633,10 @@ class Poly(Base.MessageHandler):
         if match is None:
             raise ValueError("Could not parse command")
         poly1 = match.group(1)
-        poly2 = match.group(3)
-        instruction = match.group(2)
-        p = match.group(4)
-        var = match.group(5)
+        poly2 = match.group(2)
+        instruction = "mod"#match.group(2)
+        p = match.group(3)
+        var = match.group(4)
 
         cs1 = self._parse_poly(poly1, var)
         cs2 = self._parse_poly(poly2, var)
