@@ -657,10 +657,12 @@ class Poly(Base.MessageHandler):
         try:
             p1, _, p2 = self._parse_instruction(arguments)
         except ValueError as err:
-            self.reply("could not parse your request: {}. please use format: poly1 mod poly2 in GF(p)[x]".format(err))
+            self.reply(msg,
+                "could not parse your request: {}. please use format: "
+                "poly1 mod poly2 in GF(p)[x]".format(err))
 
         d, r = p1._divmod(p2)
-        self.reply(
+        self.reply(msg,
             "{a} // {b} = {d}; remainder: {r}".format(
                 a=p1,
                 b=p2,
