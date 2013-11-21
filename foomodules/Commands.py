@@ -651,7 +651,7 @@ class Poly(Base.MessageHandler):
         return p1._divmod(p2)
 
     def __call__(self, msg, arguments, errorSink=None):
-        if arguments.strip():
+        if not arguments.strip():
             return
 
         try:
@@ -666,6 +666,3 @@ class Poly(Base.MessageHandler):
                 b=p2,
                 d=d,
                 r=r))
-
-
-
