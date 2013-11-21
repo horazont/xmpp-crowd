@@ -635,7 +635,7 @@ class Poly(Base.MessageHandler):
         poly1 = match.group(1)
         poly2 = match.group(2)
         instruction = "mod"#match.group(2)
-        p = match.group(3)
+        p = int(match.group(3))
         var = match.group(4)
 
         cs1 = self._parse_poly(poly1, var)
