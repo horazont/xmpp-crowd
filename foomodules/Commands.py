@@ -20,6 +20,7 @@ except ImportError:
 
 import foomodules.Base as Base
 import foomodules.utils as utils
+import foomodules.polylib as polylib
 
 class Say(Base.MessageHandler):
     def __init__(self, variableTo=False, **kwargs):
@@ -585,3 +586,86 @@ class DDate(Date):
                 card=self._cardinal_number(ddt.day),
                 seasonname=ddt.seasonname,
                 yold=ddt.yold)
+
+
+class Poly(Base.MessageHandler):
+    divex = re.compile(r"^\s*(.*?)\s+mod\s+(.*?)\s+in\s+GF\(([0-9]+)\)\[([a-z])\]\s*$", re.I)
+    supunmap = {v: k for k, v in polylib.supmap.items()}
+
+    def _parse_coeff(self, cstr, var):
+        coefficient, _, exponent = cstr.partition(var)
+        if _ != var:
+            try:
+                return int(cstr), 0
+            except ValueError:
+                raise ValueError("Not a valid coefficient for a polynome in"
+                                 " {var}: {}".format(cstr, var=var))
+        if exponent.startswith("^"):
+            # usual format, strip braces if there are any
+            exponent = exponent[1:].replace("{", "").replace("}", "")
+        else:
+            # unicode format
+            exponent = "".join(map(lambda x: self.supunmap.get(x, x), exponent))
+        if not exponent:
+            exponent = 1
+        else:
+            exponent = int(exponent)
+        if not coefficient:
+            coefficient = 1
+        else:
+            coefficient = int(coefficient)
+        return coefficient, exponent
+
+    def _parse_poly(self, pstr, var):
+        # this removes spaces
+        pstr = "".join(map(str.strip, pstr))
+        summands = pstr.split("+")
+
+        coefficients = list(map(lambda x: self._parse_coeff(x, var), summands))
+
+        cs = [0]*(max(degree for _, degree in coefficients)+1)
+        for value, degree in coefficients:
+            cs[degree] = value
+        return cs
+
+    def _parse_instruction(self, s):
+        match = self.divex.match(s)
+        if match is None:
+            raise ValueError("Could not parse command")
+        poly1 = match.group(1)
+        poly2 = match.group(3)
+        instruction = match.group(2)
+        p = match.group(4)
+        var = match.group(5)
+
+        cs1 = self._parse_poly(poly1, var)
+        cs2 = self._parse_poly(poly2, var)
+
+        field = polylib.IntField(p)
+        p1 = polylib.FieldPoly(field, cs1)
+        p2 = polylib.FieldPoly(field, cs2)
+
+        return p1, instruction, p2
+
+    def _calculate_mod(self, p1, p2):
+        return p1._divmod(p2)
+
+    def __call__(self, msg, arguments, errorSink=None):
+        if arguments.strip():
+            return
+
+        try:
+            p1, _, p2 = self._parse_instruction(arguments)
+        except ValueError as err:
+            self.reply("could not parse your request: {}. please use format: poly1 mod poly2 in GF(p)[x]".format(err))
+
+        d, r = p1._divmod(p2)
+        self.reply(
+            "{a} // {b} = {d}; remainder: {r}".format(
+                a=p1,
+                b=p2,
+                d=d,
+                r=r))
+
+
+
