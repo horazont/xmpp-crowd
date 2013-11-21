@@ -167,5 +167,8 @@ class FieldPoly:
             return s
 
     def __str__(self):
-        return "+".join(filter(lambda x: x is not None, map(self._format_value, reversed(list(enumerate(self.cs))))))
+        s = "+".join(filter(lambda x: x is not None, map(self._format_value, reversed(list(enumerate(self.cs))))))
+        if not s:
+            return "0"
+        return s
 
