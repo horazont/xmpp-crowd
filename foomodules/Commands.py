@@ -664,7 +664,11 @@ class Poly(Base.MessageHandler):
                 "could not parse your request: {}. please use format: "
                 "poly1 mod poly2 in GF(p)[x]".format(err))
 
-        d, r = p1._divmod(p2)
+        try:
+            d, r = p1._divmod(p2)
+        except ZeroDivisionError:
+            self.reply(msg, "division by zero")
+
         self.reply(msg,
             "{a} // {b} = {d}; remainder: {r}".format(
                 a=p1,
