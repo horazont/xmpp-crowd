@@ -118,7 +118,7 @@ class FieldPoly:
         self.field = field
         self.cs = list(field(cs))
 
-    def _divmod(self, other):
+    def __divmod__(self, other):
         field = self.field
         commonlen = max(len(self.cs), len(other.cs))
 
@@ -145,10 +145,10 @@ class FieldPoly:
         return FieldPoly(field, div_cs), FieldPoly(field, cs_lhs)
 
     def __mod__(self, other):
-        return self._divmod(other)[1]
+        return divmod(self, other)[1]
 
     def __floordiv__(self, other):
-        return self._divmod(other)[0]
+        return divmod(self, other)[0]
 
     def _format_value(self, kc):
         k, c = kc
