@@ -592,6 +592,10 @@ class Poly(Base.MessageHandler):
     divex = re.compile(r"^\s*(.*?)\s+mod\s+(.*?)\s+in\s+GF\(([0-9]+)\)\[(\w)\]\s*$", re.I)
     supunmap = {v: k for k, v in polylib.supmap.items()}
 
+    def __init__(self, degree_limit=1024, **kwargs):
+        super().__init__(**kwargs)
+        self.degree_limit = degree_limit
+
     def _parse_coeff(self, cstr, var):
         coefficient, _, exponent = cstr.partition(var)
         if _ != var:
@@ -628,6 +632,10 @@ class Poly(Base.MessageHandler):
             if degree < 0:
                 raise ValueError("Negative exponents are invalid for "
                                  "polynomials.")
+            if self.degree_limit is not None and degree > self.degree_limit:
+                raise ValueError("Polynomial out of supported range. "
+                                 "Maximum degree is {}".format(
+                                    self.degree_limit))
             cs[degree] = value
         return cs
 
