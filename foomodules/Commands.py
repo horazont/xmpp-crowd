@@ -589,7 +589,7 @@ class DDate(Date):
 
 
 class Poly(Base.MessageHandler):
-    divex = re.compile(r"^\s*(.*?)\s+mod\s+(.*?)\s+in\s+GF\(([0-9]+)\)\[([a-z])\]\s*$", re.I)
+    divex = re.compile(r"^\s*(.*?)\s+mod\s+(.*?)\s+in\s+GF\(([0-9]+)\)\[(\w)\]\s*$", re.I)
     supunmap = {v: k for k, v in polylib.supmap.items()}
 
     def _parse_coeff(self, cstr, var):
