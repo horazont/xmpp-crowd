@@ -128,6 +128,9 @@ class FieldPoly:
         div_cs = [field(0)]*commonlen
 
         rhs_degree = find_largest_nonzero(cs_rhs)
+        if rhs_degree == 0:
+            raise ZeroDivisionError()
+
         degree = find_largest_nonzero(cs_lhs)
         if degree < rhs_degree:
             return FieldPoly(field, (0,)), FieldPoly(self.field, self.cs)
