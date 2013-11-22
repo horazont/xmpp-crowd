@@ -625,6 +625,9 @@ class Poly(Base.MessageHandler):
 
         cs = [0]*(max(degree for _, degree in coefficients)+1)
         for value, degree in coefficients:
+            if degree < 0:
+                raise ValueError("Negative exponents are invalid for "
+                                 "polynomials.")
             cs[degree] = value
         return cs
 
