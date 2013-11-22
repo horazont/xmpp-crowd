@@ -650,9 +650,6 @@ class Poly(Base.MessageHandler):
 
         return p1, instruction, p2
 
-    def _calculate_mod(self, p1, p2):
-        return divmod(p1, p2)
-
     def __call__(self, msg, arguments, errorSink=None):
         if not arguments.strip():
             return
@@ -666,7 +663,7 @@ class Poly(Base.MessageHandler):
             return
 
         try:
-            d, r = p1._divmod(p2)
+            d, r = divmod(p1, p2)
         except ZeroDivisionError:
             self.reply(msg, "division by zero")
             return
