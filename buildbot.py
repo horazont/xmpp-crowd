@@ -786,7 +786,7 @@ class BuildBot(HubBot):
     def rebuild(self, build):
         def log_func_binary(buf):
             if not isinstance(buf, str):
-                buf = buf.decode()
+                buf = buf.decode(errors="replace")
             msg = buf.strip()
             if msg:
                 self.output_handler.write_line(msg)
