@@ -7,6 +7,10 @@ import urllib.error
 
 import infomodules.utils
 
+def timestamp():
+    import calendar
+    return calendar.timegm(datetime.utcnow().utctimetuple())
+
 class StopFilter(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def filter_departures(self, input):
@@ -69,6 +73,11 @@ class Departure(object):
             if err.code == 304:
                 return self._get_cached_data(stop_name)
             raise
+
+        # if you come across this, sorry for the hack
+        # feel free to remove it. i need it to collect some data
+        with open("/home/xmpp-crowd/dvbmix/{}.log".format(stop_name), "a") as dump:
+            dump.write("{} {}\n".format(timestamp(), contents).encode())
 
         self.cached_data[stop_name] = stop_filter.filter_departures(
             self.parse_data(contents))
