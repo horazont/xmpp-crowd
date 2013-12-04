@@ -15,6 +15,8 @@ from sleekxmpp.xmlstream import ET
 from sleekxmpp import Iq, Message
 from sleekxmpp.xmlstream import register_stanza_plugin, ElementBase, ET, JID
 
+xmlns = "http://xmpp.zombofant.net/xmlns/public-transport"
+
 class SafeCallback(object):
     @staticmethod
     def _default_error_handler(exc_type, exc_value, exc_traceback):
