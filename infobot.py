@@ -11,6 +11,9 @@ import lcdencode
 import infomodules.utils
 import infomodules.rrdsink
 from sleekxmpp.exceptions import IqError, IqTimeout
+from sleekxmpp.xmlstream import ET
+from sleekxmpp import Iq, Message
+from sleekxmpp.xmlstream import register_stanza_plugin, ElementBase, ET, JID
 
 class SafeCallback(object):
     @staticmethod
@@ -29,6 +32,34 @@ class SafeCallback(object):
             return self._callback(*args, **kwargs)
         except:
             self._error_handler(*sys.exc_info())
+
+class Departure(ElementBase):
+    namespace = xmlns
+    name = "departure"
+    plugin_attrib = name
+    interfaces = set()
+
+class Data(ElementBase):
+    namespace = xmlns
+    name = "data"
+    plugin_attrib = name
+    interfaces = set()
+
+class DepartureTime(ElementBase):
+    namespace = xmlns
+    name = "dt"
+    plugin_attrib = name
+    interfaces = set(("eta", "destination", "lane"))
+
+    def get_eta(self):
+        return float(self._get_attr("eta"))
+
+    def set_eta(self, value):
+        self._set_attr("eta", "{:d}".format(value))
+
+register_stanza_plugin(Iq, Departure)
+register_stanza_plugin(Departure, Data)
+register_stanza_plugin(Data, DepartureTime, iterable=True)
 
 
 class InfoBot(HubBot):
@@ -203,15 +234,28 @@ class InfoBot(HubBot):
 
     def _update_departures_and_lcd(self):
         departures = self.departure()
-        if departures is None:
-            self._departure_buffers = [
-                self._error_buffer("No data available"),
-                self._error_buffer("No data available"),
-                ]
-        else:
-            self._departure_buffers = self._format_departure_buffers(departures)
+        #~ if departures is None:
+            #~ self._departure_buffers = [
+                #~ self._error_buffer("No data available"),
+                #~ self._error_buffer("No data available"),
+                #~ ]
+        #~ else:
+            #~ self._departure_buffers = self._format_departure_buffers(departures)
+#~
+        #~ self._update_lcd()
 
-        self._update_lcd()
+        request = self.Iq()
+        for lane, dest, remaining_time in departures:
+            dt = DepartureTime()
+            dt['eta'] = int(remaining_time)
+            dt['destination'] = dest
+            dt['lane'] = lane
+            request['departure']['data'].append(dt)
+
+        request['to'] = 'hintd@hub.sotecware.net/devel-c'
+        request['type'] = 'set'
+        request.send()
+
 
     def _read_sensors(self):
         if self._lcd_away:
@@ -266,14 +310,16 @@ class InfoBot(HubBot):
         if self._lcd_away:
             return
 
-        self._weather_buffer = self._format_weather_buffer(self._weather_data)
-        # print(self._weather_buffer)
 
-        for i, dep_page in enumerate(self._departure_buffers[:2]):
-            self._write_lcd("update page {} {}".format(i, self._encode_for_lcd(dep_page)))
 
-        if self._weather_buffer is not None:
-            self._write_lcd("update page 2 {}".format(self._encode_for_lcd(self._weather_buffer)))
+        #~ self._weather_buffer = self._format_weather_buffer(self._weather_data)
+        #~ # print(self._weather_buffer)
+#~
+        #~ for i, dep_page in enumerate(self._departure_buffers[:2]):
+            #~ self._write_lcd("update page {} {}".format(i, self._encode_for_lcd(dep_page)))
+#~
+        #~ if self._weather_buffer is not None:
+            #~ self._write_lcd("update page 2 {}".format(self._encode_for_lcd(self._weather_buffer)))
 
 
     def _error_handler(self, exc_type, exc_value, exc_traceback):
