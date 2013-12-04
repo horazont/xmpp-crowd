@@ -254,16 +254,14 @@ class InfoBot(HubBot):
             dt['lane'] = lane
             request['departure']['data'].append(dt)
 
-        print(request)
-
         request['to'] = 'hintd@hub.sotecware.net/devel-c'
         request['type'] = 'set'
-        request.send()
-
+        request.send(callback=lambda x: None)
 
     def _read_sensors(self):
         if self._lcd_away:
             return {}
+        return # FIXME
 
         iq = self.make_iq_get(queryxmlns=self.SENSOR_NS, ito=self.lcd_full)
         try:
