@@ -261,7 +261,7 @@ class InfoBot(HubBot):
     def _read_sensors(self):
         if self._lcd_away:
             return {}
-        return # FIXME
+        return {} # FIXME
 
         iq = self.make_iq_get(queryxmlns=self.SENSOR_NS, ito=self.lcd_full)
         try:
