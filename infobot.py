@@ -252,6 +252,8 @@ class InfoBot(HubBot):
             dt['lane'] = lane
             request['departure']['data'].append(dt)
 
+        print(request)
+
         request['to'] = 'hintd@hub.sotecware.net/devel-c'
         request['type'] = 'set'
         request.send()
