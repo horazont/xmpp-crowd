@@ -1,5 +1,6 @@
 import abc
 import logging
+import re
 
 from datetime import datetime, timedelta
 
@@ -60,6 +61,33 @@ class NumericDocumentMatcher(Base.MessageHandler):
                 except URLLookup.URLLookupError as err:
                     self.reply(msg, "<{0}>: sorry, couldn't look it up: {1}".format(document_url, str(err)))
                     pass
+
+
+class UnicodeMatcher(Base.MessageHandler):
+    uniid_re = re.compile(r"u\+([0-9a-f]{2,8})", re.I)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def _format_unichar(self, codepoint):
+        import unicodedata
+        character = chr(codepoint)
+        try:
+            name = unicodedata.name(character)
+        except ValueError:
+            name = "unnamed"
+
+        return "{chr!s}: U+{codepoint:04X} {name}, dec: {codepoint:d}, UTF-8: {utf8str}".format(
+            codepoint=codepoint,
+            name=name,
+            chr=character,
+            utf8str=" ".join(map(hex, character.encode("utf8"))))
+
+    def __call__(self, msg, errorSink=None):
+        contents = msg["body"]
+        for match in self.uniid_re.finditer(contents):
+            value = int(match.groups(1), 16)
+            self.reply(msg, self._format_unichar(value))
 
 
 class BroadcastMessage(Base.XMPPObject, metaclass=abc.ABCMeta):
