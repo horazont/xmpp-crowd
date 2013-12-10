@@ -86,7 +86,7 @@ class UnicodeMatcher(Base.MessageHandler):
     def __call__(self, msg, errorSink=None):
         contents = msg["body"]
         for match in self.uniid_re.finditer(contents):
-            value = int(match.groups(1), 16)
+            value = int(match.group(1), 16)
             self.reply(msg, self._format_unichar(value))
 
 
