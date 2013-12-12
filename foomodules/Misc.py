@@ -84,7 +84,7 @@ class UnicodeMatcher(Base.MessageHandler):
             codepoint=codepoint,
             name=name,
             chr=character_vis,
-            utf8str=" ".join(map(hex, character.encode("utf8"))))
+            utf8str=" ".join(map("{:02x}".format, character.encode("utf8"))))
 
     def __call__(self, msg, errorSink=None):
         contents = msg["body"]
