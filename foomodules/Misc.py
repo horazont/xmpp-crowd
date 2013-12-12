@@ -76,11 +76,14 @@ class UnicodeMatcher(Base.MessageHandler):
             name = unicodedata.name(character)
         except ValueError:
             name = "unnamed"
+        character_vis = character
+        if unicodedata.category(character).startswith("C"):
+            character_vis = "⟨non-character⟩"
 
         return "{chr!s}: U+{codepoint:04X} {name}, dec: {codepoint:d}, UTF-8: {utf8str}".format(
             codepoint=codepoint,
             name=name,
-            chr=character,
+            chr=character_vis,
             utf8str=" ".join(map(hex, character.encode("utf8"))))
 
     def __call__(self, msg, errorSink=None):
