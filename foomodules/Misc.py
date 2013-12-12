@@ -71,7 +71,11 @@ class UnicodeMatcher(Base.MessageHandler):
 
     def _format_unichar(self, codepoint):
         import unicodedata
-        character = chr(codepoint)
+        try:
+            character = chr(codepoint)
+        except OverflowError:
+            return
+
         try:
             name = unicodedata.name(character)
         except ValueError:
