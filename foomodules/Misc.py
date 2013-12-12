@@ -89,7 +89,7 @@ class UnicodeMatcher(Base.MessageHandler):
             codepoint=codepoint,
             name=name,
             chr=character_vis,
-            utf8str=)
+            utf8str=utf8str)
 
     def __call__(self, msg, errorSink=None):
         contents = msg["body"]
