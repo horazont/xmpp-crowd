@@ -80,11 +80,16 @@ class UnicodeMatcher(Base.MessageHandler):
         if unicodedata.category(character).startswith("C"):
             character_vis = "⟨non-character⟩"
 
+        try:
+            utf8str = " ".join(map("0x{:02x}".format, character.encode("utf8")))
+        except UnicodeEncodeError:
+            utf8str = "⟨not representable in UTF-8⟩"
+
         return "{chr!s}: U+{codepoint:04X} {name}, dec: {codepoint:d}, UTF-8: {utf8str}".format(
             codepoint=codepoint,
             name=name,
             chr=character_vis,
-            utf8str=" ".join(map("0x{:02x}".format, character.encode("utf8"))))
+            utf8str=)
 
     def __call__(self, msg, errorSink=None):
         contents = msg["body"]
