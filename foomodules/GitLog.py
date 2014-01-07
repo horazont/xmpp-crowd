@@ -73,42 +73,50 @@ class CommitNotify(Base.XMPPObject):
     NEW_REF_NODE = "{{{0}}}new-ref".format(xmlns)
 
     DEFAULT_FORMAT = "{repo}/{branch} is now at {shortsha} (by {shortauthor}): {headline}"
+    DEFAULT_DELETED_FORMAT = "{repo}/{branch} has been deleted"
 
     def __init__(self,
                  to_jids=[],
                  fmt=DEFAULT_FORMAT,
+                 delfmt=DEFAULT_DELETED_FORMAT,
                  skip_others=False,
                  **kwargs):
         super().__init__(**kwargs)
         self.to_jids = list(to_jids)
         self.fmt = fmt
+        self.delfmt = delfmt
         self.skip_others = skip_others
 
     def __call__(self, item, repo, branch):
         new_ref = item.find(self.NEW_REF_NODE)
 
-        author = new_ref.findtext(self.AUTHOR_NODE)
-        if author is not None:
-            try:
-                words = author.split("<", 1)[0].strip().split(" ")
-            except (ValueError, IndexError) as err:
-                shortauthor = "noshort"
-            else:
-                shortauthor = "".join((word[0].upper() for word in words[:-1]))
-                shortauthor += words[-1][:2].upper()
+        if new_ref is None:
+            msg = self.delfmt.format(
+                repo=repo,
+                branch=branch)
         else:
-            shortauthor = "unknown"
+            author = new_ref.findtext(self.AUTHOR_NODE)
+            if author is not None:
+                try:
+                    words = author.split("<", 1)[0].strip().split(" ")
+                except (ValueError, IndexError) as err:
+                    shortauthor = "noshort"
+                else:
+                    shortauthor = "".join((word[0].upper() for word in words[:-1]))
+                    shortauthor += words[-1][:2].upper()
+            else:
+                shortauthor = "unknown"
 
-        sha = new_ref.get("sha")
-        msg = self.fmt.format(
-            repo=repo,
-            branch=branch,
-            headline=new_ref.findtext(self.HEADLINE_NODE),
-            author="unknown author(!)",
-            sha=sha,
-            shortsha=sha[:8],
-            shortauthor=shortauthor
-        )
+            sha = new_ref.get("sha")
+            msg = self.fmt.format(
+                repo=repo,
+                branch=branch,
+                headline=new_ref.findtext(self.HEADLINE_NODE),
+                author="unknown author(!)",
+                sha=sha,
+                shortsha=sha[:8],
+                shortauthor=shortauthor
+            )
 
         for jid in self.to_jids:
             if not isinstance(jid, str) and hasattr(jid, "__iter__"):
