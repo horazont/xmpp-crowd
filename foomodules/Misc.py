@@ -22,6 +22,8 @@ class IgnoreList(Base.MessageHandler):
         self.ignoredJids = set(initial)
 
     def __call__(self, msg, errorSink=None):
+        print(repr(msg["body"]))
+        print(msg)
         bare = str(msg["from"].bare)
         if bare in self.ignoredJids:
             return
