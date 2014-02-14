@@ -22,13 +22,15 @@ class IgnoreList(Base.MessageHandler):
         self.ignoredJids = set(initial)
 
     def __call__(self, msg, errorSink=None):
-        print(repr(msg["body"]))
-        print(msg)
+        logging.info("received ignored message from %s: %r",
+                     msg["from"],
+                     msg["body"])
         bare = str(msg["from"].bare)
         if bare in self.ignoredJids:
             return
         self.ignoredJids.add(bare)
-        self.reply(msg, self.message)
+        if self.message:
+            self.reply(msg, self.message)
 
 
 class NumericDocumentMatcher(Base.MessageHandler):
