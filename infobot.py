@@ -379,7 +379,7 @@ class InfoBot(HubBot):
         else:
             T = forecast.temperature
             tempnote = ""
-        return "{T}{tempnote}. Until then approx. {p:.1f} mm precipitation, {symbol} weather.".format(
+        return "{T:.1f}°C{tempnote}. Until then approx. {p:.1f} mm precipitation, {symbol} weather.".format(
             T=T,
             tempnote=tempnote,
             p=precipitation,
