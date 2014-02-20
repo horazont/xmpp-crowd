@@ -159,7 +159,8 @@ class FieldPoly:
             shift = degree - rhs_degree
             div_cs[shift] += cs_lhs[degree] // cs_rhs[rhs_degree]
 
-            cs_lhs = listsub(cs_lhs, listshift(cs_rhs, shift))
+            cs_lhs = listsub(cs_lhs,
+                             [x*div_cs[shift] for x in listshift(cs_rhs, shift)])
             degree = find_largest_nonzero(cs_lhs)
 
         return FieldPoly(field, div_cs), FieldPoly(field, cs_lhs)
