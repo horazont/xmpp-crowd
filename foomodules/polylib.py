@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import itertools
 
 def listsub(a, b):
     if len(a) != len(b):
@@ -59,14 +60,22 @@ class IntField:
                 self._test_other(other)
                 return self.field(self.v * other.v)
 
+        def __rmul__(self, other):
+            return self*other
+
         def __floordiv__(self, other):
             if isinstance(other, int):
-                return self / self.field(other)
+                return self // self.field(other)
             else:
                 self._test_other(other)
                 if other.v == 0:
                     raise ZeroDivisionError()
                 return self * self.field.find_inverse(other)
+
+        def __rfloordiv__(self, other):
+            if isinstance(other, int):
+                return self.field(other) // self
+            return NotImplemented
 
         def __eq__(self, other):
             if isinstance(other, int):
@@ -113,10 +122,21 @@ class IntField:
     def __repr__(self):
         return "IntField({!r})".format(self.p)
 
+    def __eq__(self, other):
+        return self.p == other.p
+
+    def __ne__(self, other):
+        return self.p != other.p
+
 class FieldPoly:
     def __init__(self, field, cs):
         self.field = field
         self.cs = list(field(cs))
+
+    def _compress(self):
+        self.cs = list(itertools.dropwhile(lambda x: x == 0,
+                                           reversed(self.cs)))
+        self.cs.reverse()
 
     def __divmod__(self, other):
         field = self.field
@@ -150,6 +170,17 @@ class FieldPoly:
     def __floordiv__(self, other):
         return divmod(self, other)[0]
 
+    def __eq__(self, other):
+        if self.field != other.field:
+            return False
+
+        self._compress()
+        other._compress()
+        return self.cs == other.cs
+
+    def __ne__(self, other):
+        return not (self == other)
+
     def _format_value(self, kc):
         k, c = kc
         if k == 0:
@@ -175,3 +206,6 @@ class FieldPoly:
             return "0"
         return s
 
+    def __repr__(self):
+        return "FieldPoly({!r}, [{}])".format(
+            self.field, ", ".join(map(str, self.cs)))
