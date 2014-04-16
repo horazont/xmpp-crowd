@@ -9,8 +9,9 @@ import foomodules.URLLookup as URLLookup
 
 class Pong(Base.MessageHandler):
     def __call__(self, msg, errorSink=None):
-        if msg["body"].strip().lower() == "ping":
-            self.reply(msg, "pong")
+        m = msg["body"].strip().lower()
+        if m in {"ping", "gnip"}:
+            self.reply(msg, m.replace("i", "o"))
             return True
 
 
