@@ -343,6 +343,12 @@ class InfoBot(HubBot):
         super().sessionStart(event)
         if not self.hooks_setup:
             self.scheduler.add(
+                "update-weather",
+                600.0,
+                SafeCallback(self._update_weather,
+                             error_handler=self._error_handler),
+                repeat=True)
+            self.scheduler.add(
                 "update-sensors",
                 5.0,
                 SafeCallback(self._update_sensors,
