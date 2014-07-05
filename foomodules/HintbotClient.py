@@ -178,7 +178,7 @@ or a relative specifier (starting with a `+`) denoting the offset, for example:
         prev_time = datetime.utcnow()
 
         day_fmt_prefix = "%d %b "
-        time_fmt = "%H:00"
+        time_fmt = "%H:00Z"
 
         for (start_time, end_time,
              temperature, precipitation, wind_speed) in values:
