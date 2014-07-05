@@ -1,0 +1,217 @@
+import argparse
+import re
+
+from datetime import datetime, timedelta
+
+import foomodules.Base as Base
+import foomodules.utils as utils
+
+import hintmodules.weather.stanza as weather_stanza
+import hintmodules.weather.utils
+
+OFFSET_RE = re.compile(
+    r"^(\+|-)(([0-9]+)d)?\s*(([0-9]+)h)$",
+    re.I)
+
+formats = [
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%dT%H:%M",
+    "%Y-%m-%d",
+    "%H:%M:%S",
+]
+
+class Weather(Base.ArgparseCommand):
+    def __init__(self,
+                 peer,
+                 service_uri,
+                 command_name="weather",
+                 default_coords=None,
+                 interval_pattern=[3, 3, 6, 6, 6],
+                 **kwargs):
+        super().__init__(command_name, **kwargs)
+
+        self.uri = service_uri
+        self.peer = peer
+        self.interval_pattern = interval_pattern
+
+        arg = self.argparse.add_argument(
+            "-c", "--coords",
+            dest="geocoords",
+            metavar="LAT LON",
+            nargs=2,
+            help="Geocoordinates for which to retrieve a forecast. Specify as -c"
+                 "lat lon"
+        )
+
+        if default_coords is not None:
+            arg.default = default_coords
+            arg.help += " [default: {}]".format(" ".join(map(str, arg.default)))
+
+        self.argparse.add_argument(
+            "-t", "--at", "--time",
+            metavar="WHEN",
+            dest="time",
+            help="Time for which to retrieve a forecast. The date will be"
+                 "truncated to a full hour (rounding towards the"
+                 "future). [default: now]")
+
+        self.argparse.formatter_class = argparse.RawDescriptionHelpFormatter
+
+        now = datetime.utcnow()
+
+        self.argparse.epilog = now.strftime("""
+WHEN can either be an absolute timestamp in one of the following forms:
+
+* %Y-%m-%dT%H:%M:%S
+* %Y-%m-%dT%H:%M
+* %Y-%m-%d
+* %H:%M:%S
+
+or a relative specifier (starting with a `+`) denoting the offset, for example:
+
+* +1h (plus one hour)
+* +1d2h (plus one day and two hours)
+"""
+        )
+
+    def round_date(self, dt):
+        if (dt.minute, dt.second, dt.microsecond) != (0, 0, 0):
+            dt += timedelta(hours=1)
+
+        return dt.replace(minute=0, second=0, microsecond=0)
+
+    def rounded_now(self):
+        return self.round_date(datetime.utcnow())
+
+    def _call(self, msg, args, errorSink=None):
+        try:
+            lat, lon = args.geocoords
+        except (ValueError, TypeError):
+            self.reply(msg,
+                       "specification of coordinates required, use -c LAT LON")
+            return
+
+        try:
+            lat = float(lat)
+            lon = float(lon)
+        except ValueError as err:
+            self.reply(msg,
+                       str(err))
+            return
+
+        time = args.time
+        if time is None:
+            time = self.rounded_now()
+        else:
+            match = OFFSET_RE.match(time.strip())
+            if match is not None:
+                sign, _, days, _, hours = match.groups()
+                sign = 1 if sign == "+" else -1
+
+                days = int(days or 0) * sign
+                hours = int(hours or 0) * sign
+
+                time = self.rounded_now() + timedelta(
+                    days=days,
+                    hours=hours)
+            else:
+                for fmt in formats:
+                    try:
+                        time = self.round_date(datetime.strptime(time, fmt))
+                    except ValueError:
+                        pass
+                    else:
+                        break
+                else:
+                    self.reply(msg,
+                               "could not parse time: {}".format(time))
+                    return
+
+        request = self.xmpp.Iq()
+        request["to"] = self.peer
+        request["type"] = "get"
+        request["weather_data"]["location"]["lat"] = lat
+        request["weather_data"]["location"]["lon"] = lon
+        request["weather_data"]["from"] = self.uri
+
+        start_time = time
+        intervals = []
+        for duration in self.interval_pattern:
+            end_time = start_time + timedelta(hours=duration)
+
+            interval_request = weather_stanza.Interval(
+                start=start_time,
+                end=end_time,
+                parent=request["weather_data"]
+            )
+            interval_request["precipitation"]
+            interval_request["wind_speed"]
+            interval_request.append(
+                weather_stanza.Temperature(
+                    type=weather_stanza.Temperature.Type.Air))
+
+            start_time = end_time
+
+        request.send(
+            callback=lambda stanza: self.got_reply(msg, stanza)
+        )
+
+    def got_reply(self, msg, response):
+        data = response["weather_data"]
+
+        values = []
+
+        for interval in data:
+            start_time = interval["start"]
+            end_time = interval["end"]
+            precipitation = interval["precipitation"]["value"]
+            wind_speed = interval["wind_speed"]["value"]
+            temperature = interval["substanzas"][0]["value"]
+
+            values.append((
+                start_time,
+                end_time,
+                temperature,
+                precipitation,
+                wind_speed))
+
+        prev_time = datetime.utcnow()
+
+        day_fmt_prefix = "%d %b "
+        time_fmt = "%H:00"
+
+        for (start_time, end_time,
+             temperature, precipitation, wind_speed) in values:
+
+            if start_time.day != prev_time.day:
+                start_fmt = day_fmt_prefix
+            else:
+                start_fmt = ""
+            start_fmt += time_fmt
+
+            if end_time.day != start_time.day:
+                end_fmt = day_fmt_prefix
+            else:
+                end_fmt = ""
+            end_fmt += time_fmt
+
+            timetag = "{start} – {end}".format(
+                start=start_time.strftime(start_fmt),
+                end=end_time.strftime(end_fmt))
+
+            line = ("{timetag}: "
+                    "{temp:.1f} °C, "
+                    "{prec:.1f} mm precipitation, "
+                    "{wind_speed:.1f} m/s wind").format(
+                        timetag=timetag,
+                        temp=hintmodules.weather.utils.kelvin_to_celsius(
+                            temperature),
+                        prec=precipitation,
+                        wind_speed=wind_speed)
+
+            self.reply(msg, line)
+
+            prev_time = end_time
+
+        if not values:
+            self.reply(msg, "sorry, hintbot could not give me any information")
