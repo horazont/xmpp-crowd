@@ -175,29 +175,18 @@ or a relative specifier (starting with a `+`) denoting the offset, for example:
                 precipitation,
                 wind_speed))
 
-        prev_time = datetime.utcnow()
-
-        day_fmt_prefix = "%d %b "
-        time_fmt = "%H:00Z"
+        base_time = datetime.utcnow()
 
         for (start_time, end_time,
              temperature, precipitation, wind_speed) in values:
 
-            if start_time.day != prev_time.day:
-                start_fmt = day_fmt_prefix
-            else:
-                start_fmt = ""
-            start_fmt += time_fmt
+            start_offset = round(
+                (start_time - base_time).total_seconds() / 3600)
+            end_offset = round(
+                (end_time - base_time).total_seconds() / 3600)
 
-            if end_time.day != start_time.day:
-                end_fmt = day_fmt_prefix
-            else:
-                end_fmt = ""
-            end_fmt += time_fmt
-
-            timetag = "{start} – {end}".format(
-                start=start_time.strftime(start_fmt),
-                end=end_time.strftime(end_fmt))
+            timetag = "+{}h – +{}h".format(
+                start_offset, end_offset)
 
             line = ("{timetag}: "
                     "{temp:.1f} °C, "
@@ -210,8 +199,6 @@ or a relative specifier (starting with a `+`) denoting the offset, for example:
                         wind_speed=wind_speed)
 
             self.reply(msg, line)
-
-            prev_time = end_time
 
         if not values:
             self.reply(msg, "sorry, hintbot could not give me any information")
