@@ -257,7 +257,7 @@ class Sensor(Base.ArgparseCommand):
             self.reply(msg, "sorry, hintbot could not give me any information")
             return
 
-        self.reply(msg, "{time}, sensor {sensor_id} read as {v} °C".format(
-            time=point["time"].strftime("%d %b %Y at %H:%M:%S"),
+        self.reply(msg, "{time!s} ago, sensor {sensor_id} read as {v} °C".format(
+            time=datetime.utcnow() - point["time"],
             sensor_id=point["sensor_id"],
             v=point["value"]))
