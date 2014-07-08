@@ -259,4 +259,4 @@ class Sensor(Base.ArgparseCommand):
         self.reply(msg, "{time}, {sensor_id} read as {v}".format(
             time=point["time"].strftime("%d %b, %Y at %H:%M:%S"),
             sensor_id=point["sensor_id"],
-            v=point["raw_value"])
+            v=point["raw_value"]))
