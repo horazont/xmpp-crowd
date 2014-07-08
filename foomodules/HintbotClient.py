@@ -255,6 +255,7 @@ class Sensor(Base.ArgparseCommand):
 
         if point is None:
             self.reply(msg, "sorry, hintbot could not give me any information")
+            return
 
         self.reply(msg, "{time}, {sensor_id} read as {v} °C".format(
             time=point["time"].strftime("%d %b, %Y at %H:%M:%S"),
