@@ -7,6 +7,7 @@ import foomodules.Base as Base
 import foomodules.utils as utils
 
 import hintmodules.weather.stanza as weather_stanza
+import hintmodules.sensor.stanza as sensor_stanza
 import hintmodules.weather.utils
 
 OFFSET_RE = re.compile(
@@ -202,3 +203,60 @@ or a relative specifier (starting with a `+`) denoting the offset, for example:
 
         if not values:
             self.reply(msg, "sorry, hintbot could not give me any information")
+
+
+class Sensor(Base.ArgparseCommand):
+    def __init__(self,
+                 peer,
+                 command_name="sensor",
+                 alias_map={},
+                 whitelist_ids=None,
+                 **kwargs):
+        super().__init__(command_name, **kwargs)
+        self.alias_map = dict(alias_map)
+        self.peer = peer
+        self.whitelist_ids = whitelist_ids
+
+        self.argparse.add_argument(
+            "-t", "--type",
+            dest="type_",
+            default="T",
+            metavar="TYPE",
+            help="Sensor type [default: T]"
+        )
+        self.argparse.add_argument(
+            "sensor",
+            metavar="ID",
+            help="Either a hexadecimal sensor ID or a recognized sensor alias"
+        )
+
+
+    def _call(self, msg, args, errorSink=None):
+        sensor_id = self.alias_map.get(args.sensor, args.sensor)
+        sensor_type = args.type_
+
+        iq = self.xmpp.Iq()
+        iq["to"] = self.peer
+        iq["type"] = "get"
+
+        if self.whitelist_ids is None or sensor_id in self.whitelist_ids:
+            request = sensor_stanza.Request(
+                parent=iq["sensor_data"])
+            request["sensor_id"] = sensor_id
+            request["sensor_type"] = sensor_type
+
+        iq.send(callback=lambda stanza: self.got_reply(msg, stanza))
+
+    def got_reply(self, msg, stanza):
+        try:
+            point = next(iter(stanza["sensor_data"]))
+        except StopIteration:
+            point = None
+
+        if point is None:
+            self.reply(msg, "sorry, hintbot could not give me any information")
+
+        self.reply(msg, "{time}, {sensor_id} read as {v}".format(
+            time=point["time"].strftime("%d %b, %Y at %H:%M:%S"),
+            sensor_id=point["sensor_id"],
+            v=point["raw_value"])
