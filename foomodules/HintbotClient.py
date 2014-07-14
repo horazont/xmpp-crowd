@@ -22,6 +22,8 @@ formats = [
 ]
 
 class Weather(Base.ArgparseCommand):
+    BEARING_ARROWS = "↑↗→↘↓↙←↖"
+
     def __init__(self,
                  peer,
                  service_uri,
@@ -147,6 +149,7 @@ or a relative specifier (starting with a `+`) denoting the offset, for example:
             )
             interval_request["precipitation"]
             interval_request["wind_speed"]
+            interval_request["wind_direction"]
             interval_request.append(
                 weather_stanza.Temperature(
                     type=weather_stanza.Temperature.Type.Air))
@@ -192,12 +195,13 @@ or a relative specifier (starting with a `+`) denoting the offset, for example:
             line = ("{timetag}: "
                     "{temp:.1f} °C, "
                     "{prec:.1f} mm precipitation, "
-                    "{wind_speed:.1f} m/s wind").format(
+                    "{wind_speed:.1f} m/s {wind_bearing}").format(
                         timetag=timetag,
                         temp=hintmodules.weather.utils.kelvin_to_celsius(
                             temperature),
                         prec=precipitation,
-                        wind_speed=wind_speed)
+                        wind_speed=wind_speed,
+                        wind_bearing=self.BEARING[math.round(interval["wind_direction"]/45.)])
 
             self.reply(msg, line)
 
