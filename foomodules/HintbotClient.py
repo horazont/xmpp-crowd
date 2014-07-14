@@ -22,7 +22,7 @@ formats = [
 ]
 
 class Weather(Base.ArgparseCommand):
-    BEARING_ARROWS = "↑↗→↘↓↙←↖"
+    BEARING_ARROWS = "↓↙←↖↑↗→↘"
 
     def __init__(self,
                  peer,
