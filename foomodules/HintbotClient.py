@@ -171,18 +171,20 @@ or a relative specifier (starting with a `+`) denoting the offset, for example:
             precipitation = interval["precipitation"]["value"]
             wind_speed = interval["wind_speed"]["value"]
             temperature = interval["substanzas"][0]["value"]
+            wind_direction = interval["wind_direction"]["value"]
 
             values.append((
                 start_time,
                 end_time,
                 temperature,
                 precipitation,
-                wind_speed))
+                wind_speed,
+                wind_direction))
 
         base_time = datetime.utcnow()
 
         for (start_time, end_time,
-             temperature, precipitation, wind_speed) in values:
+             temperature, precipitation, wind_speed, wind_direction) in values:
 
             start_offset = round(
                 (start_time - base_time).total_seconds() / 3600)
@@ -201,7 +203,7 @@ or a relative specifier (starting with a `+`) denoting the offset, for example:
                             temperature),
                         prec=precipitation,
                         wind_speed=wind_speed,
-                        wind_bearing=self.BEARING_ARROWS[round(interval["wind_direction"]["value"]/45.)])
+                        wind_bearing=self.BEARING_ARROWS[round(wind_direction/45.)])
 
             self.reply(msg, line)
 
