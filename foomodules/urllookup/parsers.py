@@ -166,7 +166,7 @@ class HTML(DocumentParser):
         super().__init__(list(accepts), **kwargs)
         self.description_blacklist = frozenset(description_blacklist)
 
-    def _parse_heuristic(self):
+    def _parse_heuristic(self, contents):
         match = self.title_re.search(contents)
         if match:
             return match.group(2), ""
