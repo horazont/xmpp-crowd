@@ -203,7 +203,7 @@ or a relative specifier (starting with a `+`) denoting the offset, for example:
                             temperature),
                         prec=precipitation,
                         wind_speed=wind_speed,
-                        wind_bearing=self.BEARING_ARROWS[round(wind_direction/45.)])
+                        wind_bearing=self.BEARING_ARROWS[round(wind_direction/45.)%8])
 
             self.reply(msg, line)
 
