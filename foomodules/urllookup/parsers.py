@@ -1,5 +1,6 @@
 import abc
 import functools
+import logging
 import re
 import subprocess
 
@@ -7,6 +8,8 @@ import html.parser
 from bs4 import BeautifulSoup
 
 import lxml.etree as etree
+
+logger = logging.getLogger(__name__)
 
 def guess_encoding(buf, authorative=None):
     encoding = authorative or "utf-8"
@@ -230,6 +233,7 @@ class HTML(DocumentParser):
                 title, description = self._parse_xhtml(tree)
             except ValueError as err:
                 metadata.errors.append(err)
+                logger.warn(err)
 
         if title is None and description is None:
             # try plain html
@@ -240,6 +244,7 @@ class HTML(DocumentParser):
             except ValueError as err:
                 # we have to fail hard here, no way out
                 metadata.errors.append(err)
+                logger.warn(err)
                 return False
 
             try:
