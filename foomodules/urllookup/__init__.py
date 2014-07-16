@@ -211,12 +211,10 @@ class URLLookup(Base.MessageHandler):
         except URLLookupError as err:
             ctx = err.__context__
             cause = " ({})".format(ctx) if ctx is not None else ""
-            self.reply(
-                msg_context,
-                "could not open url {url}: {err}{cause}".format(
-                    url=ellipsize_text(url, 64),
-                    err=err,
-                    cause=cause))
+            yield "could not open url {url}: {err}{cause}".format(
+                url=ellipsize_text(url, 64),
+                err=err,
+                cause=cause)
             return
 
         yield from self.response_formatter(metadata)
