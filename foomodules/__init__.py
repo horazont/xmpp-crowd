@@ -9,14 +9,13 @@ import math
 
 import foomodules.Commands as Commands
 import foomodules.Base as Base
-import foomodules.URLLookup as URLLookup
+import foomodules.urllookup as urllookup
 import foomodules.Misc as Misc
 import foomodules.InfoStore as InfoStore
 import foomodules.Timers as Timers
 import foomodules.GitLog as GitLog
 import foomodules.SympyInterface as SympyInterface
 import foomodules.Poll as Poll
-import foomodules.PegelHandler as PegelHandler
 import foomodules.Log as Log
 
 logger = logging.getLogger(__name__)
@@ -215,4 +214,3 @@ class CommandListener(Base.PrefixListener):
         if not self.check_count_and_reply(msg):
             return False
         return handler(msg, arguments, errorSink=errorSink)
-

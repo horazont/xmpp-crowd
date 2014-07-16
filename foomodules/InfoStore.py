@@ -3,7 +3,7 @@ import pickle
 import sys
 
 import foomodules.Base as Base
-import foomodules.URLLookup as URLLookup
+import foomodules.urllookup as urllookup
 
 class Nugget(object):
     def __init__(self, name, contents, keywords=[]):
@@ -390,16 +390,16 @@ class KeywordListener(Base.PrefixListener):
         contents = info.contents
         if self.store.url_lookup:
             url_lookup = self.store.url_lookup
-            m = url_lookup.urlRE.match(contents)
+            m = url_lookup.url_re.match(contents)
             if m:
                 url = m.group(0)
                 try:
-                    iterable = iter(url_lookup.processURL(url))
+                    iterable = iter(url_lookup.format_reply_to_url(msg, url))
                     try:
                         first_line = next(iterable)
                     except StopIteration:
                         return
-                except URLLookup.URLLookupError as err:
+                except urllookup.URLLookupError as err:
                     first_line = "sorry, I could not look that up: {0}".format(str(err))
                     iterable = iter([])
                 self.reply(msg, "{0}: {1} – {2}".format(

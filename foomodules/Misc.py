@@ -5,7 +5,7 @@ import re
 from datetime import datetime, timedelta
 
 import foomodules.Base as Base
-import foomodules.URLLookup as URLLookup
+import foomodules.urllookup as urllookup
 
 class Pong(Base.MessageHandler):
     def __call__(self, msg, errorSink=None):
@@ -58,12 +58,13 @@ class NumericDocumentMatcher(Base.MessageHandler):
                 document_url = document_format.format(*groups, **groupdict)
 
                 try:
-                    iterable = iter(self.url_lookup.processURL(document_url))
+                    iterable = iter(self.url_lookup.format_reply_to_url(
+                        msg, document_url))
                     first_line = next(iterable)
                     self.reply(msg, "<{0}>: {1}".format(document_url, first_line))
                     for line in iterable:
                         self.reply(msg, line)
-                except URLLookup.URLLookupError as err:
+                except urllookup.URLLookupError as err:
                     self.reply(msg, "<{0}>: sorry, couldn't look it up: {1}".format(document_url, str(err)))
                     pass
 
