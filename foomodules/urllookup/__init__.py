@@ -185,7 +185,7 @@ class URLLookup(Base.MessageHandler):
 
         return metadata
 
-    def default_formatter(self, metadata):
+    def default_formatter(self, msg_context, metadata):
         title = metadata.title or None
         description = metadata.description or None
 
@@ -217,7 +217,7 @@ class URLLookup(Base.MessageHandler):
                 cause=cause)
             return
 
-        yield from self.response_formatter(metadata)
+        yield from self.response_formatter(msg_context, metadata)
 
     def extract_urls(self, msg):
         return [
