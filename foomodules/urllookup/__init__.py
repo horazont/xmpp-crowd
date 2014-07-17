@@ -123,7 +123,8 @@ class URLLookup(Base.MessageHandler):
         if metadata.size is None:
             metadata.size = len(metadata.buf)
 
-        metadata.url = url
+        metadata.original_url = url
+        metadata.url = response.geturl()
         metadata.url_parsed = urllib.parse.urlparse(metadata.url)
 
         metadata.response = response
@@ -158,7 +159,6 @@ class URLLookup(Base.MessageHandler):
             raise URLLookupError(str("unknown error")) from err
 
         try:
-            url = response.geturl()
             metadata = self.prepare_metadata(url, response)
             time_taken = datetime.utcnow() - start_time
 

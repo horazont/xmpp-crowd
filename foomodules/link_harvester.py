@@ -17,42 +17,25 @@ class LinkHarvester(Base.XMPPObject):
         super().__init__(**kwargs)
         self.Session = Session
 
-    def _get_muc_in_session(self, session, mucjid):
-        try:
-            return session.query(muclinks.MUC).filter(
-                muclinks.MUC.jid == str(mucjid)).one()
-        except sqlalchemy.orm.exc.NoResultFound:
-            try:
-                muc = muclinks.MUC(mucjid)
-                session.add(muc)
-                session.commit()
-                return muc
-            except sqlalchemy.exc.IntegrityError:
-                return session.query(muclinks.MUC).filter(
-                    muclinks.MUC.jid == str(mucjid)).one()
-
     def submit_into_session(self, session, msg_context, metadata):
         posted = datetime.utcnow()
         mucjid = msg_context["from"].bare
         nick = msg_context["from"].resource
 
-        sender_jid = self.XMPP.muc.getJidProperty(
+        senderjid = self.XMPP.muc.getJidProperty(
             mucjid, nick, 'jid')
 
-        muc = self._get_muc_in_session(session, mucjid)
-
-        link = muclinks.Link(
-            muc,
-            posted,
-            sender_jid.bare,
+        muclinks.post_link(
+            session,
+            mucjid,
+            str(senderjid.bare),
             nick,
+            metadata.original_url,
             metadata.url,
             metadata.title,
             metadata.description,
             metadata.human_readable_type,
-            metadata.mime_type)
-        session.add(link)
-        session.commit()
+            timestamp=posted)
 
     def submit(self, msg_context, metadata):
         session = self.Session()
