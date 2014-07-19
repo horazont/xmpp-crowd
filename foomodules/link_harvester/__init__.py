@@ -12,12 +12,12 @@ import muclinks
 
 from . import common_handlers
 
-link_handlers = [common_handlers.wurstball_handler,
-                 common_handlers.default_handler]
-
 logger = logging.getLogger(__name__)
 
 class LinkHarvester(Base.XMPPObject):
+    link_handlers = [common_handlers.wurstball_handler,
+            common_handlers.default_handler]
+
     def __init__(self, Session, **kwargs):
         super().__init__(**kwargs)
         self.Session = Session
@@ -30,7 +30,7 @@ class LinkHarvester(Base.XMPPObject):
         senderjid = self.XMPP.muc.getJidProperty(
             mucjid, nick, 'jid')
 
-        for handler in link_handlers:
+        for handler in self.link_handlers:
             kwargs = handler(metadata)
 
             if kwargs is not None:
