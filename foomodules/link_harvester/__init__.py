@@ -10,6 +10,11 @@ import sqlalchemy.orm.exc
 
 import muclinks
 
+from . import common_handlers
+
+link_handlers = [common_handlers.wurstball_handler,
+                 common_handlers.default_handler]
+
 logger = logging.getLogger(__name__)
 
 class LinkHarvester(Base.XMPPObject):
@@ -25,17 +30,19 @@ class LinkHarvester(Base.XMPPObject):
         senderjid = self.XMPP.muc.getJidProperty(
             mucjid, nick, 'jid')
 
+        for handler in link_handlers:
+            kwargs = handler(metadata)
+
+            if kwargs is not None:
+                break
+
         muclinks.post_link(
             session,
             mucjid,
             str(senderjid.bare),
             nick,
-            metadata.original_url,
-            metadata.url,
-            metadata.title,
-            metadata.description,
-            metadata.human_readable_type,
-            timestamp=posted)
+            timestamp=posted,
+            **kwargs)
 
     def submit(self, msg_context, metadata):
         session = self.Session()
