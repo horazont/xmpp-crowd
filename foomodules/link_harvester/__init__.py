@@ -44,7 +44,7 @@ class LinkHarvester(Base.XMPPObject):
         try:
             self.submit(msg_context, metadata)
         except Exception as err:
-            logging.warn("during first attempt: (%s) %s",
+            logger.warn("during first attempt: (%s) %s",
                          type(err).__name__,
                          err)
         else:
@@ -53,4 +53,5 @@ class LinkHarvester(Base.XMPPObject):
         try:
             self.submit(msg_context, metadata)
         except Exception as err:
-            logging.exception(err)
+            logger.exception(err)
+
