@@ -15,7 +15,7 @@ def default_handler(metadata):
 
 
 def wurstball_handler(metadata):
-    if WURSTBALL_RE.match(metadata.url) is None:
+    if not WURSTBALL_RE.match(metadata.url):
         return None
 
     ret = default_handler(metadata)
