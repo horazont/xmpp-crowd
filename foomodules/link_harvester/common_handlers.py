@@ -4,15 +4,17 @@ import urllib
 from bs4 import BeautifulSoup
 
 
+WURSTBALL_RE = re.compile("^http[s]://wurstball.de/[0-9]+/")
+
+
 def default_handler(metadata):
     return {key: getattr(metadata, key) for key in
             ["original_url", "url", "title", "description",
              "human_readable_type"]}
 
-def wurstball_handler(metadata):
-    wurstball_re = re.compile("^http[s]://wurstball.de/[0-9]+/")
 
-    if wurstball_re.match(metadata.url) is None:
+def wurstball_handler(metadata):
+    if WURSTBALL_RE.match(metadata.url) is None:
         return None
 
     ret = default_handler(metadata)
