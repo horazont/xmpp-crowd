@@ -5,7 +5,7 @@ import urllib
 from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
-WURSTBALL_RE = re.compile("^http[s]://wurstball.de/[0-9]+/")
+WURSTBALL_RE = re.compile(r"^https?://(www\.)?wurstball\.de/[0-9]+/")
 
 
 def default_handler(metadata):
