@@ -2,6 +2,7 @@ import logging
 import re
 import socket
 import urllib
+import http.client
 from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
@@ -39,5 +40,24 @@ def wurstball_handler(metadata):
                 "image_url": img_url,
                 "title": None,
                 "description": None})
+
+    return ret
+
+
+def image_handler(metadata):
+    if not metadata.mime_type.startswith("image/"):
+        return None
+
+    ret = default_handler(metadata)
+
+    try:
+        img_data = metadata.buf + metadata.response.read()
+    except http.client.IncompleteRead as err:
+        logger.warn("Could not download image: {}".format(err))
+        return ret
+
+    ret.update({"image_mime_type": metadata.mime_type,
+                "image_buffer": img_data,
+                "image_url": metadata.url})
 
     return ret
