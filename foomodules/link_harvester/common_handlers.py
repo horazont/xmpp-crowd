@@ -1,9 +1,10 @@
+import logging
 import re
 import socket
 import urllib
 from bs4 import BeautifulSoup
 
-
+logger = logging.getLogger(__name__)
 WURSTBALL_RE = re.compile("^http[s]://wurstball.de/[0-9]+/")
 
 
@@ -27,7 +28,8 @@ def wurstball_handler(metadata):
         img_data = response.read()
     except (socket.timeout,
             urllib.error.URLError,
-            urllib.error.HTTPError):
+            urllib.error.HTTPError) as err:
+        logger.warn("Could not download Wurstball image: {}".format(err))
         return ret
 
     mime_type = response.getheader("Content-Type")
