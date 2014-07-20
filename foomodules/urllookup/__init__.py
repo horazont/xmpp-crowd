@@ -70,6 +70,7 @@ class URLLookup(Base.MessageHandler):
                  pre_hooks=[],
                  post_hooks=[],
                  description_limit=360,
+                 suppress_errors=False,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -90,6 +91,7 @@ class URLLookup(Base.MessageHandler):
         self.post_hooks = post_hooks
         self.response_formatter = response_formatter or self.default_formatter
         self.description_limit = description_limit
+        self.suppress_errors = suppress_errors
 
     def prepare_metadata(self, url, response):
         metadata = Document()
@@ -209,6 +211,8 @@ class URLLookup(Base.MessageHandler):
         try:
             metadata = self.document_from_url(msg_context, url)
         except URLLookupError as err:
+            if self.suppress_errors:
+                return
             ctx = err.__context__
             cause = " ({})".format(ctx) if ctx is not None else ""
             yield "could not open url {url}: {err}{cause}".format(
