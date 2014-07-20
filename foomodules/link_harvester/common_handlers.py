@@ -18,13 +18,7 @@ def wurstball_handler(metadata):
     if not WURSTBALL_RE.match(metadata.url):
         return None
 
-    ret = {
-        "human_readable_type": metadata.human_readable_type,
-        "url": metadata.url,
-        "original_url": metadata.original_url,
-        "title": None,
-        "description": None
-    }
+    ret = default_handler(metadata)
 
     soup = BeautifulSoup(metadata.buf)
     img_url = soup.find(id="content-main").img["src"]
@@ -42,6 +36,8 @@ def wurstball_handler(metadata):
 
     ret.update({"image_mime_type": mime_type,
                 "image_buffer": img_data,
-                "image_url": img_url})
+                "image_url": img_url,
+                "title": None,
+                "description": None})
 
     return ret
