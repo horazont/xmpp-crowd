@@ -68,10 +68,20 @@ class AuthTokenSupplier(Base.ArgparseCommand):
         self.url_format = url_format
 
     def __call__(self, msg, arguments, errorSink=None):
-        senderjid = self.XMPP.muc.getJidProperty(
-            msg["from"].bare,
-            msg["from"].resource,
-            'jid')
+        is_muc = msg["type"] == "groupchat"
+        is_muc = is_muc or str(msg["from"].bare) in [
+            roomjid
+            for roomjid, _ in self.XMPP.config.rooms]
+        print(is_muc)
+
+        if is_muc:
+            senderjid = self.XMPP.muc.getJidProperty(
+                msg["from"].bare,
+                msg["from"].resource,
+                'jid')
+        else:
+            senderjid = msg["from"]
+        print(senderjid)
 
         senderjid = str(senderjid.bare)
 
