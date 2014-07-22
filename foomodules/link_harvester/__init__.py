@@ -72,7 +72,6 @@ class AuthTokenSupplier(Base.ArgparseCommand):
         is_muc = is_muc or str(msg["from"].bare) in [
             roomjid
             for roomjid, _ in self.XMPP.config.rooms]
-        print(is_muc)
 
         if is_muc:
             senderjid = self.XMPP.muc.getJidProperty(
@@ -81,7 +80,6 @@ class AuthTokenSupplier(Base.ArgparseCommand):
                 'jid')
         else:
             senderjid = msg["from"]
-        print(senderjid)
 
         senderjid = str(senderjid.bare)
 
