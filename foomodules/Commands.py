@@ -86,16 +86,27 @@ class Fnord(Base.MessageHandler):
         self.reply(msg, random.choice(self.fnordlist))
         return True
 
-class Host(Base.MessageHandler):
-    def __call__(self, msg, arguments, errorSink=None):
+class Host(Base.ArgparseCommand):
+    def __init__(self, command_name="!host", **kwargs):
+        super().__init__(command_name, **kwargs)
+        self.parser.add_argument(
+            "hostname",
+            metavar="HOST",
+            help="Hostname to look up")
+
+    def _call(self, msg, args, errorSink=None):
         proc = subprocess.Popen(
-            ["host", arguments],
+            ["host", "--", args.hostname],
             stdout=subprocess.PIPE
         )
         output, _ = proc.communicate()
         output = output.decode().strip()
 
-        self.reply(msg, output)
+        if proc.returncode == 0 and not output:
+            self.reply(msg,
+                       "{} has no matching records".format(args.hostname))
+        else:
+            self.reply(msg, output)
 
 class Uptime(Base.MessageHandler):
     def __init__(self, show_users=False, **kwargs):
@@ -280,7 +291,7 @@ class Ping(Base.ArgparseCommand):
             count = 5
         pingcmd.append("-c{0:d}".format(count))
         proc = subprocess.Popen(
-            pingcmd + self.pingargs + [args.host],
+            pingcmd + self.pingargs + ["--", args.host],
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE
         )
@@ -409,6 +420,10 @@ class Dig(Base.ArgparseCommand):
         if args.at is not None:
             atstr = "@"+args.at
             userargs.append(atstr)
+
+        if any(arg.startswith("+") for arg in userargs):
+            self.reply(msg, "nice try")
+            return
 
         call = ["dig", "+time=2", "+short"] + userargs
 
