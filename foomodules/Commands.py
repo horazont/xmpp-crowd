@@ -89,7 +89,7 @@ class Fnord(Base.MessageHandler):
 class Host(Base.ArgparseCommand):
     def __init__(self, command_name="!host", **kwargs):
         super().__init__(command_name, **kwargs)
-        self.parser.add_argument(
+        self.argparse.add_argument(
             "hostname",
             metavar="HOST",
             help="Hostname to look up")
