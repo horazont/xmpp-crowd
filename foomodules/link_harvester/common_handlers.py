@@ -43,7 +43,7 @@ def wurstball_handler(metadata):
     img_url = soup.find(id="content-main").img["src"]
 
     try:
-        img_data, mime_type = _get_url(img_url)
+        img_data, mime_type = _fetch_url(img_url)
     except DownloadError:
         return ret
 
