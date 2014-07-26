@@ -21,7 +21,7 @@ def _fetch_url(url):
             urllib.error.URLError,
             urllib.error.HTTPError) as err:
         logger.warn("Could not fetch url: {}".format(err))
-        raise DownloadError from none
+        raise DownloadError from err
 
     mime_type = response.getheader("Content-Type")
     return data, mime_type
