@@ -30,7 +30,7 @@ def _fetch_url(url):
 def default_handler(metadata):
     return {key: getattr(metadata, key) for key in
             ["original_url", "url", "title", "description",
-             "human_readable_type"]}
+             "human_readable_type", "mime_type"]}
 
 
 def wurstball_handler(metadata):
