@@ -108,6 +108,32 @@ class Host(Base.ArgparseCommand):
         else:
             self.reply(msg, output)
 
+class LDNSRRSig(Base.ArgparseCommand):
+    def __init__(self, command_name="!rrsig", **kwargs):
+        super().__init__(command_name, **kwargs)
+        self.argparse.add_argument(
+            "domain",
+            help="Domain to look up")
+        self.argparse.add_argument(
+            "record_type",
+            metavar="type",
+            default="SOA",
+            nargs="?",
+            help="query for RRSIG(<type>), defaults to SOA")
+
+    def _call(self, msg, args, errorSink=None):
+        proc = subprocess.Popen(
+            ["ldns-rrsig", args.domain, args.record_type],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+
+        stdout, stderr = proc.communicate()
+        stdout = stdout.decode().strip() if stdout else ""
+        stderr = stderr.decode().strip().strip("* ") if stderr else ""
+
+        self.reply(msg, stdout + stderr)
+
 class Uptime(Base.MessageHandler):
     def __init__(self, show_users=False, **kwargs):
         super().__init__(**kwargs)
