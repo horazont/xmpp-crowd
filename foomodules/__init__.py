@@ -17,6 +17,7 @@ import foomodules.GitLog as GitLog
 import foomodules.SympyInterface as SympyInterface
 import foomodules.Poll as Poll
 import foomodules.Log as Log
+import foomodules.CountDown as CountDown
 
 logger = logging.getLogger(__name__)
 
