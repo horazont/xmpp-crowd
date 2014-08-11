@@ -4,6 +4,7 @@ import sys
 import dateutil.parser
 from datetime import datetime
 import pytz
+from babel.dates import format_timedelta as BabelDateFormatter
 
 import foomodules.Base as Base
 import foomodules.urllookup as urllookup
@@ -88,7 +89,7 @@ class CountDownCommand(Base.ArgparseCommand):
 
     def __init__(self, store, command_name="cd",
                  disabled_commands=set(),
-                 date_formatter=HourDateFormatter,
+                 date_formatter=BabelDateFormatter,
                  **kwargs):
         super().__init__(command_name, **kwargs)
         self.store = store
