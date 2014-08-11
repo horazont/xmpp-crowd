@@ -276,7 +276,8 @@ class InfoCommand(Base.ArgparseCommand):
                 func=self._cmd_stats)
 
     def _call(self, msg, args, errorSink=None):
-        args.func(msg, args, errorSink=errorSink)
+        if 'func' in  args:
+            args.func(msg, args, errorSink=errorSink)
         return True
 
     def _get_or_reply(self, msg, name):
@@ -363,7 +364,7 @@ class InfoCommand(Base.ArgparseCommand):
         self.reply(
             msg,
             "Stored information: {}".format(
-                self._format_name_list(keywords)))
+                self._format_name_list(names)))
 
     def _cmd_save(self, msg, args, errorSink=None):
         self.store.save()
@@ -375,9 +376,9 @@ class InfoCommand(Base.ArgparseCommand):
         objects = sum(map(Nugget.get_size, self.store.names.values()))
 
         self.reply(msg, "infostore statistics: keyword dict {keywords}, name dict {names}, objects {objects}".format(
-            keywords=URLLookup.formatBytes(keywords),
-            names=URLLookup.formatBytes(names),
-            objects=URLLookup.formatBytes(objects)
+            keywords=urllookup.format_bytes(keywords),
+            names=urllookup.format_bytes(names),
+            objects=urllookup.format_bytes(objects)
         ))
 
 class KeywordListener(Base.PrefixListener):
