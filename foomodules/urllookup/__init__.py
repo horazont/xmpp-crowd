@@ -7,6 +7,11 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+try:
+    import magic
+except ImportError:
+    magic = None
+
 from datetime import datetime, timedelta
 
 import foomodules.Base as Base
@@ -93,19 +98,15 @@ class URLLookup(Base.MessageHandler):
         self.description_limit = description_limit
         self.suppress_errors = suppress_errors
 
+        self.magic = None
+        if magic:
+            self.magic = magic.open(magic.MAGIC_MIME)
+            if self.magic.load() != 0:
+                self.magic = None
+
     def prepare_metadata(self, url, response):
         metadata = Document()
         headers = response.info()
-
-        try:
-            mime_type, _, mime_info = headers["Content-Type"].partition(";")
-            m = self.charset_re.search(mime_info)
-            if m is not None:
-                metadata.encoding = m.group(1)
-
-            metadata.mime_type = mime_type
-        except (AttributeError, KeyError, TypeError) as err:
-            pass
 
         try:
             content_length = int(headers["Content-Length"])
@@ -124,6 +125,20 @@ class URLLookup(Base.MessageHandler):
 
         if metadata.size is None:
             metadata.size = len(metadata.buf)
+
+        try:
+            mime_type, _, mime_info = headers["Content-Type"].partition(";")
+        except (AttributeError, KeyError, TypeError) as err:
+            mime_type, mime_info = None, ""
+
+        if not mime_type and self.magic:
+            mime_type, _, mime_info = self.magic.buffer(metadata.buf).partition(";")
+
+        m = self.charset_re.search(mime_info)
+        if m is not None:
+            metadata.encoding = m.group(1)
+
+        metadata.mime_type = mime_type
 
         metadata.original_url = url
         metadata.url = response.geturl()

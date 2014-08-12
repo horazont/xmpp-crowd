@@ -4,6 +4,11 @@ import logging
 import re
 import subprocess
 
+try:
+    import magic
+except ImportError:
+    magic = None
+
 import html.parser
 from bs4 import BeautifulSoup
 
@@ -286,16 +291,25 @@ class File(DocumentParser):
             **kwargs)
         self.file_binary = file_binary
 
-    def fetch_metadata_into(self, metadata):
-        process = subprocess.Popen(
-            [self.file_binary,
-             "-",
-             "-b"],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        output, error = process.communicate(metadata.buf)
+        self.magic = None
+        if magic:
+            self.magic = magic.open(magic.MAGIC_NONE)
+            if self.magic.load() != 0:
+                self.magic = None
 
-        metadata.human_readable_type = output.decode().strip()
+    def fetch_metadata_into(self, metadata):
+        if self.magic:
+            metadata.human_readable_type = self.magic.buffer(metadata.buf)
+        else:
+            process = subprocess.Popen(
+                [self.file_binary,
+                 "-",
+                 "-b"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            output, error = process.communicate(metadata.buf)
+
+            metadata.human_readable_type = output.decode().strip()
 
         return False
