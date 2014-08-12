@@ -6,6 +6,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import magic
 
 from datetime import datetime, timedelta
 
@@ -98,16 +99,6 @@ class URLLookup(Base.MessageHandler):
         headers = response.info()
 
         try:
-            mime_type, _, mime_info = headers["Content-Type"].partition(";")
-            m = self.charset_re.search(mime_info)
-            if m is not None:
-                metadata.encoding = m.group(1)
-
-            metadata.mime_type = mime_type
-        except (AttributeError, KeyError, TypeError) as err:
-            pass
-
-        try:
             content_length = int(headers["Content-Length"])
         except (KeyError, TypeError) as err:
             content_length = None
@@ -124,6 +115,22 @@ class URLLookup(Base.MessageHandler):
 
         if metadata.size is None:
             metadata.size = len(metadata.buf)
+
+        try:
+            mime_type, _, mime_info = headers["Content-Type"].partition(";")
+        except (AttributeError, KeyError, TypeError) as err:
+            ma = magic.open(magic.MAGIC_MIME)
+            if ma.load() == 0:
+                mime_type, _, mime_info = ma.buffer(metadata.buf).partition(";")
+                ma.close()
+            else:
+                mime_type, mime_info = None, None
+
+        m = self.charset_re.search(mime_info)
+        if m is not None:
+            metadata.encoding = m.group(1)
+
+        metadata.mime_type = mime_type
 
         metadata.original_url = url
         metadata.url = response.geturl()
