@@ -3,6 +3,7 @@ import functools
 import logging
 import re
 import subprocess
+import magic
 
 import html.parser
 from bs4 import BeautifulSoup
@@ -297,5 +298,23 @@ class File(DocumentParser):
         output, error = process.communicate(metadata.buf)
 
         metadata.human_readable_type = output.decode().strip()
+
+        return False
+
+class MagicFile(DocumentParser):
+    def __init__(self,
+                 q=0.1,
+                 **kwargs):
+        super().__init__(
+            [
+                Accept("*/*", q)
+            ],
+            **kwargs)
+
+    def fetch_metadata_into(self, metadata):
+        m = magic.open(magic.MAGIC_NONE)
+        if m.load() == 0:
+            metadata.human_readable_type = m.buffer(metadata.buf)
+            m.close()
 
         return False
