@@ -101,7 +101,7 @@ def opengraph_handler(metadata):
     descr_node = soup.head.find("meta", property="og:description")
     if descr_node is not None:
         kwargs["description"] = descr_node["content"] or None
-    else if img_node is not None:
+    elif img_node is not None:
         # force description to None, to avoid nonsense description leaking from
         # the default handler
         kwargs["description"] = None
