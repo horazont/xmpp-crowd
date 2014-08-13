@@ -75,70 +75,38 @@ def image_handler(metadata):
     return ret
 
 
-def soup_handler(metadata):
+def opengraph_handler(metadata):
     if not metadata.mime_type == "text/html":
         return None
 
-    # Soups are difficult to detect as users can CNAME their own domain
-    # names to their foo.soup.io domain, e.g. soup.leonweber.de.  Hence
-    # we have to parse the HTML in order to determine whether this is a
-    # soup site.  This makes us a rather expensive handler, so it should
-    # be run as late as possible.
+    # generic HTML parser to look for opengraph protocol images
 
-    bs = BeautifulSoup(metadata.buf)
+    soup = BeautifulSoup(metadata.buf)
 
-    # check for soup icon
-    try:
-        if bs.find("div", id="soup").a["href"] != "http://www.soup.io":
-            return None
-    except (AttributeError, KeyError):
-        return None
+    kwargs = {}
 
-    # make sure there's a "back to front page" link (to ensure this
-    # a page with a single post)
-    if bs.body.find("div", id="maincontainer").find(
-            "a", class_="back") is None:
-        return None
+    img_node = soup.head.find("meta", property="og:image")
+    if img_node is not None:
+        img_url = img_node["content"]
+        try:
+            img_data, img_mime_type = _fetch_url(img_url)
+        except DownloadError:
+            return {}
+        kwargs.update({
+            "image_url": img_url,
+            "image_mime_type": img_mime_type,
+            "image_buffer": img_data
+        })
 
-    try:
-        og_type = bs.find("meta", property="og:type")["content"]
-    except KeyError:
-        return None
+    descr_node = soup.head.find("meta", property="og:description")
+    if descr_node is not None:
+        kwargs["description"] = descr_node["content"] or None
+    else if img_node is not None:
+        # force description to None, to avoid nonsense description leaking from
+        # the default handler
+        kwargs["description"] = None
 
-    if og_type == "image":
-        subhandler = _soup_image_handler
-    elif og_type == "article":
-        subhandler = _soup_article_handler
-    else:
-        return None
-
-    kwargs = subhandler(bs)
     ret = default_handler(metadata)
     ret.update(kwargs)
 
     return ret
-
-
-def _soup_image_handler(soup):
-    img_url = soup.head.find("meta", property="og:image")["content"]
-
-    try:
-        img_data, img_mime_type = _fetch_url(img_url)
-    except DownloadError:
-        return {}
-
-    desc = soup.head.find("meta", property="og:description")["content"] or None
-
-    return {"description": desc,
-            "image_url": img_url,
-            "image_mime_type": img_mime_type,
-            "image_buffer": img_data}
-
-
-def _soup_article_handler(soup):
-    # stub function, might later want to parse the html article, e.g.
-    # <br> ⇒ \n\n, <ul><li> ⇒ •, etc.  Maybe even extract <img>s…
-
-    desc = soup.head.find("meta", property="og:description")["content"] or None
-
-    return {"description": desc}
