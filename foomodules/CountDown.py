@@ -41,7 +41,9 @@ class Event(object):
         # pytz_timezones function.
 
         if override_timezone is not None:
-            self.target_date = self.target_date.astimezone(override_timezone)
+            # we have to go through localize to have proper DST handling
+            self.target_date = override_timezone.localize(
+                self.target_date.replace(tzinfo=None))
 
     def get_size(self):
         return  sys.getsizeof(self.name) + \
