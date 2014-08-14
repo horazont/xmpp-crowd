@@ -1,15 +1,23 @@
-import shlex
 import pickle
 import sys
+
+from datetime import datetime, timedelta
+
+import babel.dates
+
 import dateutil.parser
-from datetime import datetime
+
 import pytz
-from babel.dates import format_timedelta as BabelDateFormatter
 
 import foomodules.Base as Base
 import foomodules.urllookup as urllookup
 
-def HourDateFormatter(delta):
+def BabelDateFormatter(**kwargs):
+    def formatter(delta):
+        return babel.dates.format_datetime(delta, **kwargs)
+    return formatter
+
+def hour_date_formatter(delta):
     return "{:.3} h".format(delta.total_seconds()/3600)
 
 class Event(object):
@@ -39,13 +47,16 @@ class EventStore(object):
 
     def _check_name(self, name):
         if len(name) < self.min_name_length:
-            raise ValueError("Names have to have a minimum length of {0:d}".format(self.min_name_length))
+            raise ValueError("Names have to have a minimum length of"
+                             " {0:d}".format(self.min_name_length))
         if self.max_name_length > 0 and len(name) > self.max_name_length:
-            raise ValueError("Names have to have a maximum length of {0:d}".format(self.max_name_length))
+            raise ValueError("Names have to have a maximum length of"
+                             " {0:d}".format(self.max_name_length))
 
     def _check_limits(self):
         if self.max_event_count > 0 and len(self.events) > self.max_event_count:
-            raise ValueError("Sorry, I cannot memorize more. You must allow me to forget something else first.")
+            raise ValueError("Sorry, I cannot memorize more. You must allow me"
+                             " to forget something else first.")
 
     def try_load(self):
         try:
@@ -89,7 +100,7 @@ class CountDownCommand(Base.ArgparseCommand):
 
     def __init__(self, store, command_name="cd",
                  disabled_commands=set(),
-                 date_formatter=BabelDateFormatter,
+                 date_formatter=BabelDateFormatter(),
                  **kwargs):
         super().__init__(command_name, **kwargs)
         self.store = store
@@ -168,7 +179,9 @@ class CountDownCommand(Base.ArgparseCommand):
                     Δt = -Δt
                     preposition = "since"
 
-                self.reply(msg, "{} {} {} ".format(event.name, preposition, self.date_formatter(Δt)))
+                self.reply(msg, "{} {} {} ".format(event.name,
+                                                   preposition,
+                                                   self.date_formatter(Δt)))
         return True
 
     def _cmd_add(self, msg, args, errorSink=None):
@@ -207,7 +220,9 @@ class CountDownCommand(Base.ArgparseCommand):
     def _cmd_stats(self, msg, args, errorSink=None):
         event_memory = sum(map(Event.get_size, self.store.events.values()))
 
-        self.reply(msg, "eventstore statistics: {num_events} events consuming {event_memory} memory.".format(
-            num_events=len(self.store.events),
-            event_memory=urllookup.format_bytes(event_memory)
-        ))
+        self.reply(msg,
+                   "eventstore statistics: {num_events} events consuming"
+                   " {event_memory} memory.".format(
+                       num_events=len(self.store.events),
+                       event_memory=urllookup.format_bytes(event_memory)
+                   ))
