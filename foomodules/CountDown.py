@@ -21,7 +21,7 @@ def pytz_timezones(tzname, tzoffset):
 
 def BabelDateFormatter(**kwargs):
     def formatter(delta):
-        return babel.dates.format_datetime(delta, **kwargs)
+        return babel.dates.format_timedelta(delta, **kwargs)
     return formatter
 
 def hour_date_formatter(delta):
