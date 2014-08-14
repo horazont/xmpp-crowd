@@ -12,6 +12,13 @@ import pytz
 import foomodules.Base as Base
 import foomodules.urllookup as urllookup
 
+def pytz_timezones(tzname, tzoffset):
+    if tzname is None:
+        if tzoffset is None:
+            return pytz.utc
+        return tzoffset
+    return pytz.timezone(tzname)
+
 def BabelDateFormatter(**kwargs):
     def formatter(delta):
         return babel.dates.format_datetime(delta, **kwargs)
@@ -21,11 +28,20 @@ def hour_date_formatter(delta):
     return "{:.3} h".format(delta.total_seconds()/3600)
 
 class Event(object):
-    def __init__(self, name, target_date):
+    def __init__(self, name, target_date, override_timezone=None):
         self.name = name
-        self.target_date = dateutil.parser.parse(target_date)
-        if self.target_date.tzinfo == None:
-            self.target_date = self.target_date.replace(tzinfo=pytz.utc)
+        try:
+            self.target_date = dateutil.parser.parse(
+                target_date,
+                tzinfos=pytz_timezones)
+        except pytz.exceptions.UnknownTimeZoneError as err:
+            raise ValueError("unknown time zone: {}".format(err))
+
+        # no need for explicitly setting UTC anymore, this is done by the
+        # pytz_timezones function.
+
+        if override_timezone is not None:
+            self.target_date = self.target_date.astimezone(override_timezone)
 
     def get_size(self):
         return  sys.getsizeof(self.name) + \
@@ -73,13 +89,14 @@ class EventStore(object):
         with open(self.data_filename, "wb") as f:
             pickle.dump(self.events, f)
 
-    def add_event(self, name, target_date):
+    def add_event(self, name, target_date, override_timezone=None):
         self._check_limits()
         self._check_name(name)
 
         if name in self.events:
             raise KeyError(name)
-        event = Event(name, target_date)
+        event = Event(name, target_date,
+                      override_timezone=override_timezone)
         self.events[name] = event
 
     def delete_event(self, event):
@@ -124,6 +141,13 @@ class CountDownCommand(Base.ArgparseCommand):
             parser.add_argument(
                 "target_date",
                 help="Date of the event")
+            parser.add_argument(
+                "timezone",
+                nargs="?",
+                default=None,
+                type=pytz.timezone,
+                help="Name of the timezone (e.g. Europe/Berlin). Overrides any"
+                " timezone given in the target_date string.")
             parser.set_defaults(
                 func=self._cmd_add)
 
@@ -186,7 +210,9 @@ class CountDownCommand(Base.ArgparseCommand):
 
     def _cmd_add(self, msg, args, errorSink=None):
         try:
-            self.store.add_event(args.name, args.target_date)
+            self.store.add_event(args.name,
+                                 args.target_date,
+                                 override_timezone=args.timezone)
         except ValueError as err:
             self.reply(msg, "Sorry, {0}".format(err))
         except KeyError as err:
