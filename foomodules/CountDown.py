@@ -120,6 +120,7 @@ class CountDownCommand(Base.ArgparseCommand):
     def __init__(self, store, command_name="cd",
                  disabled_commands=set(),
                  date_formatter=BabelDateFormatter(),
+                 default_timezone=None,
                  **kwargs):
         super().__init__(command_name, **kwargs)
         self.store = store
@@ -146,7 +147,7 @@ class CountDownCommand(Base.ArgparseCommand):
             parser.add_argument(
                 "timezone",
                 nargs="?",
-                default=None,
+                default=default_timezone,
                 type=pytz.timezone,
                 help="Name of the timezone (e.g. Europe/Berlin). Overrides any"
                 " timezone given in the target_date string.")
