@@ -33,6 +33,7 @@ class Event(object):
         try:
             self.target_date = dateutil.parser.parse(
                 target_date,
+                dayfirst=True,
                 tzinfos=pytz_timezones)
         except pytz.exceptions.UnknownTimeZoneError as err:
             raise ValueError("unknown time zone: {}".format(err))
