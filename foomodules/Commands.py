@@ -545,6 +545,7 @@ class DiscordianDateTime:
         "Zaraday",
         "Bureflux",
         "Maladay",
+        "Afflux",
     ]
 
     SEASONS = [
