@@ -823,7 +823,7 @@ class BuildBot(HubBot):
         try:
             self.rebuild_repo(msg, repository, branch)
         except KeyError:
-            self.reply(msg, "Repository-branch combination not tracked: {}".format((repo, branch)))
+            self.reply(msg, "Repository-branch combination not tracked: {}".format((repository, branch)))
 
     def cmdEcho(self, msg, *args):
         return " ".join((str(arg) for arg in args))
