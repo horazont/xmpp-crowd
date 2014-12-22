@@ -200,7 +200,7 @@ or a relative specifier (starting with a `+`) denoting the offset, for example:
             line = ("{timetag}: "
                     "{temp:.1f} °C, "
                     "{prec:.1f} mm precipitation, "
-                    "{wind_speed:.1f} m/s (Bft: {wind_speed_bft:.0f}){wind_bearing}").format(
+                    "{wind_speed:.1f} m/s (Bft: {wind_speed_bft:.0f}) {wind_bearing}").format(
                         timetag=timetag,
                         temp=hintmodules.weather.utils.kelvin_to_celsius(
                             temperature),
