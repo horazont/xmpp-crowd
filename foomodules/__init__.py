@@ -18,6 +18,7 @@ import foomodules.SympyInterface as SympyInterface
 import foomodules.Poll as Poll
 import foomodules.Log as Log
 import foomodules.CountDown as CountDown
+import foomodules.Twitler as Twitler
 
 logger = logging.getLogger(__name__)
 
