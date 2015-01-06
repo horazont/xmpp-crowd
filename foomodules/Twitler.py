@@ -11,7 +11,6 @@ class TwitlerCommand(Base.ArgparseCommand):
         super().__init__(command_name, **kwargs)
 
         self._subparsers = self.argparse.add_subparsers()
-        self._available_commands = []
 
         parser = self._add_command('tweet', self._cmd_tweet)
         parser.add_argument('text', nargs=argparse.REMAINDER)
@@ -30,7 +29,6 @@ class TwitlerCommand(Base.ArgparseCommand):
 
     def _add_command(self, command_name, command_func):
         parser = self._subparsers.add_parser(command_name)
-        self._available_commands.append(command_name)
         parser.set_defaults(func=command_func)
         return parser
 
@@ -39,12 +37,10 @@ class TwitlerCommand(Base.ArgparseCommand):
             try:
                 args.func(msg, args, errorSink)
             except tweepy.error.TweepError:
+                # FIXME handle return codes as described at
+                #       https://dev.twitter.com/overview/api/response-codes
                 self.reply(msg, ("Access denied. "
                                  "Did we run into rate limiting?"))
-        else:
-            self.reply(msg,
-                    "No command given. Try one of {commands}.".format(
-                        commands=', '.join(self._available_commands)))
         return True
 
     def _twitter_get_user(self):
