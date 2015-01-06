@@ -38,11 +38,9 @@ class TwitlerCommand(Base.ArgparseCommand):
         if 'func' in args:
             try:
                 args.func(msg, args, errorSink)
-            except tweepy.error.TweepError:
-                # FIXME handle return codes as described at
-                #       https://dev.twitter.com/overview/api/response-codes
-                self.reply(msg, ("Access denied. "
-                                 "Did we run into rate limiting?"))
+            except tweepy.error.TweepError as e:
+                self.reply(msg,
+                           "API call failed: {msg}".format(msg=e.reason))
         return True
 
     def _twitter_get_user(self):
