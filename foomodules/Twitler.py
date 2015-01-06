@@ -70,7 +70,7 @@ class TwitlerCommand(Base.ArgparseCommand):
     def _cmd_status(self, msg, args, errorSink=None):
         user = self._twitter_get_user()
         self.reply(msg, ("This is {screen_name}. "
-                         "I have {follower_count} followers and "
+                         "We have {follower_count} followers and "
                          "{friend_count} friends.")
                          .format(
                              screen_name=user.screen_name,
