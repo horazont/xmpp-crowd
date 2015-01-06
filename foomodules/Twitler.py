@@ -73,7 +73,7 @@ class TwitlerCommand(Base.ArgparseCommand):
                              screen_name=user.screen_name,
                              follower_count=len(user.followers()),
                              friend_count=len(user.friends())))
-        self.reply(msg, ("Current status with id {sid} is: {text}".format(
+        self.reply(msg, ("Latest tweet with id {sid} is: {text}".format(
             sid=user.status.id,
             text=user.status.text)))
 
