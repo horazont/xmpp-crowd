@@ -25,7 +25,7 @@ class TwitlerCommand(Base.ArgparseCommand):
         # twitter setup
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
         auth.set_access_token(access_key, access_secret)
-        self._twitter_api = tweepy.API(auth)
+        self._twitter_api = tweepy.API(auth, cache=tweepy.cache.Cache())
         if verify_credentials and not self._twitter_api.verify_credentials():
             raise ValueError('Invalid twitter credentials')
 
