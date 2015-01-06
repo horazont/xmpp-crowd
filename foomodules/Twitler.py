@@ -42,8 +42,7 @@ class TwitlerCommand(Base.ArgparseCommand):
             try:
                 args.func(msg, args, errorSink)
             except tweepy.error.TweepError as e:
-                self.reply(msg,
-                           "API call failed: {msg}".format(msg=e.reason))
+                self.reply(msg, "API call failed: {msg}".format(msg=e.reason))
         return True
 
     def _twitter_get_user(self):
