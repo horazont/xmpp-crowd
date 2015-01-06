@@ -43,7 +43,8 @@ class TwitlerCommand(Base.ArgparseCommand):
                                  "Did we run into rate limiting?"))
         else:
             self.reply(msg,
-                    "No command given. Try one of tweet, revoke, status")
+                    "No command given. Try one of {commands}.".format(
+                        commands=', '.join(self._available_commands)))
         return True
 
     def _twitter_get_user(self):
