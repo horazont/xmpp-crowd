@@ -16,7 +16,7 @@ class TwitlerCommand(Base.ArgparseCommand):
         parser.add_argument('text', nargs=argparse.REMAINDER)
 
         parser = self._add_command('revoke', self._cmd_revoke)
-        parser.add_argument('tweet_id', nargs=1, type=int)
+        parser.add_argument('tweet_id', type=int)
 
         parser = self._add_command('status', self._cmd_status)
 
@@ -64,7 +64,7 @@ class TwitlerCommand(Base.ArgparseCommand):
                     sid=status.id))
 
     def _cmd_revoke(self, msg, args, errorSink=None):
-        self._twitter_api.destroy_status(args.tweet_id)
+        self._twitter_api.destroy_status(int(args.tweet_id))
         self.reply(msg, "Message revoked.")
 
     def _cmd_status(self, msg, args, errorSink=None):
