@@ -85,7 +85,7 @@ class TwitlerCommand(Base.ArgparseCommand):
         self.reply(msg, "Our latest tweets are:")
         tweets = self._twitter_api.home_timeline()
         for tweet in tweets:
-            self.reply(msg, "[{sid:>18d}]: {text}".format(
+            self.reply(msg, "[{sid:>18d}] {text}".format(
                 sid=tweet.id, text=tweet.text));
             tweet_limit = tweet_limit - 1
             if tweet_limit < 1:
