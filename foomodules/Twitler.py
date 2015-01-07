@@ -18,9 +18,9 @@ class TwitlerCommand(Base.ArgparseCommand):
         parser = self._add_command('revoke', self._cmd_revoke)
         parser.add_argument('tweet_id', type=int)
 
-        parser = self._add_command('status', self._cmd_status)
-
-        parser = self._add_command('latest', self._cmd_latest)
+        self._add_command('status', self._cmd_status)
+        self._add_command('latest', self._cmd_latest)
+        self._add_command('followers', self._cmd_followers)
 
         # twitter setup
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
@@ -89,3 +89,9 @@ class TwitlerCommand(Base.ArgparseCommand):
             tweet_limit = tweet_limit - 1
             if tweet_limit < 1:
                 break
+
+    def _cmd_followers(self, msg, args, errorSink=None):
+        followers = [f.screen_name for f in self._twitter_api.followers()]
+        self.reply(msg, "Our {num} followers are: {followers}".format(
+            num=len(followers),
+            followers=', '.join(followers)))
