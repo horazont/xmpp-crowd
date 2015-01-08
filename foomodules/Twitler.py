@@ -18,9 +18,9 @@ class TwitlerCommand(Base.ArgparseCommand):
         parser = self._add_command('revoke', self._cmd_revoke)
         parser.add_argument('tweet_id', type=int)
 
-        parser = self._add_command('status', self._cmd_status)
-
-        parser = self._add_command('latest', self._cmd_latest)
+        self._add_command('status', self._cmd_status)
+        self._add_command('latest', self._cmd_latest)
+        self._add_command('followers', self._cmd_followers)
 
         # twitter setup
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
@@ -42,8 +42,7 @@ class TwitlerCommand(Base.ArgparseCommand):
             try:
                 args.func(msg, args, errorSink)
             except tweepy.error.TweepError as e:
-                self.reply(msg,
-                           "API call failed: {msg}".format(msg=e.reason))
+                self.reply(msg, "API call failed: {msg}".format(msg=e.reason))
         return True
 
     def _twitter_get_user(self):
@@ -70,7 +69,7 @@ class TwitlerCommand(Base.ArgparseCommand):
     def _cmd_status(self, msg, args, errorSink=None):
         user = self._twitter_get_user()
         self.reply(msg, ("This is {screen_name}. "
-                         "I have {follower_count} followers and "
+                         "We have {follower_count} followers and "
                          "{friend_count} friends.")
                          .format(
                              screen_name=user.screen_name,
@@ -85,8 +84,14 @@ class TwitlerCommand(Base.ArgparseCommand):
         self.reply(msg, "Our latest tweets are:")
         tweets = self._twitter_api.home_timeline()
         for tweet in tweets:
-            self.reply(msg, "[{sid:>18d}]: {text}".format(
+            self.reply(msg, "[{sid:>18d}] {text}".format(
                 sid=tweet.id, text=tweet.text));
             tweet_limit = tweet_limit - 1
             if tweet_limit < 1:
                 break
+
+    def _cmd_followers(self, msg, args, errorSink=None):
+        followers = [f.screen_name for f in self._twitter_api.followers()]
+        self.reply(msg, "Our {num} followers are: {followers}".format(
+            num=len(followers),
+            followers=', '.join(followers)))
