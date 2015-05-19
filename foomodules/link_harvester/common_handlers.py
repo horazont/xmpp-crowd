@@ -85,6 +85,9 @@ def opengraph_handler(metadata):
 
     kwargs = {}
 
+    if soup.head is None:
+        return None
+
     img_node = soup.head.find("meta", property="og:image")
     if img_node is not None:
         img_url = img_node["content"]
