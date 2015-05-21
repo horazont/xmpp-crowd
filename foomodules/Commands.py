@@ -742,6 +742,9 @@ class Porn(Base.ArgparseCommand):
         "gay": "g",
         "tranny": "t",
         "shemale": "t",
+        "g": "g",
+        "s": "s",
+        "t": "t"
     }
 
     COUNTRIES = {
