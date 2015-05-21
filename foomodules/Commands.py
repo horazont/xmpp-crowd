@@ -732,3 +732,71 @@ class Poly(Base.MessageHandler):
                 b=p2,
                 d=d,
                 r=r))
+
+
+class Porn(Base.ArgparseCommand):
+    ORIENTATIONS = {
+        "straight": "s",
+        "gay": "g",
+        "tranny": "t",
+        "shemale": "t",
+    }
+
+    COUNTRIES = {
+        "de": "de"
+    }
+
+    def __init__(self, cache_lifetime=None, **kwargs):
+        super().__init__(**kwargs)
+
+        self.cache_lifetime = cache_lifetime
+
+        self.argparse.add_argument(
+            "-o", "--orientation",
+            choices=set(self.ORIENTATIONS),
+            default=None,
+            help="Filter by orientation")
+        self.argparse.add_argument(
+            "-c", "--country"
+            choices=set(self.COUNTRIES),
+            default=None,
+            help="Filter by country code")
+
+        self._cache = {}
+        self._cache_timestamp = None
+
+    def _fetch_one_from_cache(self, orientation, country):
+        cache_key = (orientation, country)
+        try:
+            items, timestamp = self._cache[cache_key]
+        except KeyError:
+            return None
+
+        if timestamp + self.cache_lifetime > datetime.utcnow():
+            del self._cache[cache_key]
+            return None
+
+        try:
+            return items.pop(0)
+        except IndexError:
+            del self._cache[cache_key]
+            return None
+
+    def _fetch_one(self, orientation, country):
+        item = self._fetch_one_from_cache(orientation, country)
+        while item is None:
+            params = {}
+            if orientation:
+                params["orientation"] = orientation
+            if country:
+                params["country"] = country
+
+            req = requests.get("http://www.pornmd.com/getliveterms",
+                               params=params)
+            self._cache[orientation, country] = req.json(), datetime.utcnow()
+
+            item = self._fetch_one_from_cache(orientation, country)
+        return item
+
+    def _call(self, msg, args, errorSink=None):
+        self.reply(msg, self._fetch_one(args.orientation, args.country))
