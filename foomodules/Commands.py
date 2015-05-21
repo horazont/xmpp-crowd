@@ -757,7 +757,7 @@ class Porn(Base.ArgparseCommand):
             default=None,
             help="Filter by orientation")
         self.argparse.add_argument(
-            "-c", "--country"
+            "-c", "--country",
             choices=set(self.COUNTRIES),
             default=None,
             help="Filter by country code")
