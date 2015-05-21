@@ -827,6 +827,9 @@ class Porn(Base.ArgparseCommand):
 
         return items
 
+    def _fix_the_mess(self, s):
+        return html.unescape(s).replace(r'\"', '"').replace(r"\'", "'")
+
     def _call(self, msg, args, errorSink=None):
         entries = self._fetch_n(args.orientation, args.country,
                                 max(1, min(args.amount, self.max_amount))
@@ -834,4 +837,5 @@ class Porn(Base.ArgparseCommand):
         if not entries:
             self.reply(msg, "No data currently")
         else:
-            self.reply(msg, ", ".join(entry["keyword"] for entry in entries))
+            self.reply(msg, ", ".join(self._fix_the_mess(entry["keyword"])
+                                      for entry in entries))
