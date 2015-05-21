@@ -12,6 +12,8 @@ import ipaddress
 import logging
 import calendar
 
+import requests
+
 try:
     import pytz
 except ImportError:
@@ -746,8 +748,8 @@ class Porn(Base.ArgparseCommand):
         "de": "de"
     }
 
-    def __init__(self, cache_lifetime=None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, command_name="!porn", cache_lifetime=None, **kwargs):
+        super().__init__(command_name, **kwargs)
 
         self.cache_lifetime = cache_lifetime
 
@@ -772,7 +774,8 @@ class Porn(Base.ArgparseCommand):
         except KeyError:
             return None
 
-        if timestamp + self.cache_lifetime > datetime.utcnow():
+        if     (self.cache_lifetime is not None and
+                timestamp + self.cache_lifetime > datetime.utcnow()):
             del self._cache[cache_key]
             return None
 
@@ -784,19 +787,22 @@ class Porn(Base.ArgparseCommand):
 
     def _fetch_one(self, orientation, country):
         item = self._fetch_one_from_cache(orientation, country)
-        while item is None:
-            params = {}
-            if orientation:
-                params["orientation"] = orientation
-            if country:
-                params["country"] = country
 
-            req = requests.get("http://www.pornmd.com/getliveterms",
-                               params=params)
-            self._cache[orientation, country] = req.json(), datetime.utcnow()
+        params = {}
+        if orientation:
+            params["orientation"] = orientation
+        if country:
+            params["country"] = country
 
-            item = self._fetch_one_from_cache(orientation, country)
-        return item
+        req = requests.get("http://www.pornmd.com/getliveterms",
+                           params=params)
+        self._cache[orientation, country] = req.json(), datetime.utcnow()
+
+        return self._fetch_one_from_cache(orientation, country)
 
     def _call(self, msg, args, errorSink=None):
-        self.reply(msg, self._fetch_one(args.orientation, args.country))
+        entry = self._fetch_one(args.orientation, args.country)
+        if entry is None:
+            self.reply(msg, "No data currently")
+        else:
+            self.reply(msg, entry["keyword"])
