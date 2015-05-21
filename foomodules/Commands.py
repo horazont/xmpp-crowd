@@ -758,11 +758,6 @@ class Porn(Base.ArgparseCommand):
         self.max_amount = max_amount
 
         self.argparse.add_argument(
-            "-o", "--orientation",
-            choices=set(self.ORIENTATIONS),
-            default=None,
-            help="Filter by orientation")
-        self.argparse.add_argument(
             "-c", "--country",
             choices=set(self.COUNTRIES),
             default=None,
@@ -773,6 +768,12 @@ class Porn(Base.ArgparseCommand):
             default=10,
             help="Number of items to show at once (max: {})".format(
                 max_amount))
+        self.argparse.add_argument(
+            "orientation",
+            choices=set(self.ORIENTATIONS),
+            nargs="?",
+            default=None,
+            help="Filter by orientation")
 
         self._cache = {}
         self._cache_timestamp = None
