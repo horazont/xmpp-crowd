@@ -748,7 +748,13 @@ class Porn(Base.ArgparseCommand):
     }
 
     COUNTRIES = {
-        "de": "de"
+        "de": "de",
+        "us": "us",
+        "in": "in",
+        "ca": "ca",
+        "fr": "fr",
+        "it": "it",
+        "mx": "mx"
     }
 
     def __init__(self, command_name="!porn",
