@@ -775,7 +775,7 @@ class Porn(Base.ArgparseCommand):
             return None
 
         if     (self.cache_lifetime is not None and
-                timestamp + self.cache_lifetime > datetime.utcnow()):
+                timestamp + self.cache_lifetime < datetime.utcnow()):
             del self._cache[cache_key]
             return None
 
