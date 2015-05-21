@@ -748,10 +748,14 @@ class Porn(Base.ArgparseCommand):
         "de": "de"
     }
 
-    def __init__(self, command_name="!porn", cache_lifetime=None, **kwargs):
+    def __init__(self, command_name="!porn",
+                 cache_lifetime=None,
+                 max_amount=24,
+                 **kwargs):
         super().__init__(command_name, **kwargs)
 
         self.cache_lifetime = cache_lifetime
+        self.max_amount = max_amount
 
         self.argparse.add_argument(
             "-o", "--orientation",
@@ -763,46 +767,61 @@ class Porn(Base.ArgparseCommand):
             choices=set(self.COUNTRIES),
             default=None,
             help="Filter by country code")
+        self.argparse.add_argument(
+            "-n", "--amount",
+            type=int,
+            default=10,
+            help="Number of items to show at once (max: {})".format(
+                max_amount))
 
         self._cache = {}
         self._cache_timestamp = None
 
-    def _fetch_one_from_cache(self, orientation, country):
+    def _fetch_n_from_cache(self, orientation, country, n):
         cache_key = (orientation, country)
         try:
             items, timestamp = self._cache[cache_key]
         except KeyError:
-            return None
+            return []
 
         if     (self.cache_lifetime is not None and
                 timestamp + self.cache_lifetime < datetime.utcnow()):
             del self._cache[cache_key]
-            return None
+            return []
 
-        try:
-            return items.pop(0)
-        except IndexError:
+        result = items[:n]
+        if len(items) > n:
+            self._cache[cache_key] = items[n:], timestamp
+        else:
             del self._cache[cache_key]
-            return None
 
-    def _fetch_one(self, orientation, country):
-        item = self._fetch_one_from_cache(orientation, country)
+        return result
 
-        params = {}
-        if orientation:
-            params["orientation"] = orientation
-        if country:
-            params["country"] = country
+    def _fetch_n(self, orientation, country, n):
+        items = self._fetch_n_from_cache(orientation, country, n)
+        found = 1  # force the loop into at least one iteration
+        while len(items) < n and found > 0:
+            params = {}
+            if orientation:
+                params["orientation"] = orientation
+            if country:
+                params["country"] = country
 
-        req = requests.get("http://www.pornmd.com/getliveterms",
-                           params=params)
-        self._cache[orientation, country] = req.json(), datetime.utcnow()
+            req = requests.get("http://www.pornmd.com/getliveterms",
+                               params=params)
+            self._cache[orientation, country] = req.json(), datetime.utcnow()
 
-        return self._fetch_one_from_cache(orientation, country)
+            new_items = self._fetch_n_from_cache(orientation, country, n)
+            found = len(new_items)
+            items.extend(new_items)
+
+        return items
 
     def _call(self, msg, args, errorSink=None):
-        entry = self._fetch_one(args.orientation, args.country)
-        if entry is None:
+        entries = self._fetch_n(args.orientation, args.country,
+                                max(1, min(args.amount, self.max_amount))
+        )
+        if not entries:
             self.reply(msg, "No data currently")
         else:
-            self.reply(msg, entry["keyword"])
+            self.reply(msg, ", ".join(entry["keyword"] for entry in entries))
