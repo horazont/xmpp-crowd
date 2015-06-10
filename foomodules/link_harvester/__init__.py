@@ -14,10 +14,37 @@ import muclinks.model
 logger = logging.getLogger(__name__)
 
 class LinkHarvester(Base.XMPPObject):
-    def __init__(self, controller, handlers, **kwargs):
+    def __init__(self, controller, handlers, *,
+                 repost_harvested_link_domains=[],
+                 repost_url_template=None,
+                 **kwargs):
         super().__init__(**kwargs)
         self.controller = controller
         self.handlers = handlers
+        self.repost_harvested_link_domains = \
+            list(repost_harvested_link_domains)
+        self.repost_url_template = repost_url_template
+
+    def _post_link_if_repost_domain(self, msg_context, document, metadata):
+        if document.media is None or document.media.blob is None:
+            return
+
+        if metadata.url_parsed.netloc not in self.repost_harvested_link_domains:
+            return
+
+        if self.repost_url_template is None:
+            logger.warn("cannot repost link without repost_url_template!")
+            return
+
+        url_hash = document.media.blob.url_hash
+
+        url = self.repost_url_template(
+            media_hash=base64.urlsafe_b64encode(
+                url_hash
+            ).rstrip(b"=").decode("ascii")
+        )
+
+        self.reply(msg_context, url)
 
     def submit(self, msg_context, metadata):
         posted = datetime.utcnow()
@@ -34,12 +61,17 @@ class LinkHarvester(Base.XMPPObject):
                 break
 
         with self.controller.with_new_session() as ctx:
-            ctx.post_link(
+            document = ctx.post_link(
                 mucjid,
                 str(senderjid.bare),
                 nick,
                 timestamp=posted,
                 **kwargs)
+
+        try:
+            self._post_link_if_repost_domain(msg_context, document, metadata)
+        except Exception as err:
+            logger.warn("failed to repost link: %r", err)
 
     def __call__(self, msg_context, metadata):
         try:
