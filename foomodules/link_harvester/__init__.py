@@ -68,10 +68,10 @@ class LinkHarvester(Base.XMPPObject):
                 timestamp=posted,
                 **kwargs)
 
-        try:
-            self._post_link_if_repost_domain(msg_context, document, metadata)
-        except Exception as err:
-            logger.warn("failed to repost link: %r", err)
+            try:
+                self._post_link_if_repost_domain(msg_context, document, metadata)
+            except Exception as err:
+                logger.warn("failed to repost link: %r", err)
 
     def __call__(self, msg_context, metadata):
         try:
