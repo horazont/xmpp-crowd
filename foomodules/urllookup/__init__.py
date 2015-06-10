@@ -104,6 +104,13 @@ class URLLookup(Base.MessageHandler):
             if self.magic.load() != 0:
                 self.magic = None
 
+    def _xmpp_changed(self, old, new):
+        super()._xmpp_changed(old, new)
+        for hook in self.pre_hooks:
+            hook.XMPP = new
+        for hook in self.post_hooks:
+            hook.XMPP = new
+
     def prepare_metadata(self, url, response):
         metadata = Document()
         headers = response.info()
