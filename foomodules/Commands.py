@@ -542,6 +542,7 @@ class Date(Base.ArgparseCommand):
                 timezone = pytz.timezone(timezone)
             self.argparse.add_argument(
                 "timezone",
+                nargs="?",
                 default=timezone,
                 type=self.to_timezone,
                 help="Timezone (default is {}). Examples: "
