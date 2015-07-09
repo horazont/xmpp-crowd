@@ -665,7 +665,7 @@ class DiscordianDateTime:
             else:
                 self.weekdayname = self.WEEKDAYS[self.weekday-1]
 
-class DDate(Date):
+class DDate(Base.MessageHandler):
     @staticmethod
     def _cardinal_number(num):
         suffixes = {
@@ -681,6 +681,13 @@ class DDate(Date):
         num += suffixes.get(num[-1], "th")
         return num
 
+    def __init__(self, timezone, **kwargs):
+        super().__init__(**kwargs)
+        if pytz is None:
+            self._timezone = None
+        else:
+            self._timezone = pytz.timezone(timezone)
+
     def _format_date(self, dt):
         ddt = DiscordianDateTime(dt)
         if ddt.day is None:
@@ -693,6 +700,19 @@ class DDate(Date):
                 card=self._cardinal_number(ddt.day),
                 seasonname=ddt.seasonname,
                 yold=ddt.yold)
+
+    def __call__(self, msg, arguments, errorSink=None):
+        if arguments.strip():
+            return
+
+        if pytz is not None:
+            dt = datetime.now(pytz.UTC)
+            if self._timezone is not None:
+                dt = self._timezone.normalize(dt)
+        else:
+            dt = datetime.utcnow()
+
+        self.reply(msg, self._format_date(dt))
 
 
 class Poly(Base.MessageHandler):
