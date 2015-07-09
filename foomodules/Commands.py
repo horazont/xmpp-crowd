@@ -21,6 +21,15 @@ except ImportError:
     # no timezone support
     pytz = None
 
+try:
+    import babel
+    import babel.dates
+except ImportError:
+    # no timezone support
+    from types import SimpleNamespace
+    babel = SimpleNamespace()
+    babel.dates = None
+
 import foomodules.Base as Base
 import foomodules.utils as utils
 import foomodules.polylib as polylib
@@ -511,29 +520,74 @@ class Redirect(Base.MessageHandler):
                 self._new_name, arguments))
 
 
-class Date(Base.MessageHandler):
-    def __init__(self, timezone, **kwargs):
-        super().__init__(**kwargs)
+class Date(Base.ArgparseCommand):
+    @staticmethod
+    def to_timezone(s):
+        try:
+            return pytz.timezone(s)
+        except pytz.exceptions.UnknownTimeZoneError as err:
+            raise ValueError("no such time zone: {}".format(err))
+
+    def __init__(self, command_name="!date",
+                 timezone=None,
+                 locale=None, **kwargs):
+        super().__init__(command_name, **kwargs)
         if pytz is None:
             logging.warn("Timezone support disabled, install pytz to enable.")
-            self._timezone = None
+            self.argparse.set_defaults(timezone=None)
         else:
-            self._timezone = pytz.timezone(timezone)
+            if timezone is None:
+                timezone = pytz.UTC
+            else:
+                timezone = pytz.timezone(timezone)
+            self.argparse.add_argument(
+                "timezone",
+                default=timezone,
+                type=self.to_timezone,
+                help="Timezone (default is {}). Examples: "
+                "Europe/Berlin, US/Eastern, ETC/GMT+2".format(timezone)
+            )
+
+        if babel.dates is None:
+            logging.warn("Localization support is disabled, "
+                         "install babel to enable.")
+            self.argparse.set_defaults(locale=None)
+        else:
+            if locale is None:
+                locale = babel.default_locale()
+            self.argparse.add_argument(
+                "-l", "--lang", "--locale",
+                default=locale,
+                dest="locale",
+                help="Locale for the output (default is {}). Examples: "
+                "en_GB, de_DE".format(locale)
+            )
+            self.argparse.add_argument(
+                "-f", "--format",
+                choices={"short", "long", "medium", "full"},
+                default="full",
+                help="Format of the output (default is full)."
+            )
 
     def _format_date(self, dt):
         return dt.strftime("%a %d %b %Y %H:%M:%S %Z")
 
-    def __call__(self, msg, arguments, errorSink=None):
-        if arguments.strip():
-            return
-
-        if pytz is not None:
-            dt = datetime.now(pytz.UTC)
-            if self._timezone is not None:
-                dt = dt.astimezone(self._timezone)
+    def _call(self, msg, args, errorSink=None):
+        if args.timezone is not None:
+            dt = datetime.now(args.timezone)
         else:
             dt = datetime.utcnow()
-        self.reply(msg, self._format_date(dt))
+
+        if args.locale is not None:
+            text = babel.dates.format_datetime(
+                dt,
+                locale=args.locale,
+                format=args.format
+            )
+        else:
+            text = self._format_date(dt)
+
+        self.reply(msg, text)
 
 class DiscordianDateTime:
     ST_TIBS_DAY = "St. Tib’s Day"
