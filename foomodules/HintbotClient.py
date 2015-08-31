@@ -36,7 +36,6 @@ class Weather(Base.ArgparseCommand):
                  **kwargs):
         super().__init__(command_name, **kwargs)
 
-        self.uri = service_uri
         self.peer = peer
         self.interval_pattern = interval_pattern
 
@@ -47,6 +46,15 @@ class Weather(Base.ArgparseCommand):
             nargs=2,
             help="Geocoordinates for which to retrieve a forecast. Specify as -c"
                  "lat lon"
+        )
+
+        self.argparse.add_argument(
+            "-s", "--service",
+            dest="uri",
+            metavar="URI",
+            default=service_uri,
+            help=\
+            "Service URI to request data from (default: {})".format(service_uri)
         )
 
         if default_coords is not None:
@@ -138,7 +146,7 @@ or a relative specifier (starting with a `+`) denoting the offset, for example:
         request["type"] = "get"
         request["weather_data"]["location"]["lat"] = lat
         request["weather_data"]["location"]["lon"] = lon
-        request["weather_data"]["from"] = self.uri
+        request["weather_data"]["from"] = args.uri
 
         start_time = time
         intervals = []
