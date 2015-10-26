@@ -50,12 +50,18 @@ class NumericDocumentMatcher(Base.MessageHandler):
     def __call__(self, msg, errorSink=None):
         contents = msg["body"]
 
+        found = set()
+
         for regex, document_format, converter in self.document_regexes:
             for match in regex.finditer(contents):
                 groups = match.groups()
                 groupdict = match.groupdict()
                 groups, groupdict = converter(groups, groupdict)
                 document_url = document_format.format(*groups, **groupdict)
+
+                if document_url in found:
+                    continue
+                found.add(document_url)
 
                 try:
                     iterable = iter(self.url_lookup.format_reply_to_url(
