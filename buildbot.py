@@ -361,17 +361,20 @@ class Build(Execute):
             submodules=[],
             commands=["make"],
             working_copy=None,
+            pull=True,
             **kwargs):
         super().__init__(name, *commands, **kwargs)
         self.submodules = submodules
         self.working_copy = working_copy
+        self.pull = pull
 
     def build_environment(self, log_func):
         return self.project.build_environment(
             log_func,
             self.branch,
             self.submodules,
-            working_copy=self.working_copy
+            working_copy=self.working_copy,
+            pull=pull
         )
 
     def _do_build(self, env):
@@ -412,13 +415,14 @@ class BuildAndMove(Build):
 
 
 class BuildEnvironment:
-    def __init__(self, tmp_dir, repo_url, branch, submodules, log_func):
+    def __init__(self, tmp_dir, repo_url, branch, submodules, log_func, pull=True):
         self.tmp_dir_context = None
         self.tmp_dir = tmp_dir
         self.repo_url = repo_url
         self.branch = branch
         self.submodules = submodules
         self.log_func = log_func
+        self.pull = pull
 
     def __enter__(self):
         def checked(*args, **kwargs):
@@ -437,7 +441,8 @@ class BuildEnvironment:
                 checked(["git", "clone", self.repo_url, self.tmp_dir])
 
             checked(["git", "checkout", self.branch])
-            checked(["git", "pull"])
+            if self.pull:
+                checked(["git", "pull"])
 
             for submodule in self.submodules:
                 checked(["git", "submodule", "init", submodule])
@@ -486,13 +491,15 @@ class Project:
             self.triggers = {}
 
     def build_environment(self, log_func, branch, submodules,
-            working_copy=None):
+                          working_copy=None,
+                          **kwargs):
         return BuildEnvironment(
             working_copy or self.working_copy,
             self.repository_url,
             branch,
             submodules,
-            log_func
+            log_func,
+            **kwargs
         )
 
     def __str__(self):
