@@ -374,7 +374,7 @@ class Build(Execute):
             self.branch,
             self.submodules,
             working_copy=self.working_copy,
-            pull=pull
+            pull=self.pull
         )
 
     def _do_build(self, env):
