@@ -436,7 +436,7 @@ class BuildEnvironment:
                 os.makedirs(self.tmp_dir)
             os.chdir(self.tmp_dir)
             if os.path.isdir(os.path.join(self.tmp_dir, ".git")):
-                checked(["git", "fetch", "origin"])
+                checked(["git", "fetch", "-t", "origin"])
             else:
                 checked(["git", "clone", self.repo_url, self.tmp_dir])
 
