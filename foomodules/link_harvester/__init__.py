@@ -131,12 +131,12 @@ class AuthTokenSupplier(Base.ArgparseCommand):
                                senderjid))
                 return
 
-            muc = muclinks.ensure_muc(ctx.session, str(msg["from"].bare))
+            muc_id = muclinks.ensure_muc(ctx.session, str(msg["from"].bare)).id
             key = ctx.create_ota_key(account)
 
         self.reply(
             msg,
             self.url_format.format(
                 key=muclinks.model.key_to_str(key),
-                muc_id=muc.id),
+                muc_id=muc_id),
             overrideMType="chat")
