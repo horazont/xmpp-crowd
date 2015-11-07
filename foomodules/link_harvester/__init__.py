@@ -131,7 +131,10 @@ class AuthTokenSupplier(Base.ArgparseCommand):
                                senderjid))
                 return
 
-            muc_id = muclinks.ensure_muc(ctx.session, str(msg["from"].bare)).id
+            if is_muc:
+                muc_id = muclinks.ensure_muc(ctx.session, str(msg["from"].bare)).id
+            else:
+                muc_id = 0
             key = ctx.create_ota_key(account)
 
         self.reply(
