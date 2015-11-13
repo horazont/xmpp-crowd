@@ -1,17 +1,15 @@
+import base64
 import logging
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import foomodules.Base as Base
-import foomodules.utils as utils
-
-import sqlalchemy.exc
-import sqlalchemy.orm.exc
 
 import muclinks
 import muclinks.model
 
 logger = logging.getLogger(__name__)
+
 
 class LinkHarvester(Base.XMPPObject):
     def __init__(self, controller, handlers, *,
@@ -29,7 +27,8 @@ class LinkHarvester(Base.XMPPObject):
         if document.media is None or document.media.blob is None:
             return
 
-        if metadata.url_parsed.netloc not in self.repost_harvested_link_domains:
+        if     (metadata.url_parsed.netloc not in
+                self.repost_harvested_link_domains):
             return
 
         if self.repost_url_template is None:
@@ -69,7 +68,8 @@ class LinkHarvester(Base.XMPPObject):
                 **kwargs)
 
             try:
-                self._post_link_if_repost_domain(msg_context, document, metadata)
+                self._post_link_if_repost_domain(
+                    msg_context, document, metadata)
             except Exception as err:
                 logger.warn("failed to repost link: %r", err)
 
@@ -78,8 +78,8 @@ class LinkHarvester(Base.XMPPObject):
             self.submit(msg_context, metadata)
         except Exception as err:
             logger.warn("during first attempt: (%s) %s",
-                         type(err).__name__,
-                         err)
+                        type(err).__name__,
+                        err)
         else:
             return
 
@@ -100,6 +100,7 @@ class AuthTokenSupplier(Base.ArgparseCommand):
         self.url_format = url_format
 
     def __call__(self, msg, arguments, errorSink=None):
+        print("!auth called")
         is_muc = msg["type"] == "groupchat"
         is_muc = is_muc or str(msg["from"].bare) in [
             roomjid
@@ -115,6 +116,7 @@ class AuthTokenSupplier(Base.ArgparseCommand):
 
         senderjid = str(senderjid.bare)
 
+        print(senderjid, is_muc)
         if not senderjid:
             self.reply(msg, "could not determine your JID")
             return
@@ -132,7 +134,10 @@ class AuthTokenSupplier(Base.ArgparseCommand):
                 return
 
             if is_muc:
-                muc_id = muclinks.ensure_muc(ctx.session, str(msg["from"].bare)).id
+                muc_id = muclinks.ensure_muc(
+                    ctx.session,
+                    str(msg["from"].bare)
+                ).id
             else:
                 muc_id = 0
             key = ctx.create_ota_key(account)
