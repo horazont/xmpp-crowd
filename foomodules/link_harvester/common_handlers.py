@@ -129,7 +129,7 @@ def imgur_handler(metadata):
             try:
                 if "shockwave-flash" in item["type"]:
                     continue
-                url = item.get("secure_url", item["url"])
+                url = item.get("secure_url", item["video"])
                 type_ = item["type"]
             except KeyError:
                 # something vital is missing, skip
@@ -139,9 +139,12 @@ def imgur_handler(metadata):
             if type_ == "video/mp4":
                 url = url.replace(".mp4", ".webm")
 
+            logger.debug("trying to fetch video from %r", url)
+
             try:
                 video_data, mime_type = _fetch_url(url)
             except DownloadError:
+                logger.warning("failed to fetch video from %r", url)
                 continue
 
             return {
