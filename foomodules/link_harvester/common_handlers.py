@@ -8,6 +8,8 @@ from bs4 import BeautifulSoup
 logger = logging.getLogger(__name__)
 WURSTBALL_RE = re.compile(r"^https?://(www\.)?wurstball\.de/[0-9]+/")
 
+MAX_DOWNLOAD = 200*1024*1024  # 200 MiB
+
 
 class DownloadError(Exception):
     pass
@@ -16,7 +18,9 @@ class DownloadError(Exception):
 def _fetch_url(url):
     try:
         response = urllib.request.urlopen(url, timeout=5)
-        data = response.read()
+        data = response.read(MAX_DOWNLOAD)
+        if response.read(1):  # still more data
+            raise DownloadError("over limit")
     except (socket.timeout,
             urllib.error.URLError,
             urllib.error.HTTPError) as err:
