@@ -120,6 +120,8 @@ def imgur_handler(metadata):
     if not metadata.mime_type == "text/html":
         return None
 
+    ret = opengraph_handler(metadata)
+
     try:
         soup = BeautifulSoup(metadata.buf)
         ogdata = _parse_opengraph(soup)
@@ -147,11 +149,12 @@ def imgur_handler(metadata):
                 logger.warning("failed to fetch video from %r", url)
                 continue
 
-            return {
+            ret.update({
                 "image_mime_type": mime_type,
                 "image_buffer": video_data,
                 "image_url": url
-            }
+            })
+            return ret
 
     except:
         logger.exception("fubar")
