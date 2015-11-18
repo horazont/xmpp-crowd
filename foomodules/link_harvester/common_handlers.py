@@ -220,6 +220,8 @@ def opengraph_handler(metadata):
     img_node = soup.head.find("meta", property="og:image")
     if img_node is not None:
         img_url = img_node["content"]
+        if img_url.endswith("?fb"):  # special handling for imgur
+            img_url = img_url[:-3]
         try:
             img_data, img_mime_type = _fetch_url(img_url)
         except DownloadError:
