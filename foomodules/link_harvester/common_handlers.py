@@ -15,9 +15,15 @@ class DownloadError(Exception):
     pass
 
 
-def _fetch_url(url):
+def _fetch_url(url, user_agent, referrer=None):
+    headers = {
+        "User-Agent": user_agent,
+    }
+    if referrer:
+        headers["Referrer"] = referrer
     try:
-        response = urllib.request.urlopen(url, timeout=5)
+        request = urllib.request.Request(url, headers=headers)
+        response = urllib.request.urlopen(request, timeout=5)
         data = response.read(MAX_DOWNLOAD)
         if response.read(1):  # still more data
             raise DownloadError("over limit")
@@ -89,13 +95,13 @@ def _parse_opengraph(soup):
     return objects
 
 
-def default_handler(metadata):
+def default_handler(metadata, user_agent=None):
     return {key: getattr(metadata, key) for key in
             ["original_url", "url", "title", "description",
              "human_readable_type", "mime_type"]}
 
 
-def wurstball_handler(metadata):
+def wurstball_handler(metadata, user_agent):
     if not WURSTBALL_RE.match(metadata.url):
         return None
 
@@ -105,7 +111,8 @@ def wurstball_handler(metadata):
     img_url = soup.find(id="content-main").img["src"]
 
     try:
-        img_data, mime_type = _fetch_url(img_url)
+        img_data, mime_type = _fetch_url(img_url, user_agent,
+                                         referrer=metadata.url)
     except DownloadError:
         return ret
 
@@ -118,13 +125,13 @@ def wurstball_handler(metadata):
     return ret
 
 
-def imgur_handler(metadata):
+def imgur_handler(metadata, user_agent):
     if not metadata.url_parsed.netloc.endswith("imgur.com"):
         return None
     if not metadata.mime_type == "text/html":
         return None
 
-    ret = opengraph_handler(metadata)
+    ret = opengraph_handler(metadata, user_agent)
 
     try:
         soup = BeautifulSoup(metadata.buf)
@@ -148,7 +155,8 @@ def imgur_handler(metadata):
             logger.debug("trying to fetch video from %r", url)
 
             try:
-                video_data, mime_type = _fetch_url(url)
+                video_data, mime_type = _fetch_url(url, user_agent,
+                                                   metadata.url)
             except DownloadError:
                 logger.warning("failed to fetch video from %r", url)
                 continue
@@ -166,11 +174,11 @@ def imgur_handler(metadata):
     return None
 
 
-def image_handler(metadata):
+def image_handler(metadata, user_agent):
     if not metadata.mime_type.startswith("image/"):
         return None
 
-    ret = default_handler(metadata)
+    ret = default_handler(metadata, user_agent)
 
     try:
         img_data = metadata.buf + metadata.response.read()
@@ -185,11 +193,11 @@ def image_handler(metadata):
     return ret
 
 
-def video_handler(metadata):
+def video_handler(metadata, user_agent):
     if not metadata.mime_type.startswith("video/"):
         return None
 
-    ret = default_handler(metadata)
+    ret = default_handler(metadata, user_agent)
 
     try:
         img_data = metadata.buf + metadata.response.read()
@@ -204,7 +212,7 @@ def video_handler(metadata):
     return ret
 
 
-def opengraph_handler(metadata):
+def opengraph_handler(metadata, user_agent):
     if not metadata.mime_type == "text/html":
         return None
 
@@ -223,7 +231,8 @@ def opengraph_handler(metadata):
         if img_url.endswith("?fb"):  # special handling for imgur
             img_url = img_url[:-3]
         try:
-            img_data, img_mime_type = _fetch_url(img_url)
+            img_data, img_mime_type = _fetch_url(img_url, user_agent,
+                                                 metadata.url)
         except DownloadError:
             return None
         kwargs.update({
@@ -240,7 +249,7 @@ def opengraph_handler(metadata):
         # the default handler
         kwargs["description"] = None
 
-    ret = default_handler(metadata)
+    ret = default_handler(metadata, user_agent)
     ret.update(kwargs)
 
     return ret

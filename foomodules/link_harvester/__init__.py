@@ -15,10 +15,12 @@ class LinkHarvester(Base.XMPPObject):
     def __init__(self, controller, handlers, *,
                  repost_harvested_link_domains=[],
                  repost_url_template=None,
+                 user_agent="foobot/1.0",
                  **kwargs):
         super().__init__(**kwargs)
         self.controller = controller
         self.handlers = handlers
+        self.user_agent = user_agent
         self.repost_harvested_link_domains = \
             list(repost_harvested_link_domains)
         self.repost_url_template = repost_url_template
@@ -54,7 +56,7 @@ class LinkHarvester(Base.XMPPObject):
             mucjid, nick, 'jid')
 
         for handler in self.handlers:
-            kwargs = handler(metadata)
+            kwargs = handler(metadata, self.user_agent)
 
             if kwargs is not None:
                 break
