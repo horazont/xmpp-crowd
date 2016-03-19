@@ -24,7 +24,7 @@ def _fetch_url(url):
     except (socket.timeout,
             urllib.error.URLError,
             urllib.error.HTTPError) as err:
-        logger.warn("Could not fetch url: {}".format(err))
+        logger.warn("Could not fetch url {!r}: {}".format(url, err))
         raise DownloadError from err
 
     mime_type = response.getheader("Content-Type")
