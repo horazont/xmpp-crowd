@@ -225,7 +225,7 @@ def opengraph_handler(metadata):
         try:
             img_data, img_mime_type = _fetch_url(img_url)
         except DownloadError:
-            return {}
+            return None
         kwargs.update({
             "image_url": img_url,
             "image_mime_type": img_mime_type,
