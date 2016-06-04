@@ -180,6 +180,7 @@ or a relative specifier (starting with a `+`) denoting the offset, for example:
             start_time = interval["start"]
             end_time = interval["end"]
             precipitation = interval["precipitation"]["value"]
+            prec_prob = interval["precipitation_probability"]["value"]
             wind_speed = interval["wind_speed"]["value"]
             temperature = interval["substanzas"][0]["value"]
             wind_direction = interval["wind_direction"]["value"]
@@ -189,13 +190,14 @@ or a relative specifier (starting with a `+`) denoting the offset, for example:
                 end_time,
                 temperature,
                 precipitation,
+                prec_prob,
                 wind_speed,
                 wind_direction))
 
         base_time = datetime.utcnow()
 
         for (start_time, end_time,
-             temperature, precipitation, wind_speed, wind_direction) in values:
+             temperature, precipitation, prec_prob, wind_speed, wind_direction) in values:
 
             start_offset = round(
                 (start_time - base_time).total_seconds() / 3600)
@@ -207,12 +209,13 @@ or a relative specifier (starting with a `+`) denoting the offset, for example:
 
             line = ("{timetag}: "
                     "{temp:.1f} °C, "
-                    "{prec:.1f} mm precipitation, "
+                    "{prec:.1f} mm precipitation ({precp:.0f}%), "
                     "{wind_speed:.1f} m/s (Bft: {wind_speed_bft:.0f}) {wind_bearing}").format(
                         timetag=timetag,
                         temp=hintmodules.weather.utils.kelvin_to_celsius(
                             temperature),
                         prec=precipitation,
+                        precp=prec_prob,
                         wind_speed=wind_speed,
                         wind_bearing=self.BEARING_ARROWS[round(wind_direction/45.)%8],
                         wind_speed_bft=mps_to_beaufort(wind_speed))
