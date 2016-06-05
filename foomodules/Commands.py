@@ -1044,7 +1044,7 @@ class DWDWarnings(Base.ArgparseCommand):
             self.reply(
                 msg,
                 "no warnings whose region matches {!r}".format(
-                    args.region
+                    region
                 )
             )
             return
