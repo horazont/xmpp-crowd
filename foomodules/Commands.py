@@ -1021,7 +1021,7 @@ class DWDWarnings(Base.ArgparseCommand):
         )
 
     def _call(self, msg, args, errorSink=None):
-        if len(args.region) < 2:
+        if len(args.region) <= 2:
             self.reply(msg, "won’t search for {!r}".format(args.region))
             return
 
