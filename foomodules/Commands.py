@@ -934,27 +934,44 @@ class DWDWarnings(Base.ArgparseCommand):
             "region",
             nargs="?",
             default=default_region_match,
+            help="Region to search in",
         )
+
         self.argparse.add_argument(
             "-l", "--date-locale",
             default=language,
+            help="Locale to use for timestamps and relative time deltas",
+            metavar="LOCALE",
         )
+
         self.argparse.add_argument(
             "-t", "--timezone",
             default=self.TZ,
             type=pytz.timezone,
+            help="Time zone to use for absolute timestamps",
+            metavar="TZ",
         )
+
         self.argparse.add_argument(
             "--absolute",
             action="store_false",
             dest="relative",
             default=True,
+            help="Show absolute timestamps instead of relative time deltas",
+        )
+
+        self.argparse.add_argument(
+            "--full",
+            default=False,
+            action="store_true",
+            help="Show full instructions from DWD",
         )
 
         self.argparse.add_argument(
             "--flush",
             default=False,
             action="store_true",
+            help="Flush the cache before querying (expensive and slow, use rarely)"
         )
 
         self._cache_timestamp = None
@@ -1034,7 +1051,7 @@ class DWDWarnings(Base.ArgparseCommand):
             )
         )
 
-    def _format_warning(self, warning, timezone, date_locale, relative):
+    def _format_warning(self, warning, timezone, date_locale, relative, full):
         start_dt = self.UTC.localize(
             datetime.utcfromtimestamp(warning["start"]/1000)
         )
@@ -1055,10 +1072,14 @@ class DWDWarnings(Base.ArgparseCommand):
                 date_locale,
                 timezone)
 
-        return "{} {}".format(
+        result = "{} {}".format(
             time_range,
             warning["event"],
         )
+        if full and not "VORABINFORMATION" in warning["event"]:
+            result += "\n"+warning["instruction"]
+
+        return result
 
     def _call(self, msg, args, errorSink=None):
         if len(args.region) >= 1023:
@@ -1105,7 +1126,8 @@ class DWDWarnings(Base.ArgparseCommand):
                 self._format_warning(warning,
                                      args.timezone,
                                      args.date_locale,
-                                     args.relative)
+                                     args.relative,
+                                     args.full)
                 for warning in region_warnings
             )
 
