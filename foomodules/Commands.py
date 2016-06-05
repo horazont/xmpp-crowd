@@ -961,14 +961,14 @@ class DWDWarnings(Base.ArgparseCommand):
         )
 
         self.argparse.add_argument(
-            "--full",
+            "-f", "--full",
             default=False,
             action="store_true",
             help="Show full instructions from DWD",
         )
 
         self.argparse.add_argument(
-            "--flush",
+            "-F", "--flush",
             default=False,
             action="store_true",
             help="Flush the cache before querying (expensive and slow, use rarely)"
