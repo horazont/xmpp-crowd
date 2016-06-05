@@ -1021,6 +1021,10 @@ class DWDWarnings(Base.ArgparseCommand):
         )
 
     def _call(self, msg, args, errorSink=None):
+        if len(args.region) < 2:
+            self.reply("won’t search for {!r}".format(args.region))
+            return
+
         warnings = self._query(args.region, flush=args.flush)
         warnings.sort(key=lambda x: x["regionName"])
 
