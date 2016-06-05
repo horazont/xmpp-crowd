@@ -944,6 +944,12 @@ class DWDWarnings(Base.ArgparseCommand):
             default=self.TZ,
             type=pytz.timezone,
         )
+        self.argparse.add_argument(
+            "--absolute",
+            action="store_false",
+            dest="relative",
+            default=True,
+        )
 
         self.argparse.add_argument(
             "--flush",
@@ -994,21 +1000,41 @@ class DWDWarnings(Base.ArgparseCommand):
 
         return matching_warnings
 
-    def _format_time_range(self, start, end, locale):
+    def _format_absolute_time_range(self, start, end, locale, timezone):
+        start = timezone.normalize(start)
+        end = timezone.normalize(end)
+
         if start.tzinfo != end.tzinfo or start.date() != end.date():
             # full format
-            return "{} – {}".format(
+            return "{} – {}:".format(
                 babel.dates.format_datetime(start, locale=locale),
                 babel.dates.format_datetime(end, locale=locale),
             )
 
-        return "{}, {} – {}".format(
+        return "{}, {} – {}:".format(
             babel.dates.format_date(start, locale=locale),
             babel.dates.format_time(start, locale=locale),
             babel.dates.format_time(end, locale=locale),
         )
 
-    def _format_warning(self, warning, timezone, date_locale):
+    def _format_relative_time_range(self, start, end, locale):
+        now = self.UTC.localize(datetime.utcnow())
+        starting_in = start - now
+        runs_for = end - start
+
+        return "{}: {}".format(
+            babel.dates.format_timedelta(
+                starting_in,
+                add_direction=True,
+                locale=locale,
+            ),
+            babel.dates.format_timedelta(
+                runs_for,
+                locale=locale,
+            )
+        )
+
+    def _format_warning(self, warning, timezone, date_locale, relative):
         start_dt = self.UTC.localize(
             datetime.utcfromtimestamp(warning["start"]/1000)
         )
@@ -1016,13 +1042,21 @@ class DWDWarnings(Base.ArgparseCommand):
             datetime.utcfromtimestamp(warning["end"]/1000)
         )
 
-        start_dt = timezone.normalize(start_dt)
-        end_dt = timezone.normalize(end_dt)
+        if relative:
+            time_range = self._format_relative_time_range(
+                start_dt,
+                end_dt,
+                date_locale,
+            )
+        else:
+            time_range = self._format_absolute_time_range(
+                start_dt,
+                end_dt,
+                date_locale,
+                timezone)
 
-        return "{}: {}".format(
-            self._format_time_range(start_dt,
-                                    end_dt,
-                                    date_locale),
+        return "{} {}".format(
+            time_range,
             warning["event"],
         )
 
@@ -1049,13 +1083,29 @@ class DWDWarnings(Base.ArgparseCommand):
             )
             return
 
-        for region, region_warnings in itertools.groupby(
-                warnings, lambda x: x["regionName"]):
+        grouped_warnings = [
+            (region, list(region_warnings))
+            for region, region_warnings in itertools.groupby(
+                    warnings, lambda x: x["regionName"])
+        ]
 
+        if len(grouped_warnings) > 4:
+            random.shuffle(grouped_warnings)
+            show = grouped_warnings[:10]
+            reply = "too many regions match: {}".format(", ".join(
+                region for region, _ in show
+            ))
+            if len(grouped_warnings) > 10:
+                reply += " and {} more".format(len(grouped_warnings) - 10)
+            self.reply(msg, reply)
+            return
+
+        for region, region_warnings in grouped_warnings:
             reply = "\n".join(
                 self._format_warning(warning,
                                      args.timezone,
-                                     args.date_locale)
+                                     args.date_locale,
+                                     args.relative)
                 for warning in region_warnings
             )
 
