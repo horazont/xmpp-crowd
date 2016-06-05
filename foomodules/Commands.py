@@ -12,6 +12,8 @@ import ipaddress
 import logging
 import calendar
 import html
+import json
+import itertools
 
 import requests
 
@@ -915,3 +917,130 @@ class Porn(Base.ArgparseCommand):
         else:
             self.reply(msg, ", ".join(self._fix_the_mess(entry["keyword"])
                                       for entry in entries))
+
+
+class DWDWarnings(Base.ArgparseCommand):
+    if pytz:
+        TZ = pytz.timezone("Europe/Berlin")
+        UTC = pytz.UTC
+
+    def __init__(self, default_region_match, command_name="!warnings",
+                 language="de_DE",
+                 cache_timeout=timedelta(seconds=300),
+                 **kwargs):
+        super().__init__(command_name, **kwargs)
+
+        self.argparse.add_argument(
+            "region",
+            nargs="?",
+            default=default_region_match,
+        )
+        self.argparse.add_argument(
+            "-l", "--date-locale",
+            default=language,
+        )
+        self.argparse.add_argument(
+            "-t", "--timezone",
+            default=self.TZ,
+            type=pytz.timezone,
+        )
+
+        self.argparse.add_argument(
+            "--flush",
+            default=False,
+            action="store_true",
+        )
+
+        self._cache_timestamp = None
+        self._cache = {}
+        self._cache_timeout = cache_timeout
+
+    def _fetch_raw(self, flush=False):
+        if (self._cache_timestamp is not None and not flush
+                and datetime.utcnow() - self._cache_timestamp < self._cache_timeout):
+            return self._cache
+
+        req = requests.get(
+            "http://www.dwd.de/DWD/warnungen/warnapp/json/warnings.json",
+            headers={
+                "User-Agent": "foorl/1.0"
+            }
+        )
+        data = req.text
+        data = data[data.find("{"):data.rfind("}")+1]
+        data = json.loads(data)
+
+        self._cache = data
+        self._cache_timestamp = datetime.utcnow()
+
+        return data
+
+    def _query(self, region_name_match, flush=False):
+        data = self._fetch_raw(flush=flush)
+
+        region_name_match = region_name_match.casefold()
+        matching_warnings = [
+            warning
+            for warning_list in data["warnings"].values()
+            for warning in warning_list
+            if region_name_match in warning["regionName"].casefold()
+        ]
+
+        return matching_warnings
+
+    def _format_time_range(self, start, end, locale):
+        if start.tzinfo != end.tzinfo or start.date() != end.date():
+            # full format
+            return "{} – {}".format(
+                babel.dates.format_datetime(start, locale=locale),
+                babel.dates.format_datetime(end, locale=locale),
+            )
+
+        return "{}, {} – {}".format(
+            babel.dates.format_date(start, locale=locale),
+            babel.dates.format_time(start, locale=locale),
+            babel.dates.format_time(end, locale=locale),
+        )
+
+    def _format_warning(self, warning, timezone, date_locale):
+        start_dt = self.UTC.localize(
+            datetime.utcfromtimestamp(warning["start"]/1000)
+        )
+        end_dt = self.UTC.localize(
+            datetime.utcfromtimestamp(warning["end"]/1000)
+        )
+
+        start_dt = timezone.normalize(start_dt)
+        end_dt = timezone.normalize(end_dt)
+
+        return "{}: {}".format(
+            self._format_time_range(start_dt,
+                                    end_dt,
+                                    date_locale),
+            warning["event"],
+        )
+
+    def _call(self, msg, args, errorSink=None):
+        warnings = self._query(args.region, flush=args.flush)
+        warnings.sort(key=lambda x: x["regionName"])
+
+        if not warnings:
+            self.reply(
+                msg,
+                "no warnings whose region matches {!r}".format(
+                    args.region
+                )
+            )
+            return
+
+        for region, region_warnings in itertools.groupby(
+                warnings, lambda x: x["regionName"]):
+
+            reply = "\n".join(
+                self._format_warning(warning,
+                                     args.timezone,
+                                     args.date_locale)
+                for warning in region_warnings
+            )
+
+            self.reply(msg, "{}\n{}".format(region, reply))
