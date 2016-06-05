@@ -981,6 +981,12 @@ class DWDWarnings(Base.ArgparseCommand):
         region_name_match = region_name_match.casefold()
         matching_warnings = [
             warning
+            for warning_list in data["vorabInformation"].values()
+            for warning in warning_list
+            if region_name_match in warning["regionName"].casefold()
+        ]
+        matching_warnings += [
+            warning
             for warning_list in data["warnings"].values()
             for warning in warning_list
             if region_name_match in warning["regionName"].casefold()
