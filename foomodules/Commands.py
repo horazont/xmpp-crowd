@@ -1008,6 +1008,10 @@ class DWDWarnings(Base.ArgparseCommand):
             for warning in warning_list
             if region_name_match in warning["regionName"].casefold()
         ]
+
+        for w in matching_warnings:
+            w["is_preliminary"] = True
+
         matching_warnings += [
             warning
             for warning_list in data["warnings"].values()
@@ -1051,7 +1055,9 @@ class DWDWarnings(Base.ArgparseCommand):
             )
         )
 
-    def _format_warning(self, warning, timezone, date_locale, relative, full):
+    def _format_warning(self, warning,
+                        timezone, date_locale, relative, full,
+                        has_actual):
         start_dt = self.UTC.localize(
             datetime.utcfromtimestamp(warning["start"]/1000)
         )
@@ -1076,7 +1082,7 @@ class DWDWarnings(Base.ArgparseCommand):
             time_range,
             warning["event"],
         )
-        if full and not "VORABINFORMATION" in warning["event"]:
+        if full and (not has_actual or not warning.get("is_preliminary", False)):
             result += "\n"+warning["instruction"]
 
         return result
@@ -1122,12 +1128,16 @@ class DWDWarnings(Base.ArgparseCommand):
             return
 
         for region, region_warnings in grouped_warnings:
+            has_actual = any(not warning.get("is_preliminary", False)
+                             for warning in region_warnings)
+
             reply = "\n".join(
                 self._format_warning(warning,
                                      args.timezone,
                                      args.date_locale,
                                      args.relative,
-                                     args.full)
+                                     args.full,
+                                     has_actual)
                 for warning in region_warnings
             )
 
