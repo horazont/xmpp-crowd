@@ -1023,6 +1023,11 @@ class DWDWarnings(Base.ArgparseCommand):
 
     def _format_absolute_time_range(self, start, end, locale, timezone):
         start = timezone.normalize(start)
+        if end is None:
+            return "{}:".format(
+                babel.dates.format_datetime(start, locale=locale),
+            )
+
         end = timezone.normalize(end)
 
         if start.tzinfo != end.tzinfo or start.date() != end.date():
@@ -1041,6 +1046,15 @@ class DWDWarnings(Base.ArgparseCommand):
     def _format_relative_time_range(self, start, end, locale):
         now = self.UTC.localize(datetime.utcnow())
         starting_in = start - now
+        if end is None:
+            return "{}:".format(
+                babel.dates.format_timedelta(
+                    starting_in,
+                    add_direction=True,
+                    locale=locale,
+                )
+            )
+
         runs_for = end - start
 
         return "{}: {}".format(
@@ -1061,9 +1075,13 @@ class DWDWarnings(Base.ArgparseCommand):
         start_dt = self.UTC.localize(
             datetime.utcfromtimestamp(warning["start"]/1000)
         )
-        end_dt = self.UTC.localize(
-            datetime.utcfromtimestamp(warning["end"]/1000)
-        )
+
+        if warning["end"] is not None:
+            end_dt = self.UTC.localize(
+                datetime.utcfromtimestamp(warning["end"]/1000)
+            )
+        else:
+            end_dt = None
 
         if relative:
             time_range = self._format_relative_time_range(
@@ -1083,7 +1101,16 @@ class DWDWarnings(Base.ArgparseCommand):
             warning["event"],
         )
         if full and (not has_actual or not warning.get("is_preliminary", False)):
-            result += "\n"+warning["instruction"]
+            parts = [
+                result,
+            ]
+            if warning["headline"]:
+                parts.append(warning["headline"])
+            if warning["instruction"]:
+                parts.append(warning["instruction"])
+            if len(parts) > 1:
+                parts.append("")
+            result = "\n".join(parts)
 
         return result
 
