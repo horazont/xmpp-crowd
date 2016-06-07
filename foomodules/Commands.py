@@ -1167,8 +1167,8 @@ class DWDWarnings(Base.ArgparseCommand):
                                      args.date_locale,
                                      args.relative,
                                      args.full,
-                                     has_actual).strip()
+                                     has_actual)
                 for warning in region_warnings
-            )
+            ).strip()
 
             self.reply(msg, "{}\n{}".format(region, reply))
