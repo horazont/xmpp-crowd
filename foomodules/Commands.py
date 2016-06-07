@@ -1108,7 +1108,8 @@ class DWDWarnings(Base.ArgparseCommand):
                 parts.append(warning["headline"])
             if warning.get("description"):
                 parts.append(warning["description"])
-            if warning["instruction"]:
+            if (warning["instruction"] and
+                    not warning.get("is_preliminary", False)):
                 parts.append(warning["instruction"])
             if len(parts) > 1:
                 parts.append("")
