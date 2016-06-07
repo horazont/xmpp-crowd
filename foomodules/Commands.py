@@ -1104,8 +1104,8 @@ class DWDWarnings(Base.ArgparseCommand):
             parts = [
                 result,
             ]
-            if warning["headline"]:
-                parts.append(warning["headline"])
+            # if warning["headline"]:
+            #     parts.append(warning["headline"])
             if warning.get("description"):
                 parts.append(warning["description"])
             if (warning["instruction"] and
