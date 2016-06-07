@@ -1164,7 +1164,7 @@ class DWDWarnings(Base.ArgparseCommand):
                                      args.date_locale,
                                      args.relative,
                                      args.full,
-                                     has_actual)
+                                     has_actual).strip()
                 for warning in region_warnings
             )
 
