@@ -952,12 +952,30 @@ class DWDWarnings(Base.ArgparseCommand):
             metavar="TZ",
         )
 
-        self.argparse.add_argument(
-            "--absolute",
-            action="store_false",
-            dest="relative",
-            default=True,
-            help="Show absolute timestamps instead of relative time deltas",
+        self.argparse.set_defaults(mode="mixed")
+        group = self.argparse.add_mutually_exclusive_group()
+        group.add_argument(
+            "-a", "--absolute",
+            action="store_const",
+            dest="mode",
+            const="absolute",
+            help="Show absolute timestamps only",
+        )
+
+        group.add_argument(
+            "-r", "--relative",
+            action="store_const",
+            dest="mode",
+            const="relative",
+            help="Show relative time deltas only",
+        )
+
+        group.add_argument(
+            "-m", "--mixed",
+            action="store_const",
+            dest="mode",
+            const="mixed",
+            help="Show mixed timestamps (default)",
         )
 
         self.argparse.add_argument(
@@ -1021,6 +1039,12 @@ class DWDWarnings(Base.ArgparseCommand):
 
         return matching_warnings
 
+    def _format_semishort_datetime(self, dt, locale):
+        return "{}, {}".format(
+            babel.dates.format_datetime(dt, format="long", locale=locale),
+            babel.dates.format_time(dt, format="short", locale=locale),
+        )
+
     def _format_absolute_time_range(self, start, end, locale, timezone):
         start = timezone.normalize(start)
         if end is None:
@@ -1041,6 +1065,66 @@ class DWDWarnings(Base.ArgparseCommand):
             babel.dates.format_date(start, locale=locale),
             babel.dates.format_time(start, locale=locale),
             babel.dates.format_time(end, locale=locale),
+        )
+
+    def _format_mixed_time_range(self, start, end, locale, timezone):
+        now = self.UTC.localize(datetime.utcnow())
+        now_tz = timezone.normalize(now)
+        starting_in = start - now
+        start_tz = timezone.normalize(start)
+        if end is None:
+            return "{} ({}):".format(
+                babel.dates.format_timedelta(starting_in,
+                                             add_direction=True,
+                                             locale=locale),
+                self._format_semishort_datetime(
+                    start_tz,
+                    locale=locale
+                ),
+            )
+
+        end_tz = timezone.normalize(end)
+
+        if (start_tz.tzinfo != end_tz.tzinfo or
+                start_tz.date() != end_tz.date()):
+            # full format
+            absolute_range = "{} – {}:".format(
+                self.format_semishort_datetime(
+                    start_tz,
+                    locale=locale,
+                ),
+                self.format_semishort_datetime(
+                    end_tz,
+                    locale=locale
+                ),
+            )
+
+        elif start_tz.date() != now_tz.date():
+            absolute_range = "{}, {} – {}:".format(
+                babel.dates.format_date(start, locale=locale),
+                babel.dates.format_time(start, format="short", locale=locale),
+                babel.dates.format_time(end, format="short", locale=locale),
+            )
+
+        else:
+            absolute_range = "{} – {}".format(
+                babel.dates.format_time(start, format="short", locale=locale),
+                babel.dates.format_time(end, format="short", locale=locale),
+            )
+
+        runs_for = end - start
+
+        return "{}: {} ({})".format(
+            babel.dates.format_timedelta(
+                starting_in,
+                add_direction=True,
+                locale=locale,
+            ),
+            babel.dates.format_timedelta(
+                runs_for,
+                locale=locale,
+            ),
+            absolute_range,
         )
 
     def _format_relative_time_range(self, start, end, locale):
@@ -1070,7 +1154,7 @@ class DWDWarnings(Base.ArgparseCommand):
         )
 
     def _format_warning(self, warning,
-                        timezone, date_locale, relative, full,
+                        timezone, date_locale, mode, full,
                         has_actual):
         start_dt = self.UTC.localize(
             datetime.utcfromtimestamp(warning["start"]/1000)
@@ -1083,14 +1167,20 @@ class DWDWarnings(Base.ArgparseCommand):
         else:
             end_dt = None
 
-        if relative:
+        if mode == "relative":
             time_range = self._format_relative_time_range(
                 start_dt,
                 end_dt,
                 date_locale,
             )
-        else:
+        elif mode == "absolute":
             time_range = self._format_absolute_time_range(
+                start_dt,
+                end_dt,
+                date_locale,
+                timezone)
+        else:
+            time_range = self._format_mixed_time_range(
                 start_dt,
                 end_dt,
                 date_locale,
@@ -1165,7 +1255,7 @@ class DWDWarnings(Base.ArgparseCommand):
                 self._format_warning(warning,
                                      args.timezone,
                                      args.date_locale,
-                                     args.relative,
+                                     args.mode,
                                      args.full,
                                      has_actual)
                 for warning in region_warnings
