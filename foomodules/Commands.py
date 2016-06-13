@@ -1101,15 +1101,24 @@ class DWDWarnings(Base.ArgparseCommand):
 
         elif start_tz.date() != now_tz.date():
             absolute_range = "{}, {} – {}:".format(
-                babel.dates.format_date(start, locale=locale),
-                babel.dates.format_time(start, format="short", locale=locale),
-                babel.dates.format_time(end, format="short", locale=locale),
+                babel.dates.format_date(start_tz,
+                                        locale=locale),
+                babel.dates.format_time(start_tz,
+                                        format="short",
+                                        locale=locale),
+                babel.dates.format_time(end_tz,
+                                        format="short",
+                                        locale=locale),
             )
 
         else:
             absolute_range = "{} – {}".format(
-                babel.dates.format_time(start, format="short", locale=locale),
-                babel.dates.format_time(end, format="short", locale=locale),
+                babel.dates.format_time(start_tz,
+                                        format="short",
+                                        locale=locale),
+                babel.dates.format_time(end_tz,
+                                        format="short",
+                                        locale=locale),
             )
 
         runs_for = end - start
