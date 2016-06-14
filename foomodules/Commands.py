@@ -1089,11 +1089,11 @@ class DWDWarnings(Base.ArgparseCommand):
                 start_tz.date() != end_tz.date()):
             # full format
             absolute_range = "{} – {}:".format(
-                self.format_semishort_datetime(
+                self._format_semishort_datetime(
                     start_tz,
                     locale=locale,
                 ),
-                self.format_semishort_datetime(
+                self._format_semishort_datetime(
                     end_tz,
                     locale=locale
                 ),
