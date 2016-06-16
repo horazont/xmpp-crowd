@@ -1041,7 +1041,7 @@ class DWDWarnings(Base.ArgparseCommand):
 
     def _format_semishort_datetime(self, dt, locale):
         return "{}, {}".format(
-            babel.dates.format_datetime(dt, format="long", locale=locale),
+            babel.dates.format_date(dt, format="long", locale=locale),
             babel.dates.format_time(dt, format="short", locale=locale),
         )
 
@@ -1088,7 +1088,7 @@ class DWDWarnings(Base.ArgparseCommand):
         if (start_tz.tzinfo != end_tz.tzinfo or
                 start_tz.date() != end_tz.date()):
             # full format
-            absolute_range = "{} – {}:".format(
+            absolute_range = "{} – {}".format(
                 self._format_semishort_datetime(
                     start_tz,
                     locale=locale,
@@ -1100,7 +1100,7 @@ class DWDWarnings(Base.ArgparseCommand):
             )
 
         elif start_tz.date() != now_tz.date():
-            absolute_range = "{}, {} – {}:".format(
+            absolute_range = "{}, {} – {}".format(
                 babel.dates.format_date(start_tz,
                                         locale=locale),
                 babel.dates.format_time(start_tz,
