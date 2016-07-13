@@ -1,5 +1,6 @@
 import logging
 import math
+import random
 import re
 import socket
 import time
@@ -15,6 +16,8 @@ except ImportError:
 from datetime import datetime, timedelta
 
 import foomodules.Base as Base
+
+from foomodules.excuses import EXCUSES
 
 from .parsers import *
 
@@ -237,10 +240,13 @@ class URLLookup(Base.MessageHandler):
                 return
             ctx = err.__context__
             cause = " ({})".format(ctx) if ctx is not None else ""
-            yield "could not open url {url}: {err}{cause}".format(
+            excuse = random.choice(EXCUSES)
+            excuse = excuse[0].lower() + excuse[1:]
+            yield "could not open url {url}: {err}{cause} (also, {excuse})".format(
                 url=ellipsize_text(url, 64),
                 err=err,
-                cause=cause)
+                cause=cause,
+                excuse=excuse)
             return
 
         yield from self.response_formatter(msg_context, metadata)
