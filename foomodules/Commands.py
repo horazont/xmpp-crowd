@@ -100,6 +100,17 @@ class Fnord(Base.MessageHandler):
         self.reply(msg, random.choice(self.fnordlist))
         return True
 
+
+class Excuse(Base.MessageHandler):
+    from foomodules.excuses import EXCUSES
+
+    def __call__(self, msg, arguments, errorSink=None):
+        if len(arguments.strip()) > 0:
+            return
+        self.reply(msg, random.choice(self.EXCUSES))
+        return True
+
+
 class Host(Base.ArgparseCommand):
     def __init__(self, command_name="!host", **kwargs):
         super().__init__(command_name, **kwargs)
