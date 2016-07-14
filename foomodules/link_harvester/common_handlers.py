@@ -148,10 +148,6 @@ def imgur_handler(metadata, user_agent):
                 # something vital is missing, skip
                 continue
 
-            # rewrite the video url
-            if type_ == "video/mp4":
-                url = url.replace(".mp4", ".webm")
-
             logger.debug("trying to fetch video from %r", url)
 
             try:
