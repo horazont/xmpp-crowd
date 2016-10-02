@@ -197,7 +197,11 @@ class CountDownCommand(Base.ArgparseCommand):
         if 'func' in args:
             args.func(msg, args, errorSink=errorSink)
         else:
-            for event in self.store.events.values():
+            events = sorted(
+                self.store.events.values(), 
+                key=lambda e: e.target_date
+            )
+            for event in events:
                 now = datetime.utcnow()
                 now = now.replace(tzinfo=pytz.utc)
                 Δt = event.target_date - now
