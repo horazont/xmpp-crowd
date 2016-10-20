@@ -121,10 +121,15 @@ class Games(Base.ArgparseCommand):
             uid1 = game["players"]["white"].get("userId", "anon")
             uid2 = game["players"]["black"].get("userId", "anon")
 
-            if game["color"] == "white":
-                vs = "{} vs. {} {}".format(WHITE, uid2, BLACK)
-            else:
-                vs = "{} vs. {} {}".format(BLACK, uid1, WHITE)
+            # if game["color"] == "white":
+            #     vs = "{} vs. {} {}".format(WHITE, uid2, BLACK)
+            # else:
+            #     vs = "{} vs. {} {}".format(BLACK, uid1, WHITE)
+
+            vs = "{} {} vs. {} {}".format(
+                WHITE, uid1,
+                BLACK, uid2
+            )
 
             status = game["status"]
 
