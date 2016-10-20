@@ -43,6 +43,8 @@ class Games(Base.ArgparseCommand):
         def username(s):
             if any(c in "&?/ " for c in s):
                 raise ValueError("not a valid user name")
+            if len(s) > 256:
+                raise ValueError("you can’t be serious")
             return s.casefold()
 
         self.argparse.add_argument(
@@ -89,7 +91,7 @@ class Games(Base.ArgparseCommand):
             return
 
         req = requests.get(
-            "https://lichess.org/api/user/{}/games".format(
+            "https://en.lichess.org/api/user/{}/games".format(
                 args.user,
             ),
             params={
