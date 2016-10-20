@@ -91,12 +91,12 @@ class Games(Base.ArgparseCommand):
         req = requests.get(
             "https://lichess.org/api/user/{}/games".format(
                 args.user,
-                params={
-                    "playing": str(int(args.in_progress)),
-                    "rated": str(int(args.rated)),
-                    "nb": str(args.amount),
-                }
-            )
+            ),
+            params={
+                "playing": str(int(args.in_progress)),
+                "rated": str(int(args.rated)),
+                "nb": str(args.amount),
+            }
         )
 
         if req.status_code == 429:
