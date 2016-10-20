@@ -156,12 +156,18 @@ class Games(Base.ArgparseCommand):
             except KeyError:
                 pass
             else:
-                lastmove_t = datetime.utcfromtimestamp(lastmove_t)
-                lastmove = babel.dates.format_timedelta(
-                    now - lastmove_t,
-                    format="short",
-                    locale="en_GB",
-                )
+                try:
+                    lastmove_t = datetime.utcfromtimestamp(
+                        lastmove_t/1000
+                    )
+                except ValueError:
+                    pass
+                else:
+                    lastmove = babel.dates.format_timedelta(
+                        now - lastmove_t,
+                        format="short",
+                        locale="en_GB",
+                    )
 
             items.append(
                 "{url} • {vs}, {status}, {variant} variant, "
