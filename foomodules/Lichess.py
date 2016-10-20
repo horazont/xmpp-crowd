@@ -3,6 +3,8 @@ import time
 
 from datetime import timedelta, datetime
 
+import babel.dates
+
 import foomodules.Base as Base
 
 
@@ -64,12 +66,24 @@ class Games(Base.ArgparseCommand):
             help="Limit to rated games"
         )
 
+        self.argparse.add_argument(
+            "-n",
+            dest="amount",
+            type=int,
+            default=3,
+            help="Number of games to fetch (up to 10, default: 3)"
+        )
+
     def _format_analysis(self, analysis):
         return "{blunder}/{mistake}/{inaccuracy}".format(
             **analysis
         )
 
     def _call(self, msg, args, errorSink=None):
+        if not (1 <= args.amount <= 10):
+            self.reply(msg, "invalid amount of games")
+            return
+
         if not check_and_set_ratelimit():
             self.reply(msg, "please wait a bit")
             return
@@ -77,6 +91,11 @@ class Games(Base.ArgparseCommand):
         req = requests.get(
             "https://lichess.org/api/user/{}/games".format(
                 args.user,
+                params={
+                    "playing": str(int(args.in_progress)),
+                    "rated": str(int(args.rated)),
+                    "nb": str(args.amount),
+                }
             )
         )
 
@@ -94,19 +113,16 @@ class Games(Base.ArgparseCommand):
             )
             return
 
-        # ♔♚
-
         items = []
+        now = datetime.utcnow()
         for game in req.json()["currentPageResults"]:
             uid1 = game["players"]["white"].get("userId", "anon")
             uid2 = game["players"]["black"].get("userId", "anon")
 
-            if uid1 == args.user:
+            if game["color"] == "white":
                 vs = "{} vs. {} {}".format(WHITE, uid2, BLACK)
-            elif uid2 == args.user:
-                vs = "{} vs. {} {}".format(BLACK, uid1, WHITE)
             else:
-                vs = "{} {} vs. {} {}".format(WHITE, uid1, uid2, BLACK)
+                vs = "{} vs. {} {}".format(BLACK, uid1, WHITE)
 
             status = game["status"]
 
@@ -134,13 +150,29 @@ class Games(Base.ArgparseCommand):
                     self._format_analysis(analysis))
                 )
 
+            lastmove = "never"
+            try:
+                lastmove_t = game["lastMoveAt"]
+            except KeyError:
+                pass
+            else:
+                lastmove_t = datetime.utcfromtimestamp(lastmove_t)
+                lastmove = babel.dates.format_timedelta(
+                    now - lastmove_t,
+                    format="short",
+                    locale="en_GB",
+                )
+
             items.append(
-                "{url} • {vs}, {status}, {variant} variant{misc}".format(
+                "{url} • {vs}, {status}, {variant} variant, "
+                "{nturns} turns ({lastmove}){misc}".format(
                     url="https://lichess.org/{}".format(game["id"]),
                     vs=vs,
                     status=status,
                     variant=game["variant"],
-                    misc=(" "+", ".join(misc)) if misc else ""
+                    nturns=game["turns"],
+                    lastmove=lastmove,
+                    misc=(", "+", ".join(misc)) if misc else ""
                 )
             )
 
