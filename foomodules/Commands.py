@@ -1285,15 +1285,10 @@ class DWDWarnings(Base.ArgparseCommand):
 
 
 class Discuss(Base.ArgparseCommand):
-    DATA = [
-        ["Mut ist",],
-        ["letztendlich",],
-        ["alternativlos.",],
-    ]
-
-    def __init__(self, command_name="!discuss"):
-        super().__init__()
+    def __init__(self, data, command_name="!discuss"):
+        super().__init__(command_name)
+        self.data = data
 
     def _call(self, msg, args, errorSink=None):
-        parts = map(random.choice, self.DATA)
+        parts = map(random.choice, self.data)
         self.reply(msg, " ".join(parts) + ".")
