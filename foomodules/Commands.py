@@ -1284,8 +1284,8 @@ class DWDWarnings(Base.ArgparseCommand):
             self.reply(msg, "{}\n{}".format(region, reply))
 
 
-class Discuss(Base.ArgparseCommand):
-    def __init__(self, data, command_name="!discuss"):
+class ComposeRandom(Base.ArgparseCommand):
+    def __init__(self, data, command_name):
         super().__init__(command_name)
         self.data = data
 
