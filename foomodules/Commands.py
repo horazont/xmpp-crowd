@@ -1282,3 +1282,18 @@ class DWDWarnings(Base.ArgparseCommand):
             ).strip()
 
             self.reply(msg, "{}\n{}".format(region, reply))
+
+
+class Discuss(Base.ArgparseCommand):
+    DATA = [
+        ["Mut ist",],
+        ["letztendlich",],
+        ["alternativlos.",],
+    ]
+
+    def __init__(self, command_name="!discuss"):
+        super().__init__()
+
+    def _call(self, msg, args, errorSink=None):
+        parts = map(random.choice, self.DATA)
+        self.reply(msg, " ".join(parts) + ".")
