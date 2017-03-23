@@ -72,7 +72,7 @@ class CommitNotify(Base.XMPPObject):
     AUTHOR_NODE = "{{{0}}}author".format(xmlns)
     NEW_REF_NODE = "{{{0}}}new-ref".format(xmlns)
 
-    DEFAULT_FORMAT = "{repo}/{branch} is now at {shortsha} (by {shortauthor}): {headline}"
+    DEFAULT_FORMAT = "{repo}:{branch} is now at {shortsha} (by {shortauthor}): {headline}"
     DEFAULT_DELETED_FORMAT = "{repo}/{branch} has been deleted"
 
     def __init__(self,
