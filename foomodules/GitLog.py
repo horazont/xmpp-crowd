@@ -53,7 +53,7 @@ class GitLog(Base.XMPPObject):
         if ref is None:
             logging.warn("Malformed git update: missing ref node")
 
-        repobranch = (repo, ref.split("/")[2])
+        repobranch = (repo, ref.split("/", 2)[-1])
 
         for key in (repobranch, (repo, None), None):
             try:
