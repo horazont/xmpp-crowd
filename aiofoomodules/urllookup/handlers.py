@@ -228,7 +228,7 @@ class HandlerGroup(AbstractHandler):
                 return True
 
 
-class OpengraphHandler(AbstractHandler):
+class OpenGraphHandler(AbstractHandler):
     async def __call__(self, document):
         if not hasattr(document, "html_tree"):
             return
