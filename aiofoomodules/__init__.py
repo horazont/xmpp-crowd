@@ -111,7 +111,7 @@ class MUC:
                 self.logger.debug("dropped message: is from self "
                                   "(via member object)")
                 return
-        elif message.from_ == self._room.me.occupantjid:
+        elif message.from_ == self._room.me.conversation_jid:
             self.logger.debug("dropped message: is from self "
                               "(via jid)")
             return
