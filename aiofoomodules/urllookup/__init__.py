@@ -32,13 +32,6 @@ class AbstractResponseFormatter(metaclass=abc.ABCMeta):
     def format_response(self, document, disambiguator=None):
         pass
 
-
-class CompactResponseFormatter(AbstractResponseFormatter):
-    def __init__(self, max_description_length=360, max_title_length=100):
-        super().__init__()
-        self.max_title_length = max_title_length
-        self.max_description_length = max_description_length
-
     def _format_size(self, document):
         return "{approx}{}".format(
             format_byte_count(document.size),
@@ -47,6 +40,13 @@ class CompactResponseFormatter(AbstractResponseFormatter):
                 handlers.SizeApproximation.ANNOUNCED_BY_SERVER: "≈",
             }.get(document.size_approximation, "")
         )
+
+
+class CompactResponseFormatter(AbstractResponseFormatter):
+    def __init__(self, max_description_length=360, max_title_length=100):
+        super().__init__()
+        self.max_title_length = max_title_length
+        self.max_description_length = max_description_length
 
     def format_response(self, document, disambiguator=None):
         parts = []
@@ -72,6 +72,35 @@ class CompactResponseFormatter(AbstractResponseFormatter):
                     document.description.strip(),
                     self.max_description_length
                 ))
+
+        if parts and disambiguator is not None:
+            parts.insert(0, "re <{}>: ".format(disambiguator))
+
+        if parts:
+            return ["".join(parts)]
+
+        return []
+
+
+class OnelineResponseFormatter(AbstractResponseFormatter):
+    def __init__(self, max_title_length=100):
+        super().__init__()
+        self.max_title_length = max_title_length
+
+    def format_response(self, document, disambiguator=None):
+        parts = []
+
+        if document.human_readable_type:
+            parts.append(document.human_readable_type)
+            if document.size is not None:
+                parts.append(" ({})".format(self._format_size(document)))
+        elif document.title:
+            parts.append("{}".format(self._format_size(document)))
+
+        if document.title is not None:
+            parts.append(": ")
+            parts.append(ellipsise_text(" ".join(document.title.split()),
+                                        self.max_title_length))
 
         if parts and disambiguator is not None:
             parts.insert(0, "re <{}>: ".format(disambiguator))
