@@ -116,6 +116,7 @@ class URLProcessor:
                  user_agent="aiofoorl/1.0",
                  max_prefetch=1024**2,
                  ssl_verify=True,
+                 disable_magic=False,
                  **kwargs
                  ):
         super().__init__(**kwargs)
@@ -143,7 +144,7 @@ class URLProcessor:
         self.mime_magic = None
         self.description_magic = None
 
-        if magic is not None:
+        if magic is not None and not disable_magic:
             self.mime_magic = magic.open(magic.MAGIC_MIME)
             if self.mime_magic.load() != 0:
                 self.logger.warning("failed to load mime magic")
