@@ -100,7 +100,7 @@ class HTMLHandler(AbstractHandler):
 
         description = ""
         for node in tree.iter(self.xhtml_meta):
-            if node.get("name").lower() == "description":
+            if node.get("name", "").lower() == "description":
                 description = node.get("content")
                 break
 
