@@ -55,12 +55,12 @@ class CompactResponseFormatter(AbstractResponseFormatter):
             parts.append("[{} {!r}] ".format(document.response.status,
                                              document.response.reason))
 
-        if document.human_readable_type is not None:
+        if document.human_readable_type:
             parts.append(document.human_readable_type)
             if document.size is not None:
                 parts.append(" ({})".format(self._format_size(document)))
-        else:
-            parts.append("({})".format(self._format_size(document)))
+        elif document.title:
+            parts.append("{}".format(self._format_size(document)))
 
         if document.title is not None:
             parts.append(": ")
