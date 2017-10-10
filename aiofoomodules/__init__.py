@@ -47,6 +47,7 @@ class MUCContext(aiofoomodules.context.AbstractMessageContext):
 class MUC:
     def __init__(self, mucjid, nick, *,
                  bind=[],
+                 filters=[],
                  max_queue_size=5):
         super().__init__()
         self._mucjid = mucjid
@@ -55,6 +56,7 @@ class MUC:
         self._queue = asyncio.Queue(
             maxsize=max_queue_size
         )
+        self._filters = list(filters)
         self.logger = logging.getLogger(__name__ + ".muc@" + str(self._mucjid))
 
     async def setup(self, main):
@@ -96,11 +98,26 @@ class MUC:
                         exc_info=True,
                     )
 
+    def _filter_message(self, message, member, source):
+        for filter_func in self._filters:
+            result = filter_func(self._room, message, member,  source)
+            if result is True or result is False:
+                return result
+        return True
+
     def _on_message(self, message, member, source, **kwargs):
         if member is not None:
             if member == self._room.me:
+                self.logger.debug("dropped message: is from self "
+                                  "(via member object)")
                 return
         elif message.from_ == self._room.me.occupantjid:
+            self.logger.debug("dropped message: is from self "
+                              "(via jid)")
+            return
+        if not self._filter_message(message, member, source):
+            self.logger.debug("dropped message: via filter chain (%s)",
+                              message)
             return
 
         ctx = MUCContext(self._client, self._room,
