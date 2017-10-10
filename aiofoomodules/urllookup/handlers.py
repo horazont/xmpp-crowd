@@ -203,6 +203,51 @@ class HTMLHandler(AbstractHandler):
             document.human_readable_type = "website"
 
 
+class HandlerGroup(AbstractHandler):
+    """
+    A handler group is execute in the order of declaration.
+
+    However, after the first handler returns a True result, the other handlers
+    in the handler group are skipped.
+
+    This can be used if one handler is more specific than other handlers, but
+    both would normally match.
+
+    It returns :data:`True` itself in that case. If no handler returns
+    :data:`True`, :data:`None` is returned.
+    """
+
+    def __init__(self, children=[], *, logger=None, **kwargs):
+        super().__init__(logger=logger, **kwargs)
+        self._children = list(children)
+
+    async def __call__(self, document):
+        for handler in self._children:
+            result = await handler(document)
+            if result:
+                return True
+
+
+class OpengraphHandler(AbstractHandler):
+    async def __call__(self, document):
+        if not hasattr(document, "html_tree"):
+            return
+
+        title_el = document.html_tree.find("meta", property="og:title")
+        try:
+            title = (title_el or {})["content"]
+        except KeyError:
+            return
+
+        description_el = document.html_tree.find("meta",
+                                                 property="og:description")
+        description = (description_el or {}).get("content")
+
+        document.title = title
+        document.description = description or document.description
+        return True
+
+
 class TweetHandler(AbstractHandler):
     TWEET_URL_RX = re.compile(
         r"https?://(mobile\.)?twitter\.com/[^/]+/status/(?P<id>[0-9]+)"
@@ -293,6 +338,8 @@ class TweetHandler(AbstractHandler):
                 document.html_tree,
                 tweet_id
             )
+        if info is None:
+            return
 
         name, text_el = info
 
@@ -306,6 +353,8 @@ class TweetHandler(AbstractHandler):
             document.title = "by {}".format(name)
         document.description = text_el.text.strip()
         document.human_readable_type = "tweet"
+
+        return True
 
 
 class PlainTextHandler(AbstractHandler):
