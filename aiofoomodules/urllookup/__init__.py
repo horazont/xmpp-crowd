@@ -358,6 +358,7 @@ class URLLookup(aiofoomodules.handlers.AbstractHandler):
                 lambda x: x[1],
                 match.groupdict().items()
             )))
+            url = url.rstrip(",)>")
             if url in seen:
                 continue
             seen.add(url)
