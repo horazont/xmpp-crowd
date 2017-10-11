@@ -1,8 +1,10 @@
 import abc
 import asyncio
 import contextlib
+import errno
 import ipaddress
 import logging
+import os
 import re
 import socket
 
@@ -117,12 +119,14 @@ class Connector(aiohttp.TCPConnector):
         self._deny_networks = deny_networks
 
     def _allow_host(self, host):
-        if host["family"] in (socket.AF_INET, socket.AF_INET6):
+        try:
             address = ipaddress.ip_address(host["host"])
-            if any(address in network for network in self._deny_networks):
-                return False
-        else:
+        except ValueError:
             return False
+
+        if any(address in network for network in self._deny_networks):
+            return False
+
         return True
 
     async def _resolve_host(self, host, port):
@@ -133,7 +137,8 @@ class Connector(aiohttp.TCPConnector):
             if self._allow_host(hinfo)
         ]
         if not results:
-            raise PermissionError("not allowed to access this destination")
+            raise PermissionError(errno.ENETUNREACH,
+                                  os.strerror(errno.ENETUNREACH))
         return results
 
 
@@ -342,6 +347,14 @@ class URLLookup(aiofoomodules.handlers.AbstractHandler):
 
         return response_messages
 
+    def _format_exc(self, exc):
+        if isinstance(exc, aiohttp.ClientConnectorError):
+            if exc.errno:
+                return os.strerror(exc.errno)
+        elif isinstance(exc, aiohttp.ClientError):
+            return str(exc)
+        return "internal error"
+
     async def process_urls(self, ctx, message, urls):
         ""
         with contextlib.ExitStack() as stack:
@@ -361,13 +374,8 @@ class URLLookup(aiofoomodules.handlers.AbstractHandler):
             for fut in futures:
                 if fut.exception():
                     exc = fut.exception()
-                    msg = str(exc)
-                    if msg:
-                        msg = ": " + msg
-                    ctx.reply("request error: {}{}{}".format(
-                        type(exc).__module__,
-                        type(exc).__qualname__,
-                        msg
+                    ctx.reply("request error: {}".format(
+                        self._format_exc(exc)
                     ))
                     continue
 
