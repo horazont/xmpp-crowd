@@ -410,8 +410,7 @@ class BuildAndMove(Build):
             )
         else:
             move_from = env.tmp_dir
-        checked(["rm", "-rf", self.move_to])
-        checked(["mv", move_from, self.move_to])
+        checked(["rsync", "-raHAPSEXy", "--delete-after", move_from, self.move_to])
 
 
 class BuildEnvironment:
