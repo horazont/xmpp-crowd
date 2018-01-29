@@ -28,9 +28,9 @@ class MUCContext(aiofoomodules.context.AbstractMessageContext):
                 nick = self.related_occupant.nick
             else:
                 nick = self.related_stanza.from_.resource
-            self._set_body(msg, body, nick=nick)
+            aiofoomodules.context.set_body(msg, body, nick=nick)
         else:
-            self._set_body(msg, body)
+            aiofoomodules.context.set_body(msg, body)
 
         self.muc.send_message(msg)
 
@@ -142,6 +142,13 @@ class MUC:
             self.logger.debug(
                 "submitted %d tasks to worker; current queue size = %d",
                 len(tasks), self._queue.qsize())
+
+    def emit_message(self, body, nicks=None):
+        msg = aioxmpp.Message(
+            type_=aioxmpp.MessageType.GROUPCHAT,
+        )
+        aiofoomodules.context.set_body(msg, body, nick=nicks)
+        self._room.send_message(msg)
 
     async def teardown(self):
         self._worker.cancel()
