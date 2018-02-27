@@ -327,6 +327,7 @@ class URLLookup(aiofoomodules.handlers.AbstractHandler):
         self.formatter = response_formatter
         self.max_urls_per_post = max_urls_per_post
         self.timeout = timeout
+        self.skip_keyword = skip_keyword
 
     async def process_url(self, ctx, message, session, url, disambiguate):
         ""
@@ -387,6 +388,8 @@ class URLLookup(aiofoomodules.handlers.AbstractHandler):
 
     def analyse_message(self, ctx, message):
         body = get_simple_body(message)
+        if body.strip().startswith(self.skip_keyword):
+            return
 
         seen = set()
         urls = []
