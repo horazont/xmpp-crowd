@@ -2,7 +2,7 @@ import abc
 import collections.abc
 
 
-def set_body(self, msg, body, *, nick=None):
+def set_body(msg, body, *, nick=None):
     """
     Set the body of the :class:`aioxmpp.stanza.Message` `msg` to the given
     `body`.
