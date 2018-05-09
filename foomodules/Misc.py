@@ -15,6 +15,30 @@ class Pong(Base.MessageHandler):
             return True
 
 
+class AntiVong(Base.MessageHandler):
+    MATCHES = [
+        re.compile(r"\w+\s+\w+\s+1\s+\w+"),
+        re.compile(r"\bvong\b"),
+    ]
+
+    def __call__(self, msg, errorSink=None):
+        lines = msg["body"].lower().split("\n")
+        for line in lines:
+            if line.strip().startswith(">"):
+                continue
+
+            for rx in self.MATCHES:
+                if rx.search(line):
+                    break
+            else:
+                continue
+            break
+        else:
+            return
+
+        self.reply(msg, "Go vong yourself!")
+
+
 class IgnoreList(Base.MessageHandler):
     def __init__(self, message="I will ignore you.",
                  initial=[], **kwargs):
