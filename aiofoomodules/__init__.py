@@ -76,6 +76,10 @@ class MUC:
         )
 
         self._room.on_message.connect(self._on_message)
+
+        for bind in self._bind:
+            await bind.setup(self._client)
+
         self._worker = asyncio.ensure_future(self._run())
         self._worker.add_done_callback(
             functools.partial(
