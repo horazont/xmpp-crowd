@@ -36,10 +36,10 @@ class MUCContext(aiofoomodules.context.AbstractMessageContext):
 
     def reply_direct(self, body):
         msg = aioxmpp.stanza.Message(
-            to=self.related_occupant.occupantjid,
+            to=self.related_occupant.conversation_jid,
             type_="chat",
         )
-        self._set_body(msg, body)
+        aiofoomodules.context.set_body(msg, body)
 
         self.client.stream.enqueue_stanza(msg)
 
