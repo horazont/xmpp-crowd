@@ -1,9 +1,27 @@
+from datetime import timedelta
+
 import aioxmpp
 import aioxmpp.forms
+import aioxmpp.xso
 
 from .handlers import ArgparseCommandHandler
 
 from . import argparse_types
+
+
+@aioxmpp.IQ.as_payload_class
+class _UptimeQuery(aioxmpp.xso.XSO):
+    TAG = "jabber:iq:last", "query"
+
+    seconds = aioxmpp.xso.Attr(
+        "seconds",
+        type_=aioxmpp.xso.Integer(),
+        default=None,
+    )
+
+    message = aioxmpp.xso.Text(
+        default=None,
+    )
 
 
 def _find_form(exts):
@@ -91,3 +109,60 @@ class VersionCommand(ArgparseCommandHandler):
             info.version or "unknown",
             info.os or "unknown",
         ))
+
+
+class UptimeCommand(ArgparseCommandHandler):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._parser.add_argument(
+            "target",
+            type=argparse_types.jid,
+        )
+
+    async def setup(self, client: aioxmpp.Client):
+        self._client = client
+
+    async def _execute(self, ctx, args):
+        try:
+            uptime = await self._client.send(
+                aioxmpp.IQ(
+                    to=args.target,
+                    type_=aioxmpp.IQType.GET,
+                    payload=_UptimeQuery(),
+                )
+            )
+        except aioxmpp.errors.XMPPError as exc:
+            ctx.reply(
+                "failed to query {}: {}".format(
+                    args.target, str(exc),
+                )
+            )
+            return
+
+        if uptime.seconds is None:
+            ctx.reply(
+                "invalid reply from {} (@seconds is unset)".format(
+                    args.target,
+                )
+            )
+            return
+
+        message = uptime.message
+        running_for = timedelta(seconds=uptime.seconds)
+
+        if message:
+            ctx.reply("{}: {} ({})".format(
+                args.target,
+                message,
+                running_for
+            ))
+        elif args.target.is_domain:
+            ctx.reply("{}: up for {}".format(
+                args.target,
+                running_for,
+            ))
+        else:
+            ctx.reply("{}: last activity {} ago".format(
+                args.target,
+                running_for,
+            ))
