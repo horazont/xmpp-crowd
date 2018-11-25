@@ -29,6 +29,11 @@ from aiofoomodules.utils import (
 from . import handlers
 
 
+def is_html_mime_type(mime_type):
+    return mime_type[:2] in [("text", "html"),
+                             ("application", "xhtml+xml")]
+
+
 class AbstractResponseFormatter(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def format_response(self, document, disambiguator=None):
@@ -59,7 +64,8 @@ class CompactResponseFormatter(AbstractResponseFormatter):
 
         if document.human_readable_type:
             parts.append(document.human_readable_type)
-            if document.size is not None:
+            if (document.size is not None and
+                    not is_html_mime_type(document.mime_type)):
                 parts.append(" ({})".format(self._format_size(document)))
         elif document.title:
             parts.append("{}".format(self._format_size(document)))
@@ -94,7 +100,8 @@ class OnelineResponseFormatter(AbstractResponseFormatter):
 
         if document.human_readable_type:
             parts.append(document.human_readable_type)
-            if document.size is not None:
+            if (document.size is not None and
+                    not is_html_mime_type(document.mime_type)):
                 parts.append(" ({})".format(self._format_size(document)))
         elif document.title:
             parts.append("{}".format(self._format_size(document)))
