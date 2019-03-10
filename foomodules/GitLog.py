@@ -79,6 +79,7 @@ class CommitNotify(Base.XMPPObject):
                  to_jids=[],
                  fmt=DEFAULT_FORMAT,
                  delfmt=DEFAULT_DELETED_FORMAT,
+                 announce_deletes=True,
                  ignore_branches=[],
                  skip_others=False,
                  **kwargs):
@@ -88,18 +89,21 @@ class CommitNotify(Base.XMPPObject):
         self.delfmt = delfmt
         self.skip_others = skip_others
         self.ignore_branches = ignore_branches
+        self.announce_deletes = announce_deletes
 
     def __call__(self, item, repo, branch):
         for pattern in self.ignore_branches:
             if isinstance(pattern, str):
                 if pattern == branch:
-                    return
+                    return False
             elif pattern.match(branch):
-                return
+                return False
 
         new_ref = item.find(self.NEW_REF_NODE)
 
         if new_ref is None:
+            if not self.announce_deletes:
+                return True
             msg = self.delfmt.format(
                 repo=repo,
                 branch=branch)
