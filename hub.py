@@ -1,7 +1,17 @@
+import ssl
+
 from sleekxmpp import ClientXMPP
 
 import logging
 logger = logging.getLogger(__name__)
+
+# SleekXMPP is stupid and forces PROTOCOL_TLSv1, ignoring
+# that proper control of the TLS protocol version is done
+# by using SSLv23 and then selecting which to use.
+#
+# Since the OS guards us against using SSLv2/3 or TLS < 1.2
+# we monkey patch here.
+ssl.PROTOCOL_TLSv1 = ssl.PROTOCOL_SSLv23
 
 class HubBot(ClientXMPP):
     HUB = "hub.sotecware.net"
