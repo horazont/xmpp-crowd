@@ -51,8 +51,8 @@ class LinkHarvester(Base.XMPPObject):
 
     def submit(self, msg_context, metadata):
         posted = datetime.utcnow()
-        mucjid = msg_context["from"].bare
-        nick = msg_context["from"].resource
+        mucjid = sleekxmpp.JID(msg_context["from"]).bare
+        nick = sleekxmpp.JID(msg_context["from"]).resource
 
         senderjid = self.XMPP.muc.getJidProperty(
             mucjid, nick, 'jid')
@@ -106,26 +106,26 @@ class AuthTokenSupplier(Base.ArgparseCommand):
     def __call__(self, msg, arguments, errorSink=None):
         print("!auth called")
         is_muc = msg["type"] == "groupchat"
-        is_muc = is_muc or str(msg["from"].bare) in [
+        is_muc = is_muc or str(sleekxmpp.JID(msg["from"]).bare) in [
             roomjid
             for roomjid, _ in self.XMPP.config.rooms]
 
         if is_muc:
             senderjid = self.XMPP.muc.getJidProperty(
-                msg["from"].bare,
-                msg["from"].resource,
+                sleekxmpp.JID(msg["from"]).bare,
+                sleekxmpp.JID(msg["from"]).resource,
                 'jid')
         else:
             senderjid = msg["from"]
 
-        senderjid = str(senderjid.bare)
+        senderjid = str(sleekxmpp.JID(senderjid).bare)
 
         print(senderjid, is_muc)
         if not senderjid:
             self.reply(msg, "could not determine your JID")
             return
 
-        sendernick = msg["from"].resource
+        sendernick = sleekxmpp.JID(msg["from"]).resource
 
         with self.controller.with_new_session() as ctx:
             account = ctx.get_account_for_jid(
@@ -140,7 +140,7 @@ class AuthTokenSupplier(Base.ArgparseCommand):
             if is_muc:
                 muc_id = muclinks.ensure_muc(
                     ctx.session,
-                    str(msg["from"].bare)
+                    str(sleekxmpp.JID(msg["from"]).bare)
                 ).id
             else:
                 muc_id = 0
