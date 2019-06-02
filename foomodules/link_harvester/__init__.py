@@ -3,6 +3,8 @@ import logging
 
 from datetime import datetime
 
+import sleekxmpp
+
 import foomodules.Base as Base
 
 import muclinks
@@ -64,7 +66,7 @@ class LinkHarvester(Base.XMPPObject):
         with self.controller.with_new_session() as ctx:
             document = ctx.post_link(
                 mucjid,
-                str(senderjid.bare),
+                str(sleekxmpp.JID(senderjid).bare),
                 nick,
                 timestamp=posted,
                 **kwargs)
