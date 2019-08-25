@@ -136,8 +136,8 @@ class Connector(aiohttp.TCPConnector):
 
         return True
 
-    async def _resolve_host(self, host, port):
-        results = await super()._resolve_host(host, port)
+    async def _resolve_host(self, host, port, *args, **kwargs):
+        results = await super()._resolve_host(host, port, *args, **kwargs)
         results = [
             hinfo
             for hinfo in results
@@ -365,9 +365,7 @@ class URLLookup(aiofoomodules.handlers.AbstractHandler):
 
     async def process_urls(self, ctx, message, urls):
         ""
-        with contextlib.ExitStack() as stack:
-            session = stack.enter_context(self.url_processor.make_session())
-
+        async with self.url_processor.make_session() as session:
             futures = [
                 asyncio.ensure_future(
                     asyncio.wait_for(
