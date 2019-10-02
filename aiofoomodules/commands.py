@@ -133,7 +133,7 @@ class PingCommand(ArgparseCommandHandler):
         except aioxmpp.errors.XMPPError as exc:
             t1 = time.monotonic()
             ctx.reply(
-                "failed to ping {} (rtt {:.3f)s) {}".format(
+                "failed to ping {} (rtt {:.3f}s) {}".format(
                     args.target, t1 - t0, str(exc)
                 )
             )
