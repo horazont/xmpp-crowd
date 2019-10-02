@@ -1,7 +1,10 @@
+import time
+
 from datetime import timedelta
 
 import aioxmpp
 import aioxmpp.forms
+import aioxmpp.ping
 import aioxmpp.xso
 
 from .handlers import ArgparseCommandHandler
@@ -108,6 +111,39 @@ class VersionCommand(ArgparseCommandHandler):
             info.name or "unknown",
             info.version or "unknown",
             info.os or "unknown",
+        ))
+
+
+class PingCommand(ArgparseCommandHandler):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._parser.add_argument(
+            "target",
+            type=argparse_types.jid,
+        )
+
+    async def setup(self, client: aioxmpp.Client):
+        self._client = client
+
+    async def _execute(self, ctx, args):
+        t0 = time.monotonic()
+        try:
+            info = await aioxmpp.ping.ping(self._client.stream,
+                                           args.target)
+        except aioxmpp.errors.XMPPError as exc:
+            t1 = time.monotonic()
+            ctx.reply(
+                "failed to ping {} (rtt {:.3f)s) {}".format(
+                    args.target, t1 - t0, str(exc)
+                )
+            )
+            return
+
+        t1 = time.monotonic()
+
+        ctx.reply("{}: rtt {:.3f}s".format(
+            args.target,
+            t1 - t0
         ))
 
 
