@@ -48,7 +48,7 @@ class AbstractHandler(metaclass=abc.ABCMeta):
             ]))
 
     @abc.abstractmethod
-    async def __call__(self, document):
+    async def __call__(self, document, processor, session):
         pass
 
 
@@ -131,7 +131,7 @@ class HTMLHandler(AbstractHandler):
 
         return None
 
-    async def __call__(self, document):
+    async def __call__(self, document, processor, session):
         if document.mime_type is not None:
             if document.mime_type[:2] not in [
                     ("text", "html"),
@@ -221,15 +221,15 @@ class HandlerGroup(AbstractHandler):
         super().__init__(logger=logger, **kwargs)
         self._children = list(children)
 
-    async def __call__(self, document):
+    async def __call__(self, document, processor, session):
         for handler in self._children:
-            result = await handler(document)
+            result = await handler(document, processor, session)
             if result:
                 return True
 
 
 class OpenGraphHandler(AbstractHandler):
-    async def __call__(self, document):
+    async def __call__(self, document, processor, session):
         if not hasattr(document, "html_tree"):
             return
 
@@ -316,7 +316,7 @@ class TweetHandler(AbstractHandler):
 
         return name, text_p
 
-    async def __call__(self, document):
+    async def __call__(self, document, processor, session):
         match = self.TWEET_URL_RX.match(str(document.url))
 
         if match is None:
@@ -362,7 +362,7 @@ class PlainTextHandler(AbstractHandler):
         super().__init__(**kwargs)
         self.max_length = max_length
 
-    async def __call__(self, document):
+    async def __call__(self, document, processor, session):
         if (document.mime_type is not None and
                 document.mime_type[:2] != ("text", "plain")):
             return

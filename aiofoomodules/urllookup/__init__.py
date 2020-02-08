@@ -275,7 +275,7 @@ class URLProcessor:
 
             for handler in self.handlers:
                 try:
-                    await handler(document)
+                    await handler(document, self, http_session)
                 except asyncio.CancelledError:
                     raise
                 except Exception:
