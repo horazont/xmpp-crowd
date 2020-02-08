@@ -327,6 +327,17 @@ class TweetHandler(AbstractHandler):
             # can’t work with that
             return
 
+        if match.group(1):
+            # mobile link, rewrite to be non-mobile and retry
+            url = str(document.url).replace("mobile.", "", 1)
+            print("REWRITING:", document.url, "->", url)
+            new_document = await processor.read_document(url, session)
+            document.title = new_document.title
+            document.description = new_document.description
+            document.original_url = document.url
+            document.url = url
+            return True
+
         tweet_id = match.groupdict()["id"]
 
         info = self._extract_mobile(
