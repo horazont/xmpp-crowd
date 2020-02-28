@@ -158,6 +158,7 @@ class URLProcessor:
                  max_prefetch=1024**2,
                  ssl_verify=True,
                  disable_magic=False,
+                 deny_networks=[],
                  **kwargs
                  ):
         super().__init__(**kwargs)
@@ -167,7 +168,7 @@ class URLProcessor:
             type(self).__qualname__,
         ]))
 
-        self.deny_networks = []
+        self.deny_networks = list(deny_networks)
         if deny_private:
             self.deny_networks.append(ipaddress.ip_network("10.0.0.0/8"))
             self.deny_networks.append(ipaddress.ip_network("127.0.0.0/8"))
