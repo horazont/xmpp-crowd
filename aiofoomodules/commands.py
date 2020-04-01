@@ -208,7 +208,7 @@ class UptimeCommand(ArgparseCommandHandler):
 
 
 class RollCommand(AbstractCommandHandler):
-    _DICE_RX = re.compile("^(?P<amount>[0-9]+)?[wd](?P<faces>[0-9]+)$", re.I)
+    _DICE_RX = re.compile("^((?P<amount>[0-9]+)?[wd])?(?P<faces>[0-9]+)$", re.I)
 
     def __init__(self, *, aliases={}, rng=None, **kwargs):
         super().__init__()
@@ -231,7 +231,11 @@ class RollCommand(AbstractCommandHandler):
                     s
                 ))
             info = m.groupdict()
-            amount = int(info.get("amount", 1))
+            amount_s = info.get("amount")
+            if amount_s is None:
+                amount = 1
+            else:
+                amount = int(amount_s)
             faces = int(info["faces"])
             return cls(amount, faces)
 
