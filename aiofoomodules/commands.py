@@ -1,4 +1,7 @@
+import random
+import re
 import time
+import typing
 
 from datetime import timedelta
 
@@ -7,7 +10,7 @@ import aioxmpp.forms
 import aioxmpp.ping
 import aioxmpp.xso
 
-from .handlers import ArgparseCommandHandler
+from .handlers import AbstractCommandHandler, ArgparseCommandHandler
 
 from . import argparse_types
 
@@ -202,3 +205,72 @@ class UptimeCommand(ArgparseCommandHandler):
                 args.target,
                 running_for,
             ))
+
+
+class RollCommand(AbstractCommandHandler):
+    _DICE_RX = re.compile("^(?P<amount>[0-9]+)?[wd](?P<faces>[0-9]+)$", re.I)
+
+    def __init__(self, *, aliases={}, rng=None, **kwargs):
+        super().__init__()
+        self._aliases = aliases.copy()
+        self._rng = rng or random.SystemRandom()
+
+    class DiceSpec(typing.NamedTuple):
+        amount: int
+        faces: int
+
+        def roll(self, rng):
+            for i in range(self.amount):
+                yield rng.randint(1, self.faces)
+
+        @classmethod
+        def fromstr(cls, s):
+            m = RollCommand._DICE_RX.match(s.strip())
+            if not m:
+                raise ValueError("invalid dice spec: {!r}. expected XdY".format(
+                    s
+                ))
+            info = m.groupdict()
+            amount = int(info.get("amount", 1))
+            faces = int(info["faces"])
+            return cls(amount, faces)
+
+    def _parse(self, s):
+        try:
+            return self._aliases[s]
+        except KeyError:
+            pass
+        return [self.DiceSpec.fromstr(s)]
+
+    def parse_message(self, ctx, arg0: str, args: str) -> typing.Coroutine:
+        specs = []
+        try:
+            for arg in args.split():
+                specs.extend(self._parse(arg))
+        except ValueError as exc:
+            ctx.reply(str(exc))
+            return
+
+        if not specs:
+            ctx.reply("No dice!")
+            return
+
+        total_amount = sum(spec.amount for spec in specs)
+        total_max = sum(spec.faces for spec in specs)
+        if total_amount > 100 or total_max > 10000:
+            ctx.reply("That’s too much.")
+            return
+
+        return self._execute(ctx, specs)
+
+    async def _execute(self, ctx, ds: typing.Sequence[DiceSpec]):
+        rolls = []
+        for d in ds:
+            rolls.extend(d.roll(self._rng))
+
+        total = sum(rolls)
+
+        ctx.reply("{} (sum: {})".format(
+            " ".join(map(str, rolls)),
+            total,
+        ))
