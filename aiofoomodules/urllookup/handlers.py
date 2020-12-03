@@ -250,7 +250,7 @@ class OpenGraphHandler(AbstractHandler):
 
 class TweetHandler(AbstractHandler):
     TWEET_URL_RX = re.compile(
-        r"https?://(mobile\.)?twitter\.com/[^/]+/status/(?P<id>[0-9]+)"
+        r"https?://(mobile\.)?twitter\.com/(?P<suffix>[^/]+/status/(?P<id>[0-9]+))"
     )
 
     def _compose_name(self, fullname, username):
@@ -322,6 +322,14 @@ class TweetHandler(AbstractHandler):
         if match is None:
             # don’t bother
             return
+
+        new_url = "https://nitter.net/" + match.groupdict()["suffix"]
+        new_document = await processor.read_document(new_url, session)
+        document.title = new_document.title
+        document.description = new_document.description
+        document.original_url = document.url
+        document.url = new_url
+        return True
 
         if not hasattr(document, "html_tree"):
             # can’t work with that
