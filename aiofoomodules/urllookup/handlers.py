@@ -323,7 +323,7 @@ class TweetHandler(AbstractHandler):
             # don’t bother
             return
 
-        new_url = "https://nitter.net/" + match.groupdict()["suffix"]
+        new_url = "https://nitter.nixnet.services/" + match.groupdict()["suffix"]
         new_document = await processor.read_document(new_url, session)
         document.title = new_document.title
         document.description = new_document.description
