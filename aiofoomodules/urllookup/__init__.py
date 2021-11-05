@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import socket
+import typing
 
 try:
     import magic
@@ -306,14 +307,25 @@ class URLProcessor:
         )
 
 
-class URLLookup(aiofoomodules.handlers.AbstractHandler):
-    URL_RE = re.compile(
-        r"([<\(\[\{{](?P<url_paren>{url})[>\)\]\}}]|(\W)(?P<url_nonword>{url})\3|(?P<url_name>{url}))".format(
-            url=r"https?://\S+",
-        ),
-        re.I,
-    )
+URL_RE = re.compile(
+    r"([<\(\[\{{](?P<url_paren>{url})[>\)\]\}}]|(\W)(?P<url_nonword>{url})\3|(?P<url_name>{url}))".format(  # noqa:E501
+        url=r"https?://\S+",
+    ),
+    re.I,
+)
 
+
+def default_url_finder(s: str) -> typing.Iterable[str]:
+    for match in URL_RE.finditer(s):
+        _, url = next(iter(filter(
+            lambda x: x[1],
+            match.groupdict().items()
+        )))
+        url = url.rstrip(",)>")
+        yield url
+
+
+class URLLookup(aiofoomodules.handlers.AbstractHandler):
     def __init__(
             self,
             url_processor,
@@ -321,6 +333,7 @@ class URLLookup(aiofoomodules.handlers.AbstractHandler):
             timeout=timedelta(seconds=5),
             skip_keyword="@shutup",
             response_formatter=CompactResponseFormatter(),
+            url_finder=default_url_finder,
             max_urls_per_post=5,
             **kwargs):
         super().__init__(**kwargs)
@@ -336,6 +349,7 @@ class URLLookup(aiofoomodules.handlers.AbstractHandler):
         self.max_urls_per_post = max_urls_per_post
         self.timeout = timeout
         self.skip_keyword = skip_keyword
+        self.url_finder = url_finder
 
     async def process_url(self, ctx, message, session, url, disambiguate):
         ""
@@ -399,12 +413,7 @@ class URLLookup(aiofoomodules.handlers.AbstractHandler):
 
         seen = set()
         urls = []
-        for match in self.URL_RE.finditer(body):
-            _, url = next(iter(filter(
-                lambda x: x[1],
-                match.groupdict().items()
-            )))
-            url = url.rstrip(",)>")
+        for url in self.url_finder(body):
             if url in seen:
                 continue
             seen.add(url)
