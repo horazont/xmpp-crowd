@@ -156,5 +156,5 @@ class MUC:
 
     async def teardown(self):
         self._worker.cancel()
-        self._room.leave()
+        await self._room.leave()
         self._client = None
