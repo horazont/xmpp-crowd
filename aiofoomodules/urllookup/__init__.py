@@ -335,6 +335,7 @@ class URLLookup(aiofoomodules.handlers.AbstractHandler):
             response_formatter=CompactResponseFormatter(),
             url_finder=default_url_finder,
             max_urls_per_post=5,
+            silent_reject=False,
             **kwargs):
         super().__init__(**kwargs)
 
@@ -350,6 +351,7 @@ class URLLookup(aiofoomodules.handlers.AbstractHandler):
         self.timeout = timeout
         self.skip_keyword = skip_keyword
         self.url_finder = url_finder
+        self.silent_reject = silent_reject
 
     async def process_url(self, ctx, message, session, url, disambiguate):
         ""
@@ -421,9 +423,13 @@ class URLLookup(aiofoomodules.handlers.AbstractHandler):
 
         if self.max_urls_per_post is not None:
             if len(urls) > self.max_urls_per_post:
-                yield self.reject(ctx, "too many URLs (use at most {})".format(
-                    self.max_urls_per_post
-                ))
+                if not self.silent_reject:
+                    yield self.reject(
+                        ctx,
+                        "too many URLs (use at most {})".format(
+                            self.max_urls_per_post
+                        ),
+                    )
                 return
 
         if urls:
