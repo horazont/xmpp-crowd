@@ -261,7 +261,7 @@ class RollCommand(AbstractCommandHandler):
 
         total_amount = sum(spec.amount for spec in specs)
         total_max = sum(spec.faces for spec in specs)
-        if total_amount > 100 or total_max > 10000:
+        if total_amount > 100 or total_max > 2**16:
             ctx.reply("That’s too much.")
             return
 
