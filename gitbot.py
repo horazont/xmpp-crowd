@@ -12,12 +12,15 @@ from sleekxmpp.exceptions import IqError
 from sleekxmpp.xmlstream import ET
 import logging, warnings
 
+
 import os, select, sys, subprocess, socket
+
 
 class GitBot(HubBot):
     LOCALPART = "gitolite"
     PASSWORD = ""
     PUBSUB = "git@"+HubBot.FEED
+    BASE_PATH = "/var/lib/gitolite/repositories"
 
     xmlns = "http://hub.sotecware.net/xmpp/git-post-update"
 
@@ -94,14 +97,18 @@ five seconds")
             self.auto_reconnect = False
             self.disconnect(reconnect=False, wait=False)
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     logging.basicConfig(level=logging.ERROR,
                         format='%(levelname)-8s %(message)s')
 
-    repoPath = os.getcwd()
-    if repoPath[-1:] == "/":
-        repoPath = repoPath[:-1]
-    repo, _ = os.path.splitext(os.path.basename(repoPath))
+    repo_path = os.getcwd().rstrip("/")
+    if repo_path.startswith(GitBot.BASE_PATH):
+        repo_name = repo_path[len(GitBot.BASE_PATH)+1:]
+        if repo_name.endswith(".git"):
+            repo_name = repo_name[:-len(".git")]
+    else:
+        repo_name = os.path.splitext(os.path.basename(repo_path.rstrip("/")))
     refs = sys.argv[1:]
-    bot = GitBot(repo, repoPath, refs)
+    bot = GitBot(repo_name, repo_path, refs)
     bot.run()
