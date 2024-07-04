@@ -259,7 +259,7 @@ class URLLookup(Base.MessageHandler):
 
     def __call__(self, msg, errorSink=None):
         contents = msg["body"].strip()
-        if self.skip_keyword and contents.startswith(self.skip_keyword):
+        if self.skip_keyword and self.skip_keyword in contents:
             return
 
         urls = self.extract_urls(msg)

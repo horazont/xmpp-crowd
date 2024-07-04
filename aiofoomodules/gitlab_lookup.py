@@ -217,7 +217,6 @@ class GitLabLookup(aiofoomodules.handlers.AbstractHandler):
                           use_nick=False)
                 self._recent[req] = now
 
-
     def analyse_message(self, ctx, message):
         body = get_simple_body(message)
 
