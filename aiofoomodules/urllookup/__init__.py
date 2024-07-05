@@ -414,11 +414,15 @@ class URLLookup(aiofoomodules.handlers.AbstractHandler):
 
         seen = set()
         urls = []
-        for url in self.url_finder(body):
-            if url in seen:
+        for line in body.splitlines():
+            line = line.strip()
+            if line.startswith(">"):
                 continue
-            seen.add(url)
-            urls.append(url)
+            for url in self.url_finder(body):
+                if url in seen:
+                    continue
+                seen.add(url)
+                urls.append(url)
 
         if self.max_urls_per_post is not None:
             if len(urls) > self.max_urls_per_post:
