@@ -323,7 +323,10 @@ def default_url_finder(s: str) -> typing.Iterable[str]:
             lambda x: x[1],
             match.groupdict().items()
         )))
-        url = url.rstrip(",)>")
+        if '(' in url:
+            url = url.rstrip(",>")
+        else:
+            url = url.rstrip(",)>")
         yield url
 
 
