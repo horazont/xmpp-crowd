@@ -20,6 +20,5 @@ class Pong(aiofoomodules.handlers.AbstractHandler):
             yield self._reply(ctx, response)
             raise aiofoomodules.handlers.MessageHandled()
 
-    @asyncio.coroutine
-    def _reply(self, ctx, response):
+    async def _reply(self, ctx, response):
         ctx.reply(response)

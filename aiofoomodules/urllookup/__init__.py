@@ -159,6 +159,7 @@ class URLProcessor:
                  max_prefetch=1024**2,
                  ssl_verify=True,
                  disable_magic=False,
+                 disable_description_magic=False,
                  deny_networks=[],
                  **kwargs
                  ):
@@ -193,10 +194,11 @@ class URLProcessor:
                 self.logger.warning("failed to load mime magic")
                 self.mime_magic = None
 
-            self.description_magic = magic.open(magic.MAGIC_NONE)
-            if self.description_magic.load() != 0:
-                self.logger.warning("failed to load description magic")
-                self.description_magic = None
+            if not disable_description_magic:
+                self.description_magic = magic.open(magic.MAGIC_NONE)
+                if self.description_magic.load() != 0:
+                    self.logger.warning("failed to load description magic")
+                    self.description_magic = None
 
     def _make_connector(self):
         kwargs = {"deny_networks": self.deny_networks}

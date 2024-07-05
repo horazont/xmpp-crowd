@@ -94,7 +94,7 @@ class MUC:
             ctx, message, tasks = await self._queue.get()
             for task in tasks:
                 try:
-                    await task
+                    await asyncio.wait_for(task, timeout=10)
                 except Exception:
                     self.logger.exception(
                         "some handler failed to process message %r",
